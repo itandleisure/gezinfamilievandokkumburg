@@ -92,6 +92,11 @@ export function menuShopping(plan) {
 
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const todayIdx = () => (new Date().getDay() + 6) % 7;
+// Het menu loopt altijd 7 dagen vooruit vanaf vandaag. Elke weekdag komt er precies één keer in voor,
+// dus een dag die voorbij is, wordt vanzelf de dag van volgende week (het plan blijft per weekdag opgeslagen).
+const MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+const dateOf = d => { const t = new Date(); t.setHours(12, 0, 0, 0); t.setDate(t.getDate() + (d - todayIdx() + 7) % 7); return t; };
+const ahead = () => [0, 1, 2, 3, 4, 5, 6].map(i => { const d = (todayIdx() + i) % 7; return { d, date: dateOf(d) }; });
 
 export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten, getDefault = freshPlan, setDefault, getDishes, setDishes }) {
   let day = todayIdx(), dishOpen = false;
@@ -128,9 +133,9 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
     const eatenHtml = eaten.length ? `<details class="eaten"><summary>✓ Al gegeten vandaag: ${SLOTS.filter(s => eaten.includes(s.id)).map(s => s.name).join(', ')} <span>${nf(eatenK)} kcal · nog ${nf(Math.max(0, t.k - eatenK))} kcal te gaan</span></summary>${
       SLOTS.filter(s => eaten.includes(s.id)).map(s => `<div class="eaten-row"><span><b>${s.time}</b> ${s.name}</span><button class="btn" type="button" data-uneat="${s.id}">Terugzetten</button></div>`).join('')}</details>` : '';
     root.innerHTML = `
-      <div class="mtabs" role="tablist" aria-label="Dagen">${DAYS.map((n, d) => `<button class="mtab" role="tab" data-d="${d}" aria-selected="${d === day}"><b>${n.slice(0, 2)}${PADEL.includes(d) ? '<span class="pd" title="Padeldag"></span>' : ''}</b><small>${nf(tot(plan, d).k)} kcal</small></button>`).join('')}</div>
+      <div class="mtabs" role="tablist" aria-label="Komende 7 dagen">${ahead().map(({ d, date }, i) => `<button class="mtab" role="tab" data-d="${d}" aria-selected="${d === day}"><b>${i ? DAYS[d].slice(0, 2) + ' ' + date.getDate() : 'Vandaag'}${PADEL.includes(d) ? '<span class="pd" title="Padeldag"></span>' : ''}</b><small>${nf(tot(plan, d).k)} kcal</small></button>`).join('')}</div>
       <div class="msum">
-        <div class="mut" style="font-size:14px">${DAYS[day]}${PADEL.includes(day) ? ' · padel 11:00–12:00' : ''}${day === STRAND ? ' · strandzondag: groot broodje eind van de ochtend' : ''}</div>
+        <div class="mut" style="font-size:14px">${DAYS[day]} ${dateOf(day).getDate()} ${MONTHS[dateOf(day).getMonth()]}${PADEL.includes(day) ? ' · padel 11:00–12:00' : ''}${day === STRAND ? ' · strandzondag: groot broodje eind van de ochtend' : ''}</div>
         <div class="big">${nf(t.k)} <small>kcal · ${nf(t.p)} g eiwit</small></div>
         <div class="meter"><i style="width:${pct(t.k)}%;background:${st[1]}"></i><span class="zone" style="left:${pct(LO)}%;width:${pct(HI) - pct(LO)}%"></span></div>
         <div style="font-weight:600;color:${st[1]};font-size:14px">${st[0]}</div>
@@ -141,9 +146,10 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
           c.opts.map((o, i) => `<option value="${i}"${plan[day][c.key] === i ? ' selected' : ''}>${esc(o[0])}${o[1] ? ' · ' + esc(o[1]) : ''} (${o[2]} kcal)</option>`).join('')
         }</select><select class="q" data-q="${c.key}" aria-label="Portie ${c.label}">${
           QOPTS.map(([v, l]) => `<option value="${v}"${mul(plan, c, day) === v ? ' selected' : ''}>${l}</option>`).join('')
-        }</select><button class="all" type="button" data-all="${c.key}" title="Zet deze keuze en portie op alle 7 dagen">Hele week</button></div>`).join('')
+        }</select><button class="all" type="button" data-all="${c.key}" title="Zet deze keuze en portie op alle 7 dagen">Alle 7 dagen</button></div>`).join('')
       }</div></article>`).join('')}
       ${isToday && eaten.length === SLOTS.length ? '<p class="empty">Alles gegeten voor vandaag. Goed bezig!</p>' : ''}
+      <p class="mut" style="font-size:13px">Het menu loopt altijd 7 dagen vooruit, vanaf vandaag. Zet op boodschappenlijst neemt precies die 7 dagen mee.</p>
       <div class="actions"><button class="btn primary" type="button" id="menuToShop">Zet op boodschappenlijst</button><button class="btn" type="button" id="menuReset">Standaardmenu</button>${setDefault ? '<button class="btn" type="button" id="menuSaveDef">Maak standaardmenu</button>' : ''}</div>
       ${setDefault ? '<p class="mut" style="font-size:13px">Standaardmenu zet de hele week terug naar jullie vaste menu. Maak standaardmenu slaat de week zoals hij nu staat op als dat vaste menu.</p>' : ''}`;
     if (keepVal || keepFocus) { const n = root.querySelector('#dishName'); if (n) { n.value = keepVal; if (keepFocus) n.focus({ preventScroll: true }); } }

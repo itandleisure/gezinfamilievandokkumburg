@@ -12,7 +12,7 @@ De app opent op **Menu**: eten en afvallen staan voorop. De tabbalk heeft vier k
 | Tab | Bestand | Data |
 |---|---|---|
 | Lijst (boodschappen) | `app.js`, deel Boodschappen | `shopping_items`, `catalog_items` |
-| Menu (afvalschema Frans, ca. 1.600–1.950 kcal) | `menu.js` | `menu_plan` (id `frans-v2` = weekplan, `frans-v2-gegeten` = afgevinkte eetmomenten per datum, `frans-v2-standaard` = eigen standaardmenu via de knop "Maak standaardmenu"; zonder die rij geldt `freshPlan()`; zondag is daarin de "strandzondag" met een groot broodje, afwijkende standaardporties staan in `DEFQ`; `frans-v2-gerechten` = gedeelde ideeënlijst van vaste avondmaaltijden, met één tik op een dag te zetten; zonder die rij gelden de ingebouwde `DISHES` in `menu.js`) |
+| Menu (afvalschema Frans, ca. 1.600–1.950 kcal) | `menu.js` | `menu_plan` (id `frans-v2` = weekplan, `frans-v2-gegeten` = afgevinkte eetmomenten per datum, `frans-v2-standaard` = eigen standaardmenu via de knop "Maak standaardmenu"; zonder die rij geldt `freshPlan()`; zondag is daarin de "strandzondag" met een groot broodje, afwijkende standaardporties staan in `DEFQ`; `frans-v2-gerechten` = gedeelde ideeënlijst van vaste avondmaaltijden, met één tik op een dag te zetten; zonder die rij gelden de ingebouwde `DISHES` in `menu.js`. Het plan staat per weekdag opgeslagen, maar de dagtabs lopen rollend 7 dagen vooruit vanaf vandaag (`ahead()`), dus een voorbije dag is vanzelf de dag van volgende week) |
 | Cadeaus (volgorde van de lijsten met pijltjes omhoog/omlaag, gedeeld via `gift_lists.position`; zonder eigen volgorde op datum) | `app.js` | `gift_lists`, `gift_items` |
 | Notities (met afvinken en archief) | `app.js` | `notes` (`done`, `done_at`) |
 | Nummers (bellen met één tik) | `app.js` | `contacts` |
