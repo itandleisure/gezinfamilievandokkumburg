@@ -1,4 +1,4 @@
-// Spaans oefenen: werkwoorden vervoegen, typen of inspreken. Voortgang blijft op dit toestel (localStorage).
+// Spaans oefenen: werkwoorden vervoegen (typen of inspreken) en zinnen uit de lessen. Voortgang blijft op dit toestel (localStorage).
 const P = [
   { k: 'yo', es: ['Yo'], nl: ['Ik'] },
   { k: 'tu', es: ['Tú'], nl: ['Jij'] },
@@ -62,6 +62,62 @@ const PRE = [
   { n: 'Stap 3: meer', v: Object.keys(V), t: ['pres', 'ind', 'perf', 'ira'], p: ['yo', 'tu', 'el', 'nos', 'ellos'] },
   { n: 'Stap 4: alles', v: Object.keys(V), t: T.map(t => t.k), p: P.map(p => p.k) }];
 
+// Zinnen uit de lessen (voorstellen, winkel, dagen, vaste fouten). tip = uitleg bij een fout die vaak terugkomt.
+const THEMA = { voor: 'Jezelf voorstellen', winkel: 'In de winkel', dagen: 'Dagen en groeten', getal: 'Getallen 1–100', fout: 'Vaste fouten' };
+const ZIN = [
+  ['voor', 'Ik heet Frans.', 'Me llamo Frans.', 'Me llamo, niet "mi llamo" (mi = mijn).'],
+  ['voor', 'Ik ben Nederlands.', 'Soy holandés.'],
+  ['voor', 'Ik woon in Cómpeta, in Andalusië.', 'Vivo en Cómpeta, en Andalucía.', 'Wonen in een plaats: vivo en.'],
+  ['voor', 'Ik ben vijfenveertig jaar.', 'Tengo cuarenta y cinco años.', 'Leeftijd gaat met tener: tengo … años.'],
+  ['voor', 'Ik spreek Nederlands en een beetje Spaans.', 'Hablo holandés y un poco de español.', 'Hablo holandés zonder "de". "de" komt alleen na "un poco".'],
+  ['voor', 'Ik ben getrouwd.', 'Estoy casado.'],
+  ['voor', 'Ik heb twee kinderen, een dochter en een zoon.', 'Tengo dos hijos, una hija y un hijo.', 'una hija (vrouwelijk), un hijo (mannelijk).'],
+  ['voor', 'Hoe heet jij?', '¿Cómo te llamas?'],
+  ['voor', 'Waar kom je vandaan?', '¿De dónde eres?', 'Antwoord met soy: Soy holandés.'],
+  ['voor', 'Waar woon je?', '¿Dónde vives?', 'Antwoord met vivo: Vivo en Cómpeta.'],
+  ['voor', 'Hoe oud ben je?', '¿Cuántos años tienes?'],
+  ['voor', 'Welke talen spreek je?', '¿Qué idiomas hablas?'],
+  ['voor', 'Ben je getrouwd?', '¿Estás casado?'],
+  ['voor', 'Heb je kinderen?', '¿Tienes hijos?'],
+  ['winkel', 'Wat heeft u nodig?', '¿Qué necesita?'],
+  ['winkel', 'Nog iets?', '¿Algo más?'],
+  ['winkel', 'Dat is drie euro vijftig.', 'Son tres euros con cincuenta.'],
+  ['winkel', 'Een fijne dag!', '¡Que tenga un buen día!'],
+  ['winkel', 'Twee broden, alstublieft.', 'Dos panes, por favor.'],
+  ['winkel', 'Een stuk kaas.', 'Un trozo de queso.'],
+  ['winkel', 'Twee liter melk.', 'Dos litros de leche.', 'Geen s achter leche: dos litros de leche.'],
+  ['winkel', 'Een doos thee.', 'Una caja de té.', 'una caja (vrouwelijk).'],
+  ['winkel', 'Nee, verder niets, dank u.', 'No, nada más, gracias.'],
+  ['winkel', 'Hoeveel kost het?', '¿Cuánto cuesta?'],
+  ['winkel', 'Alstublieft (bij het betalen).', 'Aquí tiene.', 'Uitspraak: "a-kie tie-ne".'],
+  ['winkel', 'Dank u, insgelijks.', 'Gracias, igualmente.'],
+  ['winkel', 'Ik heb een tas nodig.', 'Necesito una bolsa.'],
+  ['winkel', 'Ik wil serranoham.', 'Quiero jamón serrano.'],
+  ['winkel', 'Ik koop fruit in de winkel.', 'Compro fruta en la tienda.', 'Klemtoon: COMpro (ik koop). Compró = hij kocht.'],
+  ['dagen', 'Goedemorgen.', 'Buenos días.'],
+  ['dagen', 'Goedemiddag.', 'Buenas tardes.'],
+  ['dagen', 'Tot straks.', 'Hasta luego.'],
+  ['dagen', 'Graag gedaan.', 'De nada.'],
+  ['dagen', 'Ik weet het niet.', 'No sé.'],
+  ['dagen', 'Vandaag is het maandag.', 'Hoy es lunes.'],
+  ['dagen', 'Gisteren was het zondag.', 'Ayer fue domingo.'],
+  ['dagen', 'Morgen is het woensdag.', 'Mañana es miércoles.'],
+  ['dagen', 'Vandaag is het donderdag.', 'Hoy es jueves.'],
+  ['dagen', 'Morgen is het zaterdag.', 'Mañana es sábado.'],
+  ['dagen', 'Gisteren was het dinsdag.', 'Ayer fue martes.'],
+  ['dagen', 'Vandaag is het vrijdag.', 'Hoy es viernes.'],
+  ['fout', 'Ik ga naar de winkel.', 'Voy a la tienda.', 'Voy klinkt als "boj", niet "foi".'],
+  ['fout', 'Ik woon in Spanje.', 'Vivo en España.', 'en = in, de = van/uit.'],
+  ['fout', 'Ik ben uit Nederland.', 'Soy de Holanda.', 'Waar je vandaan komt: soy de.'],
+  ['fout', 'Ik spreek Spaans.', 'Hablo español.', 'Geen "de" na hablo.'],
+  ['fout', 'Ik heb een dochter.', 'Tengo una hija.'],
+  ['fout', 'Ik heet Frans, en jij?', 'Me llamo Frans, ¿y tú?', 'me llamo, niet mi llamo.']
+].map(([th, nl, es, tip], i) => ({ id: 'z|' + i, th, nl, es, tip }));
+const EEN = W('cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiuno veintidós veintitrés veinticuatro veinticinco veintiséis veintisiete veintiocho veintinueve');
+const TIEN = { 3: 'treinta', 4: 'cuarenta', 5: 'cincuenta', 6: 'sesenta', 7: 'setenta', 8: 'ochenta', 9: 'noventa' };
+const getal = n => n === 100 ? 'cien' : n < 30 ? EEN[n] : TIEN[Math.floor(n / 10)] + (n % 10 ? ' y ' + EEN[n % 10] : '');
+const GTIP = 'Tot 29 één woord (veintiuno). Vanaf 31 met "y": treinta y ocho. Let op: treinta ("trein"), cincuenta ("kwen").';
+
 const store = {
   get(k, d) { try { const v = localStorage.getItem('spaans-' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem('spaans-' + k, JSON.stringify(v)); } catch { } }
@@ -85,6 +141,7 @@ export function mountSpaans(root) {
   let sel = store.get('sel', pick2(PRE[0]));
   let sc = store.get('score', { ok: 0, bad: 0, run: 0 });
   let mist = store.get('mist', []);
+  let thema = store.get('thema', Object.keys(THEMA));
   let mode = store.get('mode', 'verb'), onlyMist = false, cur = null, done = false, ovV = 'vivir', built = false;
   const $ = s => root.querySelector(s);
 
@@ -94,6 +151,7 @@ export function mountSpaans(root) {
       <div class="chips" role="tablist" aria-label="Manier van oefenen">
         <button class="chip" data-m="verb" role="tab">Werkwoord typen</button>
         <button class="chip" data-m="zin" role="tab">Hele zin inspreken</button>
+        <button class="chip" data-m="les" role="tab">Zinnen uit de les</button>
       </div>
       <div class="card sp-card">
         <div class="sp-tags"><span class="sp-tag sp-t" id="spTense"></span><span class="sp-tag" id="spVerb"></span></div>
@@ -121,6 +179,7 @@ export function mountSpaans(root) {
         <p class="sp-leg">Werkwoorden</p><div class="sp-opts" id="spOv"></div>
         <p class="sp-leg">Tijden</p><div class="sp-opts" id="spOt"></div>
         <p class="sp-leg">Personen</p><div class="sp-opts" id="spOp"></div>
+        <p class="sp-leg">Zinnen uit de les: onderwerpen</p><div class="sp-opts" id="spOz"></div>
       </details>
       <details class="sp-box"><summary>Nog oefenen</summary>
         <p class="mut" id="spMInfo"></p><div class="sp-mist" id="spMList"></div>
@@ -148,7 +207,7 @@ export function mountSpaans(root) {
     $('#spReset').onclick = () => { sc = { ok: 0, bad: 0, run: 0 }; mist = []; onlyMist = false; save(); next(); };
     if ('speechSynthesis' in window) {
       $('#spSay').hidden = false;
-      $('#spSay').onclick = () => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(cur.subj + ' ' + cur.ans + ' ' + cur.rest); u.lang = 'es-ES'; u.rate = .8; speechSynthesis.speak(u); } catch { } };
+      $('#spSay').onclick = () => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance([cur.subj, cur.ans, cur.rest].filter(Boolean).join(' ')); u.lang = 'es-ES'; u.rate = .8; speechSynthesis.speak(u); } catch { } };
     }
     $('#spMic').onclick = listen;
     opts(); overview(); paint(); next();
@@ -167,7 +226,21 @@ export function mountSpaans(root) {
     box('#spOv', Object.keys(V), 'v', k => k + ' (' + V[k].nl + ')');
     box('#spOt', T.map(t => t.k), 't', k => T.find(t => t.k === k).n);
     box('#spOp', P.map(p => p.k), 'p', k => PL[P.findIndex(p => p.k === k)]);
+    const oz = $('#spOz');
+    oz.innerHTML = Object.keys(THEMA).map(k => `<label class="check"><input type="checkbox" value="${k}" ${thema.includes(k) ? 'checked' : ''}> ${esc(THEMA[k])}</label>`).join('');
+    oz.onchange = () => {
+      thema = [...oz.querySelectorAll('input:checked')].map(i => i.value);
+      if (!thema.length) { oz.querySelector('input').checked = true; thema = [oz.querySelector('input').value]; }
+      store.set('thema', thema); if (mode === 'les') next();
+    };
     markPre();
+  }
+  function lesItem() {
+    const pool = ZIN.filter(z => thema.includes(z.th));
+    if (thema.includes('getal')) for (let i = 0; i < 8; i++) pool.push(null);
+    const z = pick(pool.length ? pool : ZIN);
+    if (!z) { const n = 1 + Math.floor(Math.random() * 100); return { id: 'g|' + n, les: true, t: { n: THEMA.getal, x: 'Schrijf of zeg het getal in het Spaans.' }, tip: GTIP, tag: 'zeg het getal', subj: '', rest: '', nl: String(n), ans: getal(n) }; }
+    return { id: z.id, les: true, t: { n: THEMA[z.th], x: 'Vertaal de hele zin in het Spaans.' }, tip: z.tip, tag: 'hele zin', subj: '', rest: '', nl: z.nl, ans: z.es };
   }
   function markPre() {
     const s = JSON.stringify(sel);
@@ -175,17 +248,20 @@ export function mountSpaans(root) {
   }
 
   function next() {
+    if (mode === 'les' && !onlyMist) { let c = lesItem(); if (cur) for (let n = 0; n < 5 && c.id === cur.id; n++) c = lesItem(); cur = c; done = false; return draw(); }
     let pool;
     if (onlyMist && mist.length) pool = mist;
     else { onlyMist = false; pool = []; for (const v of sel.v) for (const t of sel.t) for (const p of sel.p) pool.push(v + '|' + t + '|' + p); }
     let id = pick(pool); if (cur && pool.length > 1) while (id === cur.id) id = pick(pool);
-    cur = make(...id.split('|')); done = false;
-    const z = mode === 'zin';
+    cur = make(...id.split('|')); done = false; draw();
+  }
+  function draw() {
+    const z = mode !== 'verb';
     root.querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-selected', b.dataset.m === mode));
-    $('#spTense').textContent = cur.t.n; $('#spVerb').textContent = cur.vk + ' = ' + V[cur.vk].nl; $('#spHint').textContent = cur.t.x;
+    $('#spTense').textContent = cur.t.n; $('#spVerb').textContent = cur.les ? cur.tag : cur.vk + ' = ' + V[cur.vk].nl; $('#spHint').textContent = cur.t.x;
     $('#spNl').textContent = cur.nl; $('#spSubj').textContent = cur.subj; $('#spRest').textContent = cur.rest;
     $('#spForm').classList.toggle('zin', z); $('#spSubj').hidden = z; $('#spRest').hidden = z;
-    $('#spInp').placeholder = z ? 'zeg of typ de hele zin' : 'typ hier';
+    $('#spInp').placeholder = cur.les && cur.tag !== 'hele zin' ? 'typ of zeg het getal' : z ? 'zeg of typ de hele zin' : 'typ hier';
     $('#spMic').hidden = !(z && Rec);
     $('#spMicNote').hidden = !z;
     $('#spMicNote').textContent = Rec ? 'Tik op Inspreken en zeg de hele zin in het Spaans.'
@@ -196,24 +272,26 @@ export function mountSpaans(root) {
   function save() { store.set('score', sc); store.set('mist', mist); paint(); }
   function check() {
     if (done) { next(); return; }
-    const z = mode === 'zin', a = norm($('#spInp').value), r = z ? norm(cur.subj + ' ' + cur.ans + ' ' + cur.rest) : cur.ans;
+    const z = mode !== 'verb', a = norm($('#spInp').value), r = z ? norm(cur.subj + ' ' + cur.ans + ' ' + cur.rest) : cur.ans;
+    const nr = !cur.les && !mist.includes(cur.id);
     if (!a) { $('#spInp').focus(); return; }
     done = true; $('#spCheck').textContent = 'Volgende';
-    const full = esc(cur.subj + ' ' + cur.ans + ' ' + cur.rest);
+    const full = esc([cur.subj, cur.ans, cur.rest].filter(Boolean).join(' '));
     if (a === r || bare(a) === bare(r)) {
       sc.ok++; sc.run++; mist = mist.filter(m => m !== cur.id);
       $('#spFb').innerHTML = (a === r ? `<b class="sp-ok">¡Muy bien!</b> ${full}` : `<b class="sp-ok">Goed!</b> Let op de accenten: <span class="sp-ans">${z ? full : esc(r)}</span>`)
         + (z ? '' : '<br><span class="mut">Zeg de hele zin nu nog even hardop.</span>');
     } else {
-      sc.bad++; sc.run = 0; if (!mist.includes(cur.id)) mist.push(cur.id);
+      sc.bad++; sc.run = 0; if (nr) mist.push(cur.id);
       $('#spFb').innerHTML = `<b class="sp-bad">Bijna.</b> Jij had "${esc(a)}". Het is: <span class="sp-ans">${z ? full : esc(r)}</span>${z ? '' : '<br>' + full}`;
     }
-    save();
+    tip(); save();
   }
+  function tip() { if (cur.tip) $('#spFb').insertAdjacentHTML('beforeend', `<br><span class="mut">Tip: ${esc(cur.tip)}</span>`); }
   function show() {
-    if (done) return; done = true; sc.run = 0; if (!mist.includes(cur.id)) mist.push(cur.id);
-    $('#spFb').innerHTML = `Het antwoord is <span class="sp-ans">${esc(cur.ans)}</span><br>${esc(cur.subj + ' ' + cur.ans + ' ' + cur.rest)}`;
-    $('#spCheck').textContent = 'Volgende'; save();
+    if (done) return; done = true; sc.run = 0; if (!cur.les && !mist.includes(cur.id)) mist.push(cur.id);
+    $('#spFb').innerHTML = `Het antwoord is <span class="sp-ans">${esc(cur.ans)}</span>` + (cur.les ? '' : `<br>${esc(cur.subj + ' ' + cur.ans + ' ' + cur.rest)}`);
+    $('#spCheck').textContent = 'Volgende'; tip(); save();
   }
   function listen() {
     if (!Rec || done) return;
@@ -222,7 +300,7 @@ export function mountSpaans(root) {
     const btn = $('#spMic'); btn.textContent = 'Ik luister…'; btn.disabled = true;
     r.onresult = e => {
       const alts = [...e.results[0]].map(x => x.transcript);
-      const target = bare(norm(cur.subj + ' ' + cur.ans + ' ' + cur.rest));
+      const target = bare(norm([cur.subj, cur.ans, cur.rest].join(' ')));
       $('#spInp').value = alts.find(t => bare(norm(t)) === target) || alts[0];
       check();
     };

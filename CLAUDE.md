@@ -14,7 +14,7 @@ De gebruikers zitten in Cómpeta (Málaga, Spanje). De app is Nederlandstalig en
 | Cadeaus | `app.js` | `gift_lists`, `gift_items` |
 | Notities (met afvinken en archief) | `app.js` | `notes` (`done`, `done_at`) |
 | Nummers (bellen met één tik) | `app.js` | `contacts` |
-| Spaans (werkwoorden oefenen) | `spaans.js` | localStorage op het toestel |
+| Spaans (werkwoorden oefenen + "Zinnen uit de les": voorstellen, winkel, dagen, getallen, vaste fouten) | `spaans.js` (nieuwe lesstof achteraan in `ZIN` toevoegen) | localStorage op het toestel |
 
 Er is geen build-stap. Alles is gewone ES-modules plus `styles.css`. Supabase-js wordt geladen vanaf jsDelivr, vastgezet op een versie.
 
