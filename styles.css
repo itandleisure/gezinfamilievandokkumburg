@@ -151,6 +151,22 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .mrow label{grid-column:1/-1;margin:0;font-size:13px}
 .all{min-height:44px;border:1px solid var(--line);background:transparent;color:var(--blue);border-radius:12px;padding:0 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .all.done{color:var(--ok);border-color:var(--ok)}
+/* Vaste avondmaaltijden */
+.dishes{margin:4px 0 10px}
+.dlab{font-size:13px;color:var(--mut);margin-bottom:6px}
+.dchips{display:flex;flex-wrap:wrap;gap:8px}
+.dchip{min-height:48px;padding:6px 12px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:15px;font-weight:600;text-align:left;line-height:1.25;cursor:pointer}
+.dchip small{display:block;font-size:12px;font-weight:500;color:var(--mut)}
+.dchip[aria-pressed=true]{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.dchip:active{border-color:var(--terra)}
+.dedit{margin-top:8px}
+.dedit summary{cursor:pointer;color:var(--blue);font-weight:600;font-size:14px;min-height:44px;display:flex;align-items:center}
+.dedit p{font-size:13px;margin:4px 0 8px}
+.dnew{display:flex;gap:8px;margin-bottom:8px}
+.dnew input{flex:1;min-width:0}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.drow span{font-size:15px}.drow small{display:block;color:var(--mut);font-size:12px}
+.drow .btn{min-height:44px;padding:0 10px;font-size:14px}
 @media(max-width:420px){.meal{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 

@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
-import { mountMenu, cleanPlan, freshPlan, menuShopping } from './menu.js';
+import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './menu.js';
 import { mountSpaans } from './spaans.js';
 
 // ---------- Helpers ----------
@@ -116,7 +116,7 @@ document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pe
 let menu, spaans;
 async function start() {
   fillShopForm();
-  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault });
+  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes });
   spaans = mountSpaans($('#spaansRoot'));
   route();
   await Promise.all(Object.keys(S).map(load));
@@ -158,6 +158,14 @@ function setEaten(obj) {
   const row = S.menu_plan.find(r => r.id === EATEN_ID);
   if (row) row.plan = obj; else S.menu_plan.push({ id: EATEN_ID, plan: obj });
   run(sb.from('menu_plan').upsert({ id: EATEN_ID, plan: obj, updated_at: new Date().toISOString() }));
+}
+// Vaste avondmaaltijden (gedeelde ideeënlijst); zonder opgeslagen versie gelden de ingebouwde gerechten
+const DISHES_ID = MENU_ID + '-gerechten';
+function getDishes() { const row = S.menu_plan.find(r => r.id === DISHES_ID); return cleanDishes(row ? row.plan : null); }
+function setDishes(list) {
+  const row = S.menu_plan.find(r => r.id === DISHES_ID);
+  if (row) row.plan = list; else S.menu_plan.push({ id: DISHES_ID, plan: list });
+  run(sb.from('menu_plan').upsert({ id: DISHES_ID, plan: list, updated_at: new Date().toISOString() }));
 }
 async function menuToShopping() {
   const items = menuShopping(getPlan());

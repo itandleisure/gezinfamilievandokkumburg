@@ -54,6 +54,27 @@ export const cleanPlan = p => Array.isArray(p) && p.length === 7
     })))
   : freshPlan();
 
+// Vaste avondmaaltijden (ideeënlijst): één tik zet de vier onderdelen van het avondeten.
+// Een gerecht = { n: naam, k: { 'd.eiwit': optie, ... }, q: { 'd.eiwit': portie, ... } }. Opties volgen de posities in SLOTS.
+const DKEYS = ['d.eiwit', 'd.groente', 'd.koolh', 'd.saus'];
+const dish = (n, e, g, k, s) => ({ n, k: { 'd.eiwit': e, 'd.groente': g, 'd.koolh': k, 'd.saus': s }, q: {} });
+export const DISHES = [
+  dish('Aardappelen, sperziebonen & varkenshaas', 3, 2, 0, 3),
+  dish('Pasta met gehakt', 2, 7, 2, 2),
+  dish('Pasta vega met spinazie', 5, 4, 2, 2),
+  dish('Rijst met wokgroente & kip', 0, 6, 3, 1),
+  dish('Vis met krieltjes & broccoli', 4, 0, 1, 1),
+  dish('Aardappelen, bloemkool & biefstuk', 1, 1, 0, 1),
+  dish('Zondag patat met frikandel', 6, 8, 4, 4)
+];
+export const cleanDishes = list => Array.isArray(list)
+  ? list.filter(x => x && typeof x.n === 'string' && x.n.trim() && x.k).map(x => ({
+      n: x.n.trim().slice(0, 60),
+      k: Object.fromEntries(DKEYS.map(key => { const c = COMPS.find(c => c.key === key), v = x.k[key]; return [key, Number.isInteger(v) && c.opts[v] ? v : c.def[0]]; })),
+      q: Object.fromEntries(DKEYS.filter(key => x.q && QVAL.has(x.q[key]) && x.q[key] !== 1).map(key => [key, x.q[key]]))
+    }))
+  : DISHES;
+
 const nf = n => Math.round(n).toLocaleString('nl-NL');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -72,14 +93,31 @@ export function menuShopping(plan) {
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const todayIdx = () => (new Date().getDay() + 6) % 7;
 
-export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten, getDefault = freshPlan, setDefault }) {
-  let day = todayIdx();
+export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten, getDefault = freshPlan, setDefault, getDishes, setDishes }) {
+  let day = todayIdx(), dishOpen = false;
   const opt = (plan, c, d) => c.opts[plan[d][c.key]];
   const mul = (plan, c, d) => plan[d][qk(c)] || 1;
   const tot = (plan, d) => COMPS.reduce((a, c) => { const o = opt(plan, c, d), m = mul(plan, c, d); a.k += o[2] * m; a.p += o[3] * m; return a; }, { k: 0, p: 0 });
   const slotK = (plan, s, d) => s.comps.reduce((a, c) => a + opt(plan, c, d)[2] * mul(plan, c, d), 0);
+  const DC = DKEYS.map(key => COMPS.find(c => c.key === key));
+  const dishK = g => DC.reduce((a, c) => { const o = c.opts[g.k[c.key]]; a.k += o[2] * (g.q[c.key] || 1); a.p += o[3] * (g.q[c.key] || 1); return a; }, { k: 0, p: 0 });
+  const isDish = (plan, g, d) => DC.every(c => plan[d][c.key] === g.k[c.key] && mul(plan, c, d) === (g.q[c.key] || 1));
+  const fromDay = (plan, d, n) => ({ n, k: Object.fromEntries(DC.map(c => [c.key, plan[d][c.key]])), q: Object.fromEntries(DC.filter(c => mul(plan, c, d) !== 1).map(c => [c.key, mul(plan, c, d)])) });
+  const dishHtml = plan => {
+    if (!getDishes) return '';
+    const list = getDishes();
+    return `<div class="dishes"><div class="dlab">Vaste gerechten: kies met één tik</div><div class="dchips">${
+      list.map((g, i) => { const t = dishK(g), on = isDish(plan, g, day); return `<button class="dchip" type="button" data-dish="${i}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(g.n)}<small>${nf(t.k)} kcal · ${nf(t.p)} g eiwit</small></button>`; }).join('')
+    }</div><details class="dedit"${dishOpen ? ' open' : ''}><summary>Gerechten aanpassen of toevoegen</summary>
+      <p class="mut">Stel hieronder het avondeten in zoals jullie het willen. Geef het een naam en tik op Bewaar. Bij een bestaand gerecht tik je op Bijwerken: dan krijgt het het avondeten zoals het nu staat.</p>
+      <div class="dnew"><input id="dishName" type="text" maxlength="60" placeholder="Naam, bijv. Kip met rijst" autocomplete="off" enterkeyhint="done"><button class="btn primary" type="button" id="dishAdd">Bewaar</button></div>
+      ${list.map((g, i) => `<div class="drow"><span>${esc(g.n)}<small>${nf(dishK(g).k)} kcal</small></span><button class="btn" type="button" data-dupd="${i}">Bijwerken</button><button class="btn danger" type="button" data-ddel="${i}">Wis</button></div>`).join('')}
+      ${list.length ? '' : '<p class="mut">Nog geen gerechten.</p>'}
+    </details></div>`;
+  };
 
   function render() {
+    const keepName = root.querySelector('#dishName'), keepVal = keepName ? keepName.value : '', keepFocus = keepName && document.activeElement === keepName;
     const plan = getPlan(), t = tot(plan, day), pct = v => Math.min(100, v / MAXK * 100);
     const st = t.k < LO ? ['Iets aan de lage kant: neem een fruit of kwarkje extra.', 'var(--warn)']
       : t.k > HI ? ['Boven je zone: kies een lichter bijgerecht of minder olie.', 'var(--warn)']
@@ -98,7 +136,7 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
         <div style="font-weight:600;color:${st[1]};font-size:14px">${st[0]}</div>
       </div>
       ${eatenHtml}
-      ${SLOTS.filter(s => !eaten.includes(s.id)).map(s => `<article class="meal"><div class="time">${s.time}</div><div><h3>${s.name}<span>${nf(slotK(plan, s, day))} kcal${isToday ? `<button class="eat" type="button" data-eat="${s.id}" aria-label="${s.name} gegeten">✓ Gegeten</button>` : ''}</span></h3>${
+      ${SLOTS.filter(s => !eaten.includes(s.id)).map(s => `<article class="meal"><div class="time">${s.time}</div><div><h3>${s.name}<span>${nf(slotK(plan, s, day))} kcal${isToday ? `<button class="eat" type="button" data-eat="${s.id}" aria-label="${s.name} gegeten">✓ Gegeten</button>` : ''}</span></h3>${s.id === 'd' ? dishHtml(plan) : ''}${
         s.comps.map(c => `<div class="mrow"><label for="m-${c.key}">${c.label}</label><select id="m-${c.key}" data-k="${c.key}">${
           c.opts.map((o, i) => `<option value="${i}"${plan[day][c.key] === i ? ' selected' : ''}>${esc(o[0])}${o[1] ? ' · ' + esc(o[1]) : ''} (${o[2]} kcal)</option>`).join('')
         }</select><select class="q" data-q="${c.key}" aria-label="Portie ${c.label}">${
@@ -108,6 +146,7 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
       ${isToday && eaten.length === SLOTS.length ? '<p class="empty">Alles gegeten voor vandaag. Goed bezig!</p>' : ''}
       <div class="actions"><button class="btn primary" type="button" id="menuToShop">Zet op boodschappenlijst</button><button class="btn" type="button" id="menuReset">Standaardmenu</button>${setDefault ? '<button class="btn" type="button" id="menuSaveDef">Maak standaardmenu</button>' : ''}</div>
       ${setDefault ? '<p class="mut" style="font-size:13px">Standaardmenu zet de hele week terug naar jullie vaste menu. Maak standaardmenu slaat de week zoals hij nu staat op als dat vaste menu.</p>' : ''}`;
+    if (keepVal || keepFocus) { const n = root.querySelector('#dishName'); if (n) { n.value = keepVal; if (keepFocus) n.focus({ preventScroll: true }); } }
   }
 
   root.addEventListener('click', e => {
@@ -119,6 +158,16 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
       for (const d of Object.keys(all)) if (d < new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10)) delete all[d];
       setEaten(all); render(); return;
     }
+    const ds = e.target.closest('.dedit > summary');
+    if (ds) { dishOpen = !ds.parentElement.open; return; }
+    const dc = e.target.closest('[data-dish]');
+    if (dc) {
+      const g = getDishes()[+dc.dataset.dish]; if (!g) return;
+      const plan = getPlan().map(x => ({ ...x }));
+      DKEYS.forEach(key => { plan[day][key] = g.k[key]; if (g.q[key]) plan[day][key + '#q'] = g.q[key]; else delete plan[day][key + '#q']; });
+      setPlan(plan); render(); return;
+    }
+    if (e.target.closest('#dishAdd')) { addDish(); return; }
     const tab = e.target.closest('.mtab');
     if (tab) { day = +tab.dataset.d; render(); return; }
     const all = e.target.closest('.all');
@@ -137,12 +186,25 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
     };
     const r = e.target.closest('#menuReset');
     if (r) { sure(r, 'Standaardmenu', () => { setPlan(getDefault().map(x => ({ ...x }))); render(); }); return; }
+    const du = e.target.closest('[data-dupd]');
+    if (du) { sure(du, 'Bijwerken', () => { const list = getDishes().slice(), i = +du.dataset.dupd; if (!list[i]) return; list[i] = fromDay(getPlan(), day, list[i].n); setDishes(list); render(); }); return; }
+    const dd = e.target.closest('[data-ddel]');
+    if (dd) { sure(dd, 'Wis', () => { const list = getDishes().slice(); list.splice(+dd.dataset.ddel, 1); setDishes(list); render(); }); return; }
     const sd = e.target.closest('#menuSaveDef');
     if (sd) sure(sd, 'Maak standaardmenu', () => {
       setDefault(getPlan().map(x => ({ ...x }))); render();
       const b = root.querySelector('#menuSaveDef'); if (b) { b.textContent = '✓ Opgeslagen als standaard'; b.classList.add('done'); }
     });
   });
+  function addDish() {
+    const inp = root.querySelector('#dishName'), n = inp ? inp.value.trim() : '';
+    if (!n) { if (inp) { inp.placeholder = 'Typ eerst een naam'; inp.focus(); } return; }
+    const list = getDishes().slice(), g = fromDay(getPlan(), day, n), i = list.findIndex(x => x.n.toLowerCase() === n.toLowerCase());
+    if (i >= 0) list[i] = g; else list.push(g);
+    inp.value = ''; inp.blur(); setDishes(list); render();
+  }
+  root.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('dedit')) dishOpen = e.target.open; }, true);
+  root.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'dishName') { e.preventDefault(); addDish(); } });
   root.addEventListener('change', e => {
     const k = e.target.dataset.k, q = e.target.dataset.q; if (!k && !q) return;
     const plan = getPlan().map(x => ({ ...x }));
