@@ -18,7 +18,6 @@ function confirmTwice(btn, label, fn) {
 }
 
 // ---------- Vaste gegevens ----------
-const STORES = ['Maakt niet uit', 'Lidl', 'Aldi', 'Mercadona'];
 const CAT_ORDER = ['Groente', 'Fruit', 'Zuivel', 'Vlees, vis & eieren', 'Brood, granen & aardappelen', 'Basis', 'Huishouden', 'Verzorging', 'Overig'];
 const DEFAULT_CATALOG = {
   Huishouden: ['WC-papier', 'Keukenpapier', 'Afwasmiddel', 'Vaatwastabletten', 'Wasmiddel', 'Wasverzachter', 'Vuilniszakken', 'Allesreiniger', 'Schoonmaakdoekjes', 'Sponsjes', 'Aluminiumfolie', 'Vershoudfolie', 'Bakpapier', 'Batterijen'],
@@ -143,18 +142,15 @@ function setPlan(plan) {
 async function menuToShopping() {
   const items = menuShopping(getPlan());
   if (!await run(sb.from('shopping_items').delete().eq('source', 'menu').eq('checked', false))) return;
-  if (!await run(sb.from('shopping_items').insert(items.map(i => ({ ...i, store: 'Maakt niet uit', source: 'menu' }))))) return;
+  if (!await run(sb.from('shopping_items').insert(items.map(i => ({ ...i, source: 'menu' }))))) return;
   await load('shopping_items');
   toast(items.length + ' producten uit het menu op de lijst gezet');
   location.hash = 'boodschappen';
 }
 
 // ---------- Boodschappen ----------
-let storeFilter = 'Alle';
 function fillShopForm() {
-  $('#shopStore').innerHTML = STORES.map(s => `<option>${s}</option>`).join('');
   $('#shopCat').innerHTML = CAT_ORDER.map(c => `<option${c === 'Overig' ? ' selected' : ''}>${c}</option>`).join('');
-  $('#storeFilter').innerHTML = ['Alle', ...STORES.slice(1)].map(s => `<button class="chip" role="tab" data-s="${s}" aria-selected="${s === storeFilter}">${s}</button>`).join('');
   fillShopPick();
 }
 function fillShopPick() {
@@ -182,21 +178,14 @@ $('#shopAdd').addEventListener('submit', async e => {
   } else if (v.startsWith('d:')) { const [, cat, ...rest] = v.split(':'); category = cat; name = rest.join(':'); }
   else if (v.startsWith('c:')) { const c = S.catalog_items.find(x => x.id === v.slice(2)); if (c) { name = c.name; category = c.category; } }
   if (!name) { toast('Kies eerst wat er op de lijst moet'); return; }
-  const row = { name, category, qty: $('#shopQty').value.trim(), store: $('#shopStore').value, source: 'eigen' };
+  const row = { name, category, qty: $('#shopQty').value.trim(), source: 'eigen' };
   if (await run(sb.from('shopping_items').insert(row))) {
     await load('shopping_items'); renderShop(); toast(name + ' toegevoegd');
     $('#shopPick').value = ''; $('#shopQty').value = ''; $('#shopName').value = ''; $('#shopCustom').hidden = true;
   }
 });
-$('#storeFilter').addEventListener('click', e => {
-  const b = e.target.closest('.chip'); if (!b) return;
-  storeFilter = b.dataset.s;
-  document.querySelectorAll('#storeFilter .chip').forEach(c => c.setAttribute('aria-selected', c === b));
-  renderShop();
-});
-const visible = i => storeFilter === 'Alle' || i.store === storeFilter || i.store === 'Maakt niet uit';
 function itemRow(i) {
-  const meta = [i.qty, i.store !== 'Maakt niet uit' ? i.store : ''].filter(Boolean).join(' · ');
+  const meta = i.qty || '';
   return `<li class="item${i.checked ? ' done' : ''}" data-id="${esc(i.id)}">
     <button class="tick" data-act="tick" aria-label="${i.checked ? 'Niet afgevinkt maken' : 'Afvinken'}: ${esc(i.name)}"><span>${ICON_CHECK}</span></button>
     <div class="txt" data-act="tick"><b>${esc(i.name)}</b>${meta ? `<small>${esc(meta)}</small>` : ''}</div>
@@ -204,7 +193,7 @@ function itemRow(i) {
     <button class="mini" data-act="del" aria-label="Verwijderen: ${esc(i.name)}">${ICON_X}</button></li>`;
 }
 function renderShop() {
-  const items = S.shopping_items.filter(visible);
+  const items = S.shopping_items;
   const open = items.filter(i => !i.checked), done = items.filter(i => i.checked);
   const groups = CAT_ORDER.map(c => [c, open.filter(i => (CAT_ORDER.includes(i.category) ? i.category : 'Overig') === c)]).filter(g => g[1].length);
   $('#shopList').innerHTML = (open.length
@@ -228,9 +217,10 @@ $('#shopNewWeek').addEventListener('click', e => confirmTwice(e.currentTarget, '
 $('#shopShare').addEventListener('click', async () => {
   const open = S.shopping_items.filter(i => !i.checked);
   if (!open.length) { toast('Er staat niets open op de lijst'); return; }
-  const text = 'Boodschappen\n' + STORES.map(s => {
-    const l = open.filter(i => i.store === s); return l.length ? `\n${s === 'Maakt niet uit' ? 'Overal' : s}\n` + l.map(i => '- ' + i.name + (i.qty ? ' (' + i.qty + ')' : '')).join('\n') : '';
-  }).join('\n');
+  const cat = i => (CAT_ORDER.includes(i.category) ? i.category : 'Overig');
+  const text = 'Boodschappen\n' + CAT_ORDER.map(c => {
+    const l = open.filter(i => cat(i) === c); return l.length ? `\n${c}\n` + l.map(i => '- ' + i.name + (i.qty ? ' (' + i.qty + ')' : '')).join('\n') : '';
+  }).join('');
   try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); toast('Lijst gekopieerd'); } }
   catch (err) { if (err && err.name !== 'AbortError') toast('Delen lukte niet'); }
 });
