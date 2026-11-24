@@ -118,3 +118,7 @@ select * from (values
   ('Policía Nacional', '091', 'Nood', '')
 ) as v(name, phone, category, note)
 where not exists (select 1 from public.contacts);
+
+-- Notities afvinken en archiveren (toegevoegd later)
+alter table public.notes add column if not exists done boolean default false;
+alter table public.notes add column if not exists done_at timestamptz;

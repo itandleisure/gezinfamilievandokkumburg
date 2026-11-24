@@ -260,12 +260,22 @@ function openDialog({ title, fields, onSave, onDelete }) {
 }
 
 // ---------- Notities ----------
+let archiveOpen = false;
+function noteRow(n) {
+  return `<div class="note-row${n.done ? ' done' : ''}" data-id="${esc(n.id)}">
+    <button class="tick" data-act="done" aria-label="${n.done ? 'Terugzetten' : 'Afvinken'}: ${esc(n.title || 'notitie')}"><span>${ICON_CHECK}</span></button>
+    <button class="note" data-act="open">${n.pinned && !n.done ? '<span class="pin">Vastgezet</span>' : ''}<b>${esc(n.title || 'Zonder titel')}</b>${n.body ? `<p>${esc(n.body)}</p>` : ''}${n.done && n.done_at ? `<small class="mut">Afgerond op ${new Date(n.done_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}</small>` : ''}</button>
+  </div>`;
+}
 function renderNotes() {
   const q = $('#noteSearch').value.trim().toLowerCase();
-  const list = S.notes.filter(n => !q || (n.title + ' ' + n.body).toLowerCase().includes(q))
-    .sort((a, b) => (b.pinned - a.pinned) || (b.updated_at > a.updated_at ? 1 : -1));
-  $('#noteList').innerHTML = list.length ? list.map(n => `<button class="note" data-id="${esc(n.id)}">${n.pinned ? '<span class="pin">Vastgezet</span>' : ''}<b>${esc(n.title || 'Zonder titel')}</b>${n.body ? `<p>${esc(n.body)}</p>` : ''}</button>`).join('')
-    : `<p class="empty">${q ? 'Niets gevonden.' : 'Nog geen notities. Denk aan recepten, wat de loodgieter zei, of maten van kleding.'}</p>`;
+  const all = S.notes.filter(n => !q || (n.title + ' ' + n.body).toLowerCase().includes(q));
+  const open = all.filter(n => !n.done).sort((a, b) => (b.pinned - a.pinned) || (b.updated_at > a.updated_at ? 1 : -1));
+  const done = all.filter(n => n.done).sort((a, b) => ((b.done_at || '') > (a.done_at || '') ? 1 : -1));
+  $('#noteList').innerHTML = (open.length ? open.map(noteRow).join('')
+    : `<p class="empty">${q ? 'Niets gevonden.' : done.length ? 'Alles afgerond. Netjes!' : 'Nog geen notities. Denk aan to-do\'s, recepten of wat de loodgieter zei.'}</p>`)
+    + (done.length ? `<details class="archive"${archiveOpen || q ? ' open' : ''}><summary>Archief (${done.length})</summary>${done.map(noteRow).join('')}</details>` : '');
+  const d = $('#noteList .archive'); if (d) d.addEventListener('toggle', () => { archiveOpen = d.open; });
 }
 $('#noteSearch').addEventListener('input', renderNotes);
 function editNote(n = {}) {
@@ -282,7 +292,14 @@ function editNote(n = {}) {
   });
 }
 $('#noteNew').addEventListener('click', () => editNote());
-$('#noteList').addEventListener('click', e => { const b = e.target.closest('.note'); if (b) editNote(S.notes.find(n => n.id === b.dataset.id)); });
+$('#noteList').addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const n = S.notes.find(x => x.id === el.closest('.note-row').dataset.id); if (!n) return;
+  if (el.dataset.act === 'open') { editNote(n); return; }
+  n.done = !n.done; n.done_at = n.done ? new Date().toISOString() : null;
+  renderNotes();
+  run(sb.from('notes').update({ done: n.done, done_at: n.done_at }).eq('id', n.id), n.done ? 'Afgerond en naar het archief' : 'Teruggezet');
+});
 
 // ---------- Nummers ----------
 const telHref = p => 'tel:' + String(p).replace(/[^\d+]/g, '');
