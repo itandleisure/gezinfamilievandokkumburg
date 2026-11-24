@@ -132,7 +132,9 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .meal .time{font-size:18px;font-weight:800;color:var(--terra)}
 .meal h3{display:flex;justify-content:space-between;margin:0 0 6px;font-size:17px}
 .meal h3 span{color:var(--mut);font-weight:600;font-size:14px}
-.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 8px;align-items:center;margin:6px 0}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) 96px 74px;gap:6px;align-items:center;margin:6px 0}
+.mrow select.q{padding:8px 6px;font-size:15px}
+.mrow .all{padding:0 6px;line-height:1.15;white-space:normal}
 .mrow label{grid-column:1/-1;margin:0;font-size:13px}
 .all{min-height:44px;border:1px solid var(--line);background:transparent;color:var(--blue);border-radius:12px;padding:0 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .all.done{color:var(--ok);border-color:var(--ok)}
