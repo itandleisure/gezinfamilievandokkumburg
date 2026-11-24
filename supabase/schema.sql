@@ -69,6 +69,14 @@ create table if not exists public.gift_items (
   created_at timestamptz default now()
 );
 
+-- Toegang tot de Data API voor ingelogde gebruikers
+-- (nodig als "Grant API access to new tables automatically" uit staat)
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on
+  public.shopping_items, public.catalog_items, public.menu_plan, public.notes,
+  public.contacts, public.gift_lists, public.gift_items
+to authenticated;
+
 -- Beveiliging: alleen ingelogde gebruikers
 do $$
 declare t text;
@@ -98,6 +106,7 @@ language sql security definer set search_path = public as $$
   select count(*)::int from public.notes;
 $$;
 revoke all on function public.ping() from public;
+grant usage on schema public to anon;
 grant execute on function public.ping() to anon, authenticated;
 
 -- Startnummers (Spanje)
