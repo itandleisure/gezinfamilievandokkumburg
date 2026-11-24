@@ -1,6 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { mountMenu, cleanPlan, freshPlan, menuShopping } from './menu.js';
+import { mountSpaans } from './spaans.js';
 
 // ---------- Helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -88,7 +89,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { boodschappen: 'Boodschappen', menu: 'Weekmenu', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers' };
+const VIEWS = { boodschappen: 'Boodschappen', menu: 'Weekmenu', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen' };
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'boodschappen');
 function route() {
   const v = current();
@@ -105,15 +106,16 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render() })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu;
+let menu, spaans;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping });
+  spaans = mountSpaans($('#spaansRoot'));
   route();
   await Promise.all(Object.keys(S).map(load));
   fillShopPick(); route();
