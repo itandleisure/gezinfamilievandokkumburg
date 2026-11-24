@@ -149,7 +149,10 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
     if (k) plan[day][k] = +e.target.value;
     else { const v = +e.target.value; if (v === 1) delete plan[day][q + '#q']; else plan[day][q + '#q'] = v; }
     setPlan(plan); render();
-    const sel = root.querySelector(k ? `[data-k="${k}"]` : `[data-q="${q}"]`); if (sel) sel.focus();
+    // Focus alleen terugzetten met toetsenbord/muis. Op de iPhone opent focus() het keuzemenu opnieuw.
+    if (!matchMedia('(pointer: coarse)').matches) {
+      const sel = root.querySelector(k ? `[data-k="${k}"]` : `[data-q="${q}"]`); if (sel) sel.focus({ preventScroll: true });
+    }
   });
   return { render };
 }
