@@ -177,7 +177,7 @@ create table if not exists public.sport_log (
 );
 create table if not exists public.health_settings (
   owner uuid primary key default auth.uid() references auth.users(id) on delete cascade,
-  start_kg numeric(5,1) default 93,
+  start_kg numeric(5,1) default 93.9,
   goal_kg numeric(5,1) default 78,
   reminders boolean default true,
   updated_at timestamptz default now()

@@ -87,7 +87,7 @@ export function mountGezond(root, api) {
     const { weights, sport, settings, missing } = api.get();
     if (missing) { root.innerHTML = '<div class="task-alert">Nog één stap: de database voor gewicht en sport moet nog worden aangemaakt in Supabase. Daarna werkt dit tabblad.</div>'; return; }
     const today = iso(new Date());
-    const startKg = Number(settings?.start_kg ?? 93), goal = Number(settings?.goal_kg ?? 78);
+    const startKg = Number(settings?.start_kg ?? 93.9), goal = Number(settings?.goal_kg ?? 78);
     const byDay = Object.fromEntries(weights.map(r => [r.day, Number(r.kg)]));
     const last = sorted(weights).filter(r => r.day <= day).pop();
     if (draftDay !== day) { draft = byDay[day] ?? (last ? last.kg : startKg); draftDay = day; }
@@ -195,7 +195,7 @@ export function mountGezond(root, api) {
     api.openDialog({
       title: 'Doel en herinneringen',
       fields: [
-        { name: 'start_kg', label: 'Startgewicht (kg)', value: kgf(s.start_kg ?? 93), inputmode: 'decimal' },
+        { name: 'start_kg', label: 'Startgewicht (kg)', value: kgf(s.start_kg ?? 93.9), inputmode: 'decimal' },
         { name: 'goal_kg', label: 'Doelgewicht (kg)', value: kgf(s.goal_kg ?? 78), inputmode: 'decimal' },
         { name: 'reminders', label: 'Herinneringen bovenaan de app tonen ("Heb je vandaag al bewogen?")', type: 'checkbox', value: s.reminders !== false }
       ],
