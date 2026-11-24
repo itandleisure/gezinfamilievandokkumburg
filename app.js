@@ -114,7 +114,7 @@ document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pe
 let menu, spaans;
 async function start() {
   fillShopForm();
-  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten });
+  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault });
   spaans = mountSpaans($('#spaansRoot'));
   route();
   await Promise.all(Object.keys(S).map(load));
@@ -140,6 +140,15 @@ function setPlan(plan) {
   if (row) row.plan = plan; else S.menu_plan.push({ id: MENU_ID, plan });
   clearTimeout(planTimer);
   planTimer = setTimeout(() => run(sb.from('menu_plan').upsert({ id: MENU_ID, plan, updated_at: new Date().toISOString() })), 600);
+}
+// Eigen standaardmenu (via "Maak standaardmenu"); zonder opgeslagen versie geldt het ingebouwde standaardmenu
+const DEFAULT_ID = MENU_ID + '-standaard';
+function getDefault() { const row = S.menu_plan.find(r => r.id === DEFAULT_ID); return row ? cleanPlan(row.plan) : freshPlan(); }
+function setDefault(plan) {
+  const row = S.menu_plan.find(r => r.id === DEFAULT_ID);
+  if (row) row.plan = plan; else S.menu_plan.push({ id: DEFAULT_ID, plan });
+  run(sb.from('menu_plan').upsert({ id: DEFAULT_ID, plan, updated_at: new Date().toISOString() }));
+  toast('Opgeslagen als standaardmenu');
 }
 const EATEN_ID = MENU_ID + '-gegeten';
 function getEaten() { const row = S.menu_plan.find(r => r.id === EATEN_ID); return row && row.plan && !Array.isArray(row.plan) ? row.plan : {}; }

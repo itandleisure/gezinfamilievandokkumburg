@@ -65,7 +65,7 @@ export function menuShopping(plan) {
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const todayIdx = () => (new Date().getDay() + 6) % 7;
 
-export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten }) {
+export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten, getDefault = freshPlan, setDefault }) {
   let day = todayIdx();
   const opt = (plan, c, d) => c.opts[plan[d][c.key]];
   const mul = (plan, c, d) => plan[d][qk(c)] || 1;
@@ -99,7 +99,8 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
         }</select><button class="all" type="button" data-all="${c.key}" title="Zet deze keuze en portie op alle 7 dagen">Hele week</button></div>`).join('')
       }</div></article>`).join('')}
       ${isToday && eaten.length === SLOTS.length ? '<p class="empty">Alles gegeten voor vandaag. Goed bezig!</p>' : ''}
-      <div class="actions"><button class="btn primary" type="button" id="menuToShop">Zet op boodschappenlijst</button><button class="btn" type="button" id="menuReset">Standaardmenu</button></div>`;
+      <div class="actions"><button class="btn primary" type="button" id="menuToShop">Zet op boodschappenlijst</button><button class="btn" type="button" id="menuReset">Standaardmenu</button>${setDefault ? '<button class="btn" type="button" id="menuSaveDef">Maak standaardmenu</button>' : ''}</div>
+      ${setDefault ? '<p class="mut" style="font-size:13px">Standaardmenu zet de hele week terug naar jullie vaste menu. Maak standaardmenu slaat de week zoals hij nu staat op als dat vaste menu.</p>' : ''}`;
   }
 
   root.addEventListener('click', e => {
@@ -121,11 +122,19 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
       return;
     }
     if (e.target.closest('#menuToShop')) { toShopping(); return; }
+    // Twee keer tikken ter bevestiging
+    const sure = (b, label, act) => {
+      if (b.dataset.sure) { act(); return; }
+      b.dataset.sure = 1; b.textContent = 'Zeker? Tik nog een keer'; b.classList.add('sure');
+      setTimeout(() => { if (b.isConnected && b.dataset.sure) { delete b.dataset.sure; b.textContent = label; b.classList.remove('sure'); } }, 3000);
+    };
     const r = e.target.closest('#menuReset');
-    if (r) {
-      if (r.dataset.sure) { setPlan(freshPlan()); render(); }
-      else { r.dataset.sure = 1; r.textContent = 'Zeker? Tik nog een keer'; r.classList.add('sure'); setTimeout(() => { if (r.isConnected) { delete r.dataset.sure; r.textContent = 'Standaardmenu'; r.classList.remove('sure'); } }, 3000); }
-    }
+    if (r) { sure(r, 'Standaardmenu', () => { setPlan(getDefault().map(x => ({ ...x }))); render(); }); return; }
+    const sd = e.target.closest('#menuSaveDef');
+    if (sd) sure(sd, 'Maak standaardmenu', () => {
+      setDefault(getPlan().map(x => ({ ...x }))); render();
+      const b = root.querySelector('#menuSaveDef'); if (b) { b.textContent = '✓ Opgeslagen als standaard'; b.classList.add('done'); }
+    });
   });
   root.addEventListener('change', e => {
     const k = e.target.dataset.k, q = e.target.dataset.q; if (!k && !q) return;
