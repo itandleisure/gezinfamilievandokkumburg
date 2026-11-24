@@ -25,7 +25,7 @@ const DEFAULT_CATALOG = {
   Verzorging: ['Tandpasta', 'Tandenborstels', 'Douchegel', 'Shampoo', 'Deodorant', 'Scheermesjes', 'Handzeep', 'Zonnebrand', 'Wattenstaafjes'],
   Basis: ['Koffie', 'Thee', 'Melk', 'Eieren', 'Brood', 'Boter', 'Water', 'Cola Zero', 'Olijfolie', 'Zout', 'Peper', 'Suiker']
 };
-const CONTACT_CATS = ['Nood', 'Medisch', 'School', 'Huis & klussen', 'Familie', 'Overig'];
+const CONTACT_CATS = ['Nood', 'Medisch', 'Gemeente & politie', 'School', 'Huis & klussen', 'Familie', 'Overig'];
 
 // ---------- Supabase ----------
 if (SUPABASE_URL === 'VUL_IN' || SUPABASE_ANON_KEY === 'VUL_IN') {
