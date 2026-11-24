@@ -62,8 +62,11 @@ export function menuShopping(plan) {
   return [...map.values()].map(x => ({ name: x.name, qty: (x.portie ? x.portie + ' ' : '') + '×' + String(x.n).replace('.', ','), category: x.category }));
 }
 
-export function mountMenu(root, { getPlan, setPlan, toShopping }) {
-  let day = (new Date().getDay() + 6) % 7;
+const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const todayIdx = () => (new Date().getDay() + 6) % 7;
+
+export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten }) {
+  let day = todayIdx();
   const opt = (plan, c, d) => c.opts[plan[d][c.key]];
   const mul = (plan, c, d) => plan[d][qk(c)] || 1;
   const tot = (plan, d) => COMPS.reduce((a, c) => { const o = opt(plan, c, d), m = mul(plan, c, d); a.k += o[2] * m; a.p += o[3] * m; return a; }, { k: 0, p: 0 });
@@ -74,6 +77,11 @@ export function mountMenu(root, { getPlan, setPlan, toShopping }) {
     const st = t.k < LO ? ['Iets aan de lage kant: neem een fruit of kwarkje extra.', 'var(--warn)']
       : t.k > HI ? ['Boven je zone: kies een lichter bijgerecht of minder olie.', 'var(--warn)']
       : ['Binnen je zone.', 'var(--ok)'];
+    const isToday = day === todayIdx();
+    const eaten = isToday ? ((getEaten() || {})[todayKey()] || []) : [];
+    const eatenK = SLOTS.filter(s => eaten.includes(s.id)).reduce((a, s) => a + slotK(plan, s, day), 0);
+    const eatenHtml = eaten.length ? `<details class="eaten"><summary>✓ Al gegeten vandaag: ${SLOTS.filter(s => eaten.includes(s.id)).map(s => s.name).join(', ')} <span>${nf(eatenK)} kcal · nog ${nf(Math.max(0, t.k - eatenK))} kcal te gaan</span></summary>${
+      SLOTS.filter(s => eaten.includes(s.id)).map(s => `<div class="eaten-row"><span><b>${s.time}</b> ${s.name}</span><button class="btn" type="button" data-uneat="${s.id}">Terugzetten</button></div>`).join('')}</details>` : '';
     root.innerHTML = `
       <div class="mtabs" role="tablist" aria-label="Dagen">${DAYS.map((n, d) => `<button class="mtab" role="tab" data-d="${d}" aria-selected="${d === day}"><b>${n.slice(0, 2)}${PADEL.includes(d) ? '<span class="pd" title="Padeldag"></span>' : ''}</b><small>${nf(tot(plan, d).k)} kcal</small></button>`).join('')}</div>
       <div class="msum">
@@ -82,17 +90,27 @@ export function mountMenu(root, { getPlan, setPlan, toShopping }) {
         <div class="meter"><i style="width:${pct(t.k)}%;background:${st[1]}"></i><span class="zone" style="left:${pct(LO)}%;width:${pct(HI) - pct(LO)}%"></span></div>
         <div style="font-weight:600;color:${st[1]};font-size:14px">${st[0]}</div>
       </div>
-      ${SLOTS.map(s => `<article class="meal"><div class="time">${s.time}</div><div><h3>${s.name}<span>${nf(slotK(plan, s, day))} kcal</span></h3>${
+      ${eatenHtml}
+      ${SLOTS.filter(s => !eaten.includes(s.id)).map(s => `<article class="meal"><div class="time">${s.time}</div><div><h3>${s.name}<span>${nf(slotK(plan, s, day))} kcal${isToday ? `<button class="eat" type="button" data-eat="${s.id}" aria-label="${s.name} gegeten">✓ Gegeten</button>` : ''}</span></h3>${
         s.comps.map(c => `<div class="mrow"><label for="m-${c.key}">${c.label}</label><select id="m-${c.key}" data-k="${c.key}">${
           c.opts.map((o, i) => `<option value="${i}"${plan[day][c.key] === i ? ' selected' : ''}>${esc(o[0])}${o[1] ? ' · ' + esc(o[1]) : ''} (${o[2]} kcal)</option>`).join('')
         }</select><select class="q" data-q="${c.key}" aria-label="Portie ${c.label}">${
           QOPTS.map(([v, l]) => `<option value="${v}"${mul(plan, c, day) === v ? ' selected' : ''}>${l}</option>`).join('')
         }</select><button class="all" type="button" data-all="${c.key}" title="Zet deze keuze en portie op alle 7 dagen">Hele week</button></div>`).join('')
       }</div></article>`).join('')}
+      ${isToday && eaten.length === SLOTS.length ? '<p class="empty">Alles gegeten voor vandaag. Goed bezig!</p>' : ''}
       <div class="actions"><button class="btn primary" type="button" id="menuToShop">Zet op boodschappenlijst</button><button class="btn" type="button" id="menuReset">Standaardmenu</button></div>`;
   }
 
   root.addEventListener('click', e => {
+    const eat = e.target.closest('[data-eat],[data-uneat]');
+    if (eat) {
+      const all = { ...(getEaten() || {}) }, k = todayKey(), id = eat.dataset.eat || eat.dataset.uneat;
+      const cur = new Set(all[k] || []); if (eat.dataset.eat) cur.add(id); else cur.delete(id);
+      all[k] = [...cur];
+      for (const d of Object.keys(all)) if (d < new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10)) delete all[d];
+      setEaten(all); render(); return;
+    }
     const tab = e.target.closest('.mtab');
     if (tab) { day = +tab.dataset.d; render(); return; }
     const all = e.target.closest('.all');

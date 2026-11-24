@@ -114,7 +114,7 @@ document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pe
 let menu, spaans;
 async function start() {
   fillShopForm();
-  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping });
+  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten });
   spaans = mountSpaans($('#spaansRoot'));
   route();
   await Promise.all(Object.keys(S).map(load));
@@ -140,6 +140,13 @@ function setPlan(plan) {
   if (row) row.plan = plan; else S.menu_plan.push({ id: MENU_ID, plan });
   clearTimeout(planTimer);
   planTimer = setTimeout(() => run(sb.from('menu_plan').upsert({ id: MENU_ID, plan, updated_at: new Date().toISOString() })), 600);
+}
+const EATEN_ID = MENU_ID + '-gegeten';
+function getEaten() { const row = S.menu_plan.find(r => r.id === EATEN_ID); return row && row.plan && !Array.isArray(row.plan) ? row.plan : {}; }
+function setEaten(obj) {
+  const row = S.menu_plan.find(r => r.id === EATEN_ID);
+  if (row) row.plan = obj; else S.menu_plan.push({ id: EATEN_ID, plan: obj });
+  run(sb.from('menu_plan').upsert({ id: EATEN_ID, plan: obj, updated_at: new Date().toISOString() }));
 }
 async function menuToShopping() {
   const items = menuShopping(getPlan());

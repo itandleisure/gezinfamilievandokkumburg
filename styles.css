@@ -131,7 +131,14 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .meal{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:14px 0;border-top:1px solid var(--line)}
 .meal .time{font-size:18px;font-weight:800;color:var(--terra)}
 .meal h3{display:flex;justify-content:space-between;margin:0 0 6px;font-size:17px}
-.meal h3 span{color:var(--mut);font-weight:600;font-size:14px}
+.meal h3 span{color:var(--mut);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.eat{min-height:36px;padding:0 12px;border-radius:18px;border:1px solid var(--ok);background:transparent;color:var(--ok);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.eat:active{background:var(--ok);color:#fff}
+.eaten{background:var(--okbg);border-radius:14px;padding:4px 14px;margin:4px 0 6px}
+.eaten summary{cursor:pointer;font-weight:700;color:var(--ok);min-height:44px;padding:10px 0;line-height:1.35}
+.eaten summary span{display:block;font-weight:600;font-size:13px;color:var(--mut)}
+.eaten-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.eaten-row .btn{min-height:38px;font-size:14px}
 .mrow{display:grid;grid-template-columns:minmax(0,1fr) 96px 74px;gap:6px;align-items:center;margin:6px 0}
 .mrow select.q{padding:8px 6px;font-size:15px}
 .mrow .all{padding:0 6px;line-height:1.15;white-space:normal}
