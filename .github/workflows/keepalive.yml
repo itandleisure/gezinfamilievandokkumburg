@@ -14,5 +14,5 @@ jobs:
           URL=$(sed -n "s/.*SUPABASE_URL = '\(.*\)'.*/\1/p" config.js)
           KEY=$(sed -n "s/.*SUPABASE_ANON_KEY = '\(.*\)'.*/\1/p" config.js)
           curl -fsS -X POST "$URL/rest/v1/rpc/ping" \
-            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "apikey: $KEY" \
             -H "Content-Type: application/json" -d '{}'
