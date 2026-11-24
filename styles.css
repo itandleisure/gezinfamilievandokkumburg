@@ -54,6 +54,7 @@ main{max-width:760px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-lef
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
 #menuRoot .actions .primary{flex-basis:100%}
 .actions .btn{flex:1}
+#shopClear{flex-basis:100%}
 .empty{color:var(--mut);text-align:center;padding:28px 12px}
 
 /* Lijsten */

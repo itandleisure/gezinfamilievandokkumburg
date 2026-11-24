@@ -232,6 +232,14 @@ $('#shopNewWeek').addEventListener('click', e => confirmTwice(e.currentTarget, '
   await run(sb.from('shopping_items').update({ checked: false }).eq('recurring', true));
   await load('shopping_items'); renderShop(); toast('Klaar voor een nieuwe week');
 }));
+$('#shopClear').addEventListener('click', e => {
+  if (!S.shopping_items.length) { toast('De lijst is al leeg'); return; }
+  confirmTwice(e.currentTarget, 'Lijst leegmaken', async () => {
+    // Alles van de lijst af, ook "In de kar" en "elke week". De keuzelijst (catalog_items) blijft staan.
+    if (!await run(sb.from('shopping_items').delete().not('id', 'is', null))) return;
+    await load('shopping_items'); renderShop(); toast('De lijst is leeg');
+  });
+});
 $('#shopShare').addEventListener('click', async () => {
   const open = S.shopping_items.filter(i => !i.checked);
   if (!open.length) { toast('Er staat niets open op de lijst'); return; }
