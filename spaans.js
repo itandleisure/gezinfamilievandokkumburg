@@ -1,4 +1,4 @@
-// Spaans oefenen: werkwoorden vervoegen (typen of inspreken) en zinnen uit de lessen. Voortgang blijft op dit toestel (localStorage).
+// Spaans oefenen: woorden en zinnen uit de lessen, en werkwoorden vervoegen. Alles typen, geen inspreken. Voortgang blijft op dit toestel (localStorage).
 const P = [
   { k: 'yo', es: ['Yo'], nl: ['Ik'] },
   { k: 'tu', es: ['Tú'], nl: ['Jij'] },
@@ -63,7 +63,7 @@ const PRE = [
   { n: 'Stap 4: alles', v: Object.keys(V), t: T.map(t => t.k), p: P.map(p => p.k) }];
 
 // Zinnen uit de lessen (voorstellen, winkel, dagen, vaste fouten). tip = uitleg bij een fout die vaak terugkomt.
-const THEMA = { voor: 'Jezelf voorstellen', winkel: 'In de winkel', dagen: 'Dagen en groeten', getal: 'Getallen 1–100', fout: 'Vaste fouten' };
+const THEMA = { woord: 'Losse woorden', voor: 'Jezelf voorstellen', winkel: 'In de winkel', dagen: 'Dagen en groeten', getal: 'Getallen 1–100', fout: 'Vaste fouten' };
 const ZIN = [
   ['voor', 'Ik heet Frans.', 'Me llamo Frans.', 'Me llamo, niet "mi llamo" (mi = mijn).'],
   ['voor', 'Ik ben Nederlands.', 'Soy holandés.'],
@@ -111,7 +111,18 @@ const ZIN = [
   ['fout', 'Ik ben uit Nederland.', 'Soy de Holanda.', 'Waar je vandaan komt: soy de.'],
   ['fout', 'Ik spreek Spaans.', 'Hablo español.', 'Geen "de" na hablo.'],
   ['fout', 'Ik heb een dochter.', 'Tengo una hija.'],
-  ['fout', 'Ik heet Frans, en jij?', 'Me llamo Frans, ¿y tú?', 'me llamo, niet mi llamo.']
+  ['fout', 'Ik heet Frans, en jij?', 'Me llamo Frans, ¿y tú?', 'me llamo, niet mi llamo.'],
+  ['woord', 'het brood', 'el pan'], ['woord', 'de melk', 'la leche'], ['woord', 'het water', 'el agua'],
+  ['woord', 'het fruit', 'la fruta'], ['woord', 'een tas', 'una bolsa'], ['woord', 'de kaas', 'el queso'],
+  ['woord', 'de ham', 'el jamón'], ['woord', 'de tortilla', 'la tortilla'], ['woord', 'de winkel', 'la tienda'],
+  ['woord', 'de koffie', 'el café'], ['woord', 'de thee', 'el té'], ['woord', 'een doos', 'una caja'],
+  ['woord', 'een stuk', 'un trozo'], ['woord', 'de dochter', 'la hija'], ['woord', 'de zoon', 'el hijo'],
+  ['woord', 'de kinderen', 'los hijos'], ['woord', 'het huis', 'la casa'], ['woord', 'de auto', 'el coche'],
+  ['woord', 'het strand', 'la playa'], ['woord', 'het kantoor', 'la oficina'],
+  ['woord', 'vandaag', 'hoy'], ['woord', 'gisteren', 'ayer'], ['woord', 'morgen', 'mañana'],
+  ['woord', 'alstublieft', 'por favor'], ['woord', 'dank je', 'gracias'], ['woord', 'insgelijks', 'igualmente'],
+  ['woord', 'maandag', 'lunes'], ['woord', 'dinsdag', 'martes'], ['woord', 'woensdag', 'miércoles'],
+  ['woord', 'donderdag', 'jueves'], ['woord', 'vrijdag', 'viernes'], ['woord', 'zaterdag', 'sábado'], ['woord', 'zondag', 'domingo']
 ].map(([th, nl, es, tip], i) => ({ id: 'z|' + i, th, nl, es, tip }));
 const EEN = W('cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiuno veintidós veintitrés veinticuatro veinticinco veintiséis veintisiete veintiocho veintinueve');
 const TIEN = { 3: 'treinta', 4: 'cuarenta', 5: 'cincuenta', 6: 'sesenta', 7: 'setenta', 8: 'ochenta', 9: 'noventa' };
@@ -128,7 +139,6 @@ const norm = s => s.toLowerCase().replace(/[.,;:¿?¡!"]/g, ' ').replace(/\s+/g,
 const bare = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const pick2 = s => ({ v: [...s.v], t: [...s.t], p: [...s.p] });
-const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 function make(vk, tk, pk) {
   const v = V[vk], t = T.find(x => x.k === tk), i = P.findIndex(p => p.k === pk), p = P[i];
@@ -141,17 +151,16 @@ export function mountSpaans(root) {
   let sel = store.get('sel', pick2(PRE[0]));
   let sc = store.get('score', { ok: 0, bad: 0, run: 0 });
   let mist = store.get('mist', []);
-  let thema = store.get('thema', Object.keys(THEMA));
-  let mode = store.get('mode', 'verb'), onlyMist = false, cur = null, done = false, ovV = 'vivir', built = false;
+  let thema = store.get('thema2', Object.keys(THEMA));
+  let mode = store.get('mode2', 'les'), onlyMist = false, cur = null, done = false, ovV = 'vivir', built = false;
   const $ = s => root.querySelector(s);
 
   function build() {
     built = true;
     root.innerHTML = `
       <div class="chips" role="tablist" aria-label="Manier van oefenen">
-        <button class="chip" data-m="verb" role="tab">Werkwoord typen</button>
-        <button class="chip" data-m="zin" role="tab">Hele zin inspreken</button>
-        <button class="chip" data-m="les" role="tab">Zinnen uit de les</button>
+        <button class="chip" data-m="les" role="tab">Woorden en zinnen</button>
+        <button class="chip" data-m="verb" role="tab">Werkwoorden</button>
       </div>
       <div class="card sp-card">
         <div class="sp-tags"><span class="sp-tag sp-t" id="spTense"></span><span class="sp-tag" id="spVerb"></span></div>
@@ -162,11 +171,9 @@ export function mountSpaans(root) {
           <input id="spInp" aria-label="Jouw antwoord" autocapitalize="off" spellcheck="false">
           <span id="spRest"></span>
         </form>
-        <p class="sp-hint" id="spMicNote" hidden></p>
         <div class="sp-acc" aria-label="Letters met accent">${['á', 'é', 'í', 'ó', 'ú', 'ñ'].map(l => `<button type="button" class="btn">${l}</button>`).join('')}</div>
         <div class="sp-row">
           <button class="btn primary" id="spCheck" type="button">Controleer</button>
-          <button class="btn sp-mic" id="spMic" type="button" hidden>Inspreken</button>
           <button class="btn" id="spShow" type="button">Weet ik niet</button>
           <button class="btn" id="spSay" type="button" hidden>Luister</button>
           <button class="btn" id="spNext" type="button">Volgende</button>
@@ -179,7 +186,7 @@ export function mountSpaans(root) {
         <p class="sp-leg">Werkwoorden</p><div class="sp-opts" id="spOv"></div>
         <p class="sp-leg">Tijden</p><div class="sp-opts" id="spOt"></div>
         <p class="sp-leg">Personen</p><div class="sp-opts" id="spOp"></div>
-        <p class="sp-leg">Zinnen uit de les: onderwerpen</p><div class="sp-opts" id="spOz"></div>
+        <p class="sp-leg">Woorden en zinnen: onderwerpen</p><div class="sp-opts" id="spOz"></div>
       </details>
       <details class="sp-box"><summary>Nog oefenen</summary>
         <p class="mut" id="spMInfo"></p><div class="sp-mist" id="spMList"></div>
@@ -191,7 +198,7 @@ export function mountSpaans(root) {
 
     root.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.m) { mode = b.dataset.m; store.set('mode', mode); next(); }
+      if (b.dataset.m) { mode = b.dataset.m; store.set('mode2', mode); next(); }
       else if (b.dataset.p) { sel = pick2(PRE[b.dataset.p]); store.set('sel', sel); opts(); next(); }
       else if (b.dataset.ov) { ovV = b.dataset.ov; overview(); }
       else if (b.closest('.sp-acc')) {
@@ -203,13 +210,12 @@ export function mountSpaans(root) {
     $('#spCheck').onclick = check;
     $('#spShow').onclick = show;
     $('#spNext').onclick = () => { onlyMist = onlyMist && mist.length > 0; next(); };
-    $('#spMist').onclick = () => { onlyMist = true; next(); root.scrollIntoView({ behavior: 'smooth' }); };
+    $('#spMist').onclick = () => { onlyMist = true; mode = 'verb'; store.set('mode2', mode); next(); root.scrollIntoView({ behavior: 'smooth' }); };
     $('#spReset').onclick = () => { sc = { ok: 0, bad: 0, run: 0 }; mist = []; onlyMist = false; save(); next(); };
     if ('speechSynthesis' in window) {
       $('#spSay').hidden = false;
       $('#spSay').onclick = () => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance([cur.subj, cur.ans, cur.rest].filter(Boolean).join(' ')); u.lang = 'es-ES'; u.rate = .8; speechSynthesis.speak(u); } catch { } };
     }
-    $('#spMic').onclick = listen;
     opts(); overview(); paint(); next();
   }
 
@@ -231,7 +237,7 @@ export function mountSpaans(root) {
     oz.onchange = () => {
       thema = [...oz.querySelectorAll('input:checked')].map(i => i.value);
       if (!thema.length) { oz.querySelector('input').checked = true; thema = [oz.querySelector('input').value]; }
-      store.set('thema', thema); if (mode === 'les') next();
+      store.set('thema2', thema); if (mode === 'les') next();
     };
     markPre();
   }
@@ -239,8 +245,8 @@ export function mountSpaans(root) {
     const pool = ZIN.filter(z => thema.includes(z.th));
     if (thema.includes('getal')) for (let i = 0; i < 8; i++) pool.push(null);
     const z = pick(pool.length ? pool : ZIN);
-    if (!z) { const n = 1 + Math.floor(Math.random() * 100); return { id: 'g|' + n, les: true, t: { n: THEMA.getal, x: 'Schrijf of zeg het getal in het Spaans.' }, tip: GTIP, tag: 'zeg het getal', subj: '', rest: '', nl: String(n), ans: getal(n) }; }
-    return { id: z.id, les: true, t: { n: THEMA[z.th], x: 'Vertaal de hele zin in het Spaans.' }, tip: z.tip, tag: 'hele zin', subj: '', rest: '', nl: z.nl, ans: z.es };
+    if (!z) { const n = 1 + Math.floor(Math.random() * 100); return { id: 'g|' + n, les: true, t: { n: THEMA.getal, x: 'Schrijf het getal in het Spaans.' }, tip: GTIP, tag: 'getal', subj: '', rest: '', nl: String(n), ans: getal(n) }; }
+    return { id: z.id, les: true, t: { n: THEMA[z.th], x: z.th === 'woord' ? (/^(el|la|los|las|un|una) /.test(z.es) ? 'Schrijf het Spaanse woord, met el, la, un of una erbij.' : 'Schrijf het Spaanse woord.') : 'Vertaal de hele zin in het Spaans.' }, tip: z.tip, tag: z.th === 'woord' ? 'woord' : 'hele zin', subj: '', rest: '', nl: z.nl, ans: z.es };
   }
   function markPre() {
     const s = JSON.stringify(sel);
@@ -261,11 +267,7 @@ export function mountSpaans(root) {
     $('#spTense').textContent = cur.t.n; $('#spVerb').textContent = cur.les ? cur.tag : cur.vk + ' = ' + V[cur.vk].nl; $('#spHint').textContent = cur.t.x;
     $('#spNl').textContent = cur.nl; $('#spSubj').textContent = cur.subj; $('#spRest').textContent = cur.rest;
     $('#spForm').classList.toggle('zin', z); $('#spSubj').hidden = z; $('#spRest').hidden = z;
-    $('#spInp').placeholder = cur.les && cur.tag !== 'hele zin' ? 'typ of zeg het getal' : z ? 'zeg of typ de hele zin' : 'typ hier';
-    $('#spMic').hidden = !(z && Rec);
-    $('#spMicNote').hidden = !z;
-    $('#spMicNote').textContent = Rec ? 'Tik op Inspreken en zeg de hele zin in het Spaans.'
-      : 'Tik in het vak en dan op het microfoontje van je toetsenbord. Zet je toetsenbord op Spaans.';
+    $('#spInp').placeholder = cur.les ? (cur.tag === 'hele zin' ? 'typ de hele zin' : 'typ hier') : z ? 'typ de hele zin' : 'typ hier';
     $('#spInp').value = ''; $('#spFb').innerHTML = onlyMist ? '<span class="mut">Je oefent nu je fouten.</span>' : '';
     $('#spCheck').textContent = 'Controleer';
   }
@@ -292,21 +294,6 @@ export function mountSpaans(root) {
     if (done) return; done = true; sc.run = 0; if (!cur.les && !mist.includes(cur.id)) mist.push(cur.id);
     $('#spFb').innerHTML = `Het antwoord is <span class="sp-ans">${esc(cur.ans)}</span>` + (cur.les ? '' : `<br>${esc(cur.subj + ' ' + cur.ans + ' ' + cur.rest)}`);
     $('#spCheck').textContent = 'Volgende'; tip(); save();
-  }
-  function listen() {
-    if (!Rec || done) return;
-    let r; try { r = new Rec(); } catch { return; }
-    r.lang = 'es-ES'; r.interimResults = false; r.maxAlternatives = 3;
-    const btn = $('#spMic'); btn.textContent = 'Ik luister…'; btn.disabled = true;
-    r.onresult = e => {
-      const alts = [...e.results[0]].map(x => x.transcript);
-      const target = bare(norm([cur.subj, cur.ans, cur.rest].join(' ')));
-      $('#spInp').value = alts.find(t => bare(norm(t)) === target) || alts[0];
-      check();
-    };
-    r.onerror = e => { $('#spFb').innerHTML = `<span class="mut">${e.error === 'not-allowed' ? 'Geef de app toestemming voor de microfoon, of gebruik het microfoontje van je toetsenbord.' : 'Ik verstond je niet goed. Probeer het nog eens.'}</span>`; };
-    r.onend = () => { btn.textContent = 'Inspreken'; btn.disabled = false; };
-    try { r.start(); } catch { r.onend(); }
   }
   function paint() {
     $('#spOk').textContent = sc.ok; $('#spBad').textContent = sc.bad; $('#spRun').textContent = sc.run;

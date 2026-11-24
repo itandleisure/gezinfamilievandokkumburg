@@ -163,7 +163,6 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .sp-acc{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
 .sp-acc .btn{min-width:44px;padding:0;font-size:18px}
 .sp-row{display:flex;flex-wrap:wrap;gap:8px}
-.sp-mic{background:var(--terra);border-color:var(--terra);color:#fff}
 .sp-fb{min-height:48px;margin-top:12px;font-size:16px}
 .sp-ok{color:var(--ok)}.sp-bad{color:var(--danger)}
 .sp-ans{font-size:20px;font-weight:800}
