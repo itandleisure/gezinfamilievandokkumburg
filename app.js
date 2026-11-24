@@ -3,6 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './menu.js';
 import { mountSpaans } from './spaans.js';
 import { mountTaken, dueCount } from './taken.js';
+import { mountGezond, nudge, iso } from './gezond.js';
 
 // ---------- Helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -38,19 +39,23 @@ if (SUPABASE_URL === 'VUL_IN' || SUPABASE_ANON_KEY === 'VUL_IN') {
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 const MENU_ID = 'frans-v2';
 let tasksMissing = false;
-// Rood getal op het tabblad Taken: zoveel taken zijn aan de beurt of te laat
+const HEALTH = ['weight_log', 'sport_log', 'health_settings'], healthMissing = {};
+// Terracotta getal bij Taken: zoveel taken zijn aan de beurt of te laat
 function taskBadge() {
-  const b = $('#taskBadge'); if (!b) return;
-  const n = dueCount(S.tasks); b.textContent = n; b.hidden = !n;
+  // Taken staat onder Meer: het getal staat op de knop Meer én op de tegel Taken
+  const n = dueCount(S.tasks);
+  for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], weight_log: [], sport_log: [], health_settings: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', weight_log: 'day', sport_log: 'day', health_settings: 'owner' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
   // Taken: als de tabel nog niet bestaat, rustig een lege lijst tonen in plaats van een foutmelding
   if (t === 'tasks') tasksMissing = !!error;
-  if (error) { if (t !== 'tasks') toast('Laden mislukt: ' + error.message); return; }
+  // Gezond: idem, tot de tabellen in Supabase zijn aangemaakt
+  if (HEALTH.includes(t)) healthMissing[t] = !!error;
+  if (error) { if (t !== 'tasks' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -62,7 +67,7 @@ async function run(promise, okMsg) {
 }
 
 // ---------- Inloggen ----------
-let started = false, recovering = false;
+let started = false, recovering = false, userId = null;
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   $('#loginMsg').textContent = 'Bezig…';
@@ -87,6 +92,7 @@ $('#logout').addEventListener('click', () => sb.auth.signOut());
 function show(session) {
   if (recovering) return;
   $('#login').hidden = !!session; $('#app').hidden = !session;
+  if (session) userId = session.user.id;
   if (session && !started) { started = true; start(); }
 }
 sb.auth.onAuthStateChange((event, session) => {
@@ -101,14 +107,17 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { boodschappen: 'Boodschappen', menu: 'Weekmenu', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', taken: 'Terugkerende taken' };
-const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'boodschappen');
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', taken: 'Terugkerende taken', meer: 'Meer' };
+// Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
+const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
+const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
 function route() {
   const v = current();
   for (const k in VIEWS) $('#view-' + k).hidden = k !== v;
-  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.v === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const tab = inMeer(v) ? 'meer' : v;
+  document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.v === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   $('#viewTitle').textContent = VIEWS[v];
-  render(v); window.scrollTo(0, 0);
+  render(v); showNudge(); window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
 
@@ -118,17 +127,18 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), taken: () => taken.render() })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), taken: () => taken.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken;
+let menu, spaans, taken, gezond;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes });
   spaans = mountSpaans($('#spaansRoot'));
   taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge });
+  gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, openDialog });
   route();
   await Promise.all(Object.keys(S).map(load));
   fillShopPick(); route();
@@ -137,13 +147,45 @@ async function start() {
   sb.channel('gezin').on('postgres_changes', { event: '*', schema: 'public' }, p => {
     const t = p.table; if (!(t in S)) return;
     clearTimeout(timers[t]);
-    timers[t] = setTimeout(async () => { await load(t); if (t === 'catalog_items') fillShopPick(); render(); }, 250);
+    timers[t] = setTimeout(async () => { await load(t); if (t === 'catalog_items') fillShopPick(); render(); showNudge(); }, 250);
   }).subscribe();
   // Bijwerken als de app weer naar voren komt (telefoon uit slaapstand)
   document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState === 'visible') { await Promise.all(Object.keys(S).map(load)); fillShopPick(); render(); }
+    if (document.visibilityState === 'visible') { await Promise.all(Object.keys(S).map(load)); fillShopPick(); render(); showNudge(); }
   });
 }
+
+// ---------- Gezond (gewicht en sport, alleen eigen gegevens) ----------
+function healthData() {
+  return { missing: HEALTH.some(t => healthMissing[t]), weights: S.weight_log.filter(r => r.owner === userId), sport: S.sport_log.filter(r => r.owner === userId), settings: S.health_settings.find(r => r.owner === userId) };
+}
+async function saveWeight(day, kg) {
+  const ok = await run(sb.from('weight_log').upsert({ owner: userId, day, kg }), 'Gewicht opgeslagen');
+  if (ok) { await load('weight_log'); showNudge(); } return ok;
+}
+async function deleteWeight(day) {
+  if (await run(sb.from('weight_log').delete().eq('owner', userId).eq('day', day), 'Gewicht gewist')) await load('weight_log');
+}
+async function toggleSport(day, kind, on) {
+  const q = on ? sb.from('sport_log').upsert({ owner: userId, day, kind }) : sb.from('sport_log').delete().eq('owner', userId).eq('day', day).eq('kind', kind);
+  if (await run(q, on ? 'Lekker bezig!' : '')) { await load('sport_log'); showNudge(); }
+}
+async function saveSettings(v) {
+  const ok = await run(sb.from('health_settings').upsert({ owner: userId, ...v, updated_at: new Date().toISOString() }), 'Opgeslagen');
+  if (ok) { await load('health_settings'); gezond.render(); showNudge(); } return ok;
+}
+// Duwtje bovenaan de app ("Heb je vandaag al bewogen?"); wegtikken geldt voor de rest van de dag
+const nudgeKey = id => 'gz-nudge-' + iso(new Date()) + '-' + id;
+function showNudge() {
+  const el = $('#nudge'); if (!el || !userId) return;
+  const h = healthData(), n = current() === 'gezond' || h.missing ? null : nudge(h);
+  let hidden = false; try { hidden = n && localStorage.getItem(nudgeKey(n.id)); } catch (e) {}
+  el.hidden = !n || !!hidden;
+  if (n && !hidden) { $('#nudgeText').textContent = n.text; el.dataset.id = n.id; }
+}
+$('#nudgeGo').addEventListener('click', () => { location.hash = 'gezond'; });
+$('#nudgeClose').addEventListener('click', () => { try { localStorage.setItem(nudgeKey($('#nudge').dataset.id), '1'); } catch (e) {} showNudge(); });
+setInterval(showNudge, 5 * 60 * 1000);
 
 // ---------- Weekmenu ----------
 function getPlan() { const row = S.menu_plan.find(r => r.id === MENU_ID); return row ? cleanPlan(row.plan) : freshPlan(); }

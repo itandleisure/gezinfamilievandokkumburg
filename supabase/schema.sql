@@ -159,3 +159,40 @@ select * from (values
   ('Butaanfles controleren', 'Reservefles in huis?', 2, 'week', current_date)
 ) as v(title, note, every_n, every_unit, next_due)
 where not exists (select 1 from public.tasks);
+
+-- Gewicht en sport (tabblad Gezond). Iedereen ziet alleen zijn eigen gegevens.
+create table if not exists public.weight_log (
+  owner uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  day date not null,
+  kg numeric(5,1) not null check (kg between 30 and 300),
+  created_at timestamptz default now(),
+  primary key (owner, day)
+);
+create table if not exists public.sport_log (
+  owner uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  day date not null,
+  kind text not null,                   -- 'padel', 'kracht', 'wandelen', 'hardlopen'
+  created_at timestamptz default now(),
+  primary key (owner, day, kind)
+);
+create table if not exists public.health_settings (
+  owner uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  start_kg numeric(5,1) default 93,
+  goal_kg numeric(5,1) default 78,
+  reminders boolean default true,
+  updated_at timestamptz default now()
+);
+grant select, insert, update, delete on public.weight_log, public.sport_log, public.health_settings to authenticated;
+do $$
+declare t text;
+begin
+  foreach t in array array['weight_log','sport_log','health_settings'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists "alleen eigen gegevens" on public.%I', t);
+    execute format('create policy "alleen eigen gegevens" on public.%I for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()))', t);
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
