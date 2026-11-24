@@ -2,6 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './menu.js';
 import { mountSpaans } from './spaans.js';
+import { mountTaken, dueCount } from './taken.js';
 
 // ---------- Helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -36,13 +37,22 @@ if (SUPABASE_URL === 'VUL_IN' || SUPABASE_ANON_KEY === 'VUL_IN') {
 }
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
 const MENU_ID = 'frans-v2';
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at' };
+let tasksMissing = false;
+// Rood getal op het tabblad Taken: zoveel taken zijn aan de beurt of te laat
+function taskBadge() {
+  const b = $('#taskBadge'); if (!b) return;
+  const n = dueCount(S.tasks); b.textContent = n; b.hidden = !n;
+}
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
-  if (error) { toast('Laden mislukt: ' + error.message); return; }
+  // Taken: als de tabel nog niet bestaat, rustig een lege lijst tonen in plaats van een foutmelding
+  if (t === 'tasks') tasksMissing = !!error;
+  if (error) { if (t !== 'tasks') toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
+  if (t === 'tasks') taskBadge();
 }
 async function run(promise, okMsg) {
   const { error } = await promise;
@@ -91,7 +101,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { boodschappen: 'Boodschappen', menu: 'Weekmenu', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen' };
+const VIEWS = { boodschappen: 'Boodschappen', menu: 'Weekmenu', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', taken: 'Terugkerende taken' };
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'boodschappen');
 function route() {
   const v = current();
@@ -108,16 +118,17 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render() })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), taken: () => taken.render() })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans;
+let menu, spaans, taken;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes });
   spaans = mountSpaans($('#spaansRoot'));
+  taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge });
   route();
   await Promise.all(Object.keys(S).map(load));
   fillShopPick(); route();

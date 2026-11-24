@@ -7,6 +7,7 @@ Een eigen gezinsapp voor Frans en partner op **gezin.fransvandokkumburg.com**. E
 - **Cadeaus.** Een lijst per verjaardag of gelegenheid. Ideeën vink je af zodra ze gekocht zijn.
 - **Notities.** Je kunt zoeken en notities bovenaan vastzetten.
 - **Nummers.** Belangrijke telefoonnummers die je met één tik belt.
+- **Taken.** Terugkerende klusjes, zoals het airco-filter elke 3 maanden. Afvinken zet de volgende datum; wat aan de beurt is staat bovenaan en als getal op het tabblad.
 
 Je partner en jij zien wijzigingen live.
 

@@ -125,3 +125,37 @@ alter table public.notes add column if not exists done_at timestamptz;
 
 -- Eigen volgorde van de cadeaulijsten (pijltjes omhoog/omlaag)
 alter table public.gift_lists add column if not exists position integer;
+
+-- Terugkerende taken en klusjes (tabblad Taken)
+-- every_n + every_unit ('dag','week','maand','jaar') = hoe vaak; next_due = wanneer weer aan de beurt.
+-- prev_due/prev_done bewaren de vorige stand, zodat een per ongeluk afgevinkte taak terug kan.
+create table if not exists public.tasks (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  note text default '',
+  every_n integer not null default 1 check (every_n > 0),
+  every_unit text not null default 'maand' check (every_unit in ('dag','week','maand','jaar')),
+  next_due date not null default current_date,
+  last_done date,
+  prev_due date,
+  prev_done date,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.tasks to authenticated;
+alter table public.tasks enable row level security;
+drop policy if exists "alleen gezin" on public.tasks;
+create policy "alleen gezin" on public.tasks for all to authenticated using (true) with check (true);
+do $$ begin
+  alter publication supabase_realtime add table public.tasks;
+exception when duplicate_object then null;
+end $$;
+-- Een paar voorbeeldtaken (alleen als de tabel nog leeg is)
+insert into public.tasks (title, note, every_n, every_unit, next_due)
+select * from (values
+  ('Airco-filters schoonmaken', 'Filters uitnemen, uitspoelen en goed laten drogen', 3, 'maand', current_date + 7),
+  ('Rookmelders testen', 'Testknop indrukken, batterij vervangen als hij piept', 6, 'maand', current_date + 14),
+  ('Afvoer op het terras vrijmaken', 'Vooral na de herfstbuien', 1, 'maand', current_date + 3),
+  ('Koelkast schoonmaken', '', 1, 'maand', current_date + 10),
+  ('Butaanfles controleren', 'Reservefles in huis?', 2, 'week', current_date)
+) as v(title, note, every_n, every_unit, next_due)
+where not exists (select 1 from public.tasks);

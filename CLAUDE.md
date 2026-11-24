@@ -15,6 +15,7 @@ De gebruikers zitten in Cómpeta (Málaga, Spanje). De app is Nederlandstalig en
 | Notities (met afvinken en archief) | `app.js` | `notes` (`done`, `done_at`) |
 | Nummers (bellen met één tik) | `app.js` | `contacts` |
 | Spaans ("Woorden en zinnen": losse woorden, voorstellen, winkel, dagen, getallen, vaste fouten; plus "Werkwoorden". Alleen typen, geen inspreken) | `spaans.js` (nieuwe lesstof achteraan in `ZIN` toevoegen) | localStorage op het toestel |
+| Taken (terugkerende klusjes, bijv. airco-filter elke 3 maanden. Afvinken zet `next_due` op vandaag + interval; nog een tik op dezelfde dag zet hem terug via `prev_due`/`prev_done`. Wat aan de beurt is staat bovenaan, met een terracotta getal op het tabblad. Geen agenda: die staat in Apple Agenda) | `taken.js` | `tasks` (`every_n` + `every_unit` dag/week/maand/jaar, `next_due`, `last_done`) |
 
 Er is geen build-stap. Alles is gewone ES-modules plus `styles.css`. Supabase-js wordt geladen vanaf jsDelivr, vastgezet op een versie.
 
@@ -33,7 +34,7 @@ Er is geen build-stap. Alles is gewone ES-modules plus `styles.css`. Supabase-js
 4. Stijl: mobiel eerst, knoppen minimaal 44px, kleuren azulejo-blauw `#1d4e89`, terracotta `#c4502b` en groen voor afgevinkt. Licht en donker thema via `light-dark()`.
 5. Waarden uit de database altijd escapen (`esc()`) voordat ze in HTML komen.
 6. Wijzig je opties in `menu.js`: **voeg nieuwe opties achteraan toe**. De opgeslagen plannen verwijzen namelijk naar de positie in de lijst. Gooi je de volgorde toch om, verhoog dan `MENU_ID` in `app.js`.
-7. Nieuw tabblad: voeg een `<section class="view">` toe in `index.html`, een link in `<nav class="tabs">`, een entry in `VIEWS` en `render()` in `app.js`, en eventueel een eigen module zoals `spaans.js`.
+7. Nieuw tabblad: de tabbalk past zich vanzelf aan het aantal tabbladen aan. Voeg een `<section class="view">` toe in `index.html`, een link in `<nav class="tabs">`, een entry in `VIEWS` en `render()` in `app.js`, en eventueel een eigen module zoals `spaans.js`.
 
 ## Voorkeuren van Frans
 - Eten: gewoon en makkelijk (kwark met muesli, brood met kaas, salami of serranoham, aardappel, pasta of rijst met groente en vlees; zondag patat). Geen culinaire hoogstandjes.
