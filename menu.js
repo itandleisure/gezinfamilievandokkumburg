@@ -1,33 +1,37 @@
-// Weekmenu (afvalschema Frans): ca. 1.850 kcal, min. 130 g eiwit, 6 eetmomenten.
-export const TARGET = 1850, LO = 1700, HI = 2000, PROT = 130;
+// Weekmenu (afvalschema Frans): ca. 1.800 kcal, min. 110 g eiwit, 6 eetmomenten.
+export const TARGET = 1800, LO = 1600, HI = 1950, PROT = 110;
 const MAXK = 2300;
 const CATNAME = { groente: 'Groente', fruit: 'Fruit', zuivel: 'Zuivel', eiwit: 'Vlees, vis & eieren', granen: 'Brood, granen & aardappelen', overig: 'Overig' };
 // [naam, portie, kcal, eiwit, categorie?]
+// Gewoon, makkelijk eten: kwark, brood met kaas/vleeswaren, aardappel-groente-vlees, pasta, rijst; zondag patat.
+const BELEG = [["Kaas 30+", "1 plak (20 g)", 60, 5, "zuivel"], ["Jonge kaas 48+", "1 plak (20 g)", 75, 5, "zuivel"], ["Salami", "3 dunne plakjes (15 g)", 60, 3.5], ["Serranoham", "2 plakjes (20 g)", 50, 6], ["Gekookt ei", "1 stuk", 75, 6.5], ["Kipfilet (beleg)", "2 plakjes (30 g)", 35, 7], ["Smeerkaas light", "20 g", 35, 2, "zuivel"], ["Pindakaas", "10 g", 60, 2.5, "overig"]];
 export const SLOTS = [
 {id:'o',time:'07:30',name:'Ontbijt',comps:[
- {id:'basis',label:'Basis',cat:'zuivel',opts:[['Magere kwark','250 g',143,24],['Skyr naturel','250 g',158,27],['Griekse yoghurt 0%','250 g',145,25]],def:[0,0,0,0,0,0,0]},
- {id:'crunch',label:'Crunch',cat:'granen',opts:[['Muesli zonder toegevoegde suiker','40 g',150,4],['Havermout','40 g',150,5],['Granola','30 g',140,3]],def:[0,0,1,0,0,1,0]},
- {id:'fruit',label:'Fruit',cat:'fruit',opts:[['Frambozen','100 g',52,1],['Blauwe bessen','100 g',57,1],['Aardbeien','150 g',48,1]],def:[0,1,2,0,1,2,0]},
- {id:'extra',label:'Extra',cat:'fruit',opts:[['Medjool-dadel','1 stuk',66,.4],['Banaan','½ stuk',50,.6],['Walnoten','10 g',65,1.5,'overig'],['Niets extra','',0,0]],def:[0,1,0,1,0,1,2]}]},
+ {id:'basis',label:'Kwark',cat:'zuivel',opts:[['Magere kwark','250 g',143,24],['Halfvolle kwark','250 g',190,22],['Griekse yoghurt 0%','250 g',145,25]],def:[0,0,0,0,0,0,0]},
+ {id:'crunch',label:'Muesli',cat:'granen',opts:[['Muesli zonder toegevoegde suiker','40 g',150,4],['Havermout','40 g',150,5],['Krokante muesli','30 g',135,3]],def:[0,0,1,0,0,1,0]},
+ {id:'fruit',label:'Fruit erdoor',cat:'fruit',opts:[['Frambozen','100 g',52,1],['Blauwe bessen','100 g',57,1],['Aardbeien','150 g',48,1],['Banaan','½ stuk',50,.6]],def:[0,1,2,3,0,1,0]},
+ {id:'extra',label:'Extra',cat:'fruit',opts:[['Medjool-dadel','1 stuk',66,.4],['Walnoten','10 g',65,1.5,'overig'],['Honing','1 tl',30,0,'overig'],['Niets extra','',0,0]],def:[0,1,0,2,0,1,0]}]},
 {id:'f',time:'10:30',name:'Fruit',comps:[
- {id:'fruit',label:'Fruit',cat:'fruit',opts:[['Appel','1 stuk',80,.4],['Mandarijnen','2 stuks',70,1.2],['Peer','1 stuk',90,.6],['Kaki','1 stuk',110,1],['Sinaasappel','1 stuk',70,1.3],['Druiven','150 g',100,1]],def:[0,1,2,3,4,5,0]}]},
+ {id:'fruit',label:'Fruit',cat:'fruit',opts:[['Appel','1 stuk',80,.4],['Mandarijnen','2 stuks',70,1.2],['Sinaasappel','1 stuk',70,1.3],['Peer','1 stuk',90,.6],['Banaan','1 stuk',105,1.3]],def:[0,1,2,0,1,2,3]}]},
 {id:'l',time:'12:30',name:'Lunch',comps:[
- {id:'brood',label:'Brood',cat:'granen',opts:[['Volkorenbrood','3 sneetjes',255,12],['Volkorenbrood + groentesoep','2 sneetjes + kom',250,10],['Volkoren wraps','2 stuks',260,8]],def:[0,0,1,0,0,2,1]},
- {id:'eiwit',label:'Beleg (eiwit)',cat:'eiwit',opts:[['Kalkoenfilet (pavo)','75 g',75,14],['Eieren, gekookt','2 stuks',150,13],['Tonijn in water','1 blikje (80 g)',90,20],['Hüttenkäse','100 g',100,12,'zuivel'],['Kipfilet, gegrild','80 g',95,19]],def:[0,1,2,3,4,0,1]},
- {id:'extra',label:'Beleg (extra)',cat:'zuivel',opts:[['Kaas 30+','1 plak (20 g)',60,5],['Avocado','¼ stuk',60,.7,'groente'],['Light smeerkaas','20 g',35,2],['Niets extra','',0,0]],def:[0,1,0,0,1,0,1]},
- {id:'groente',label:'Groente erbij',cat:'groente',opts:[['Tomaat & komkommer','150 g',30,1],['Paprikareepjes','150 g',40,1.5],['Worteltjes','150 g',50,1],['Sla & radijs','100 g',20,1]],def:[0,1,2,3,0,1,2]}]},
+ {id:'brood',label:'Brood',cat:'granen',opts:[['Volkorenbrood','3 sneetjes',255,12],['Volkorenbrood','2 sneetjes',170,8]],def:[0,0,0,0,0,0,0]},
+ {id:'b1',label:'Beleg 1',cat:'eiwit',opts:BELEG,def:[0,0,1,0,0,1,0]},
+ {id:'b2',label:'Beleg 2',cat:'eiwit',opts:BELEG,def:[2,3,3,2,3,2,3]},
+ {id:'b3',label:'Beleg 3',cat:'eiwit',opts:BELEG,def:[5,4,1,5,0,4,5]},
+ {id:'erbij',label:'Erbij',cat:'groente',opts:[['Tomaat & komkommer','150 g',30,1],['Snoeptomaatjes','100 g',20,1],['Niets erbij','',0,0]],def:[0,2,0,2,0,1,2]}]},
 {id:'m',time:'15:30',name:'Tussendoor',comps:[
- {id:'snack',label:'Snack',cat:'zuivel',opts:[['Kwark met kaneel + amandelen','150 g + 15 g',175,17],['Appel + amandelen','1 stuk + 15 g',170,3.4,'fruit'],['Skyr met bessen','150 g + 75 g',135,16],['Gekookt ei + worteltjes','1 stuk + 100 g',115,7,'eiwit'],['Mandarijnen + kaasblokjes','2 stuks + 20 g',130,6,'fruit']],def:[0,1,2,3,4,0,1]}]},
+ {id:'snack',label:'Snack',cat:'eiwit',opts:[['Gekookt ei','1 stuk',75,6.5],['Gekookt ei + mandarijn','1 + 1 stuk',110,7.5],['Ongezouten noten','handje (20 g)',120,4,'overig'],['Appel','1 stuk',80,.4,'fruit'],['Kwark met kaneel (thuis)','150 g',85,14,'zuivel'],['Snoeptomaatjes + kaasblokjes','100 g + 20 g',100,6,'zuivel']],def:[1,0,1,0,1,2,0]}]},
 {id:'d',time:'19:00',name:'Avondeten',comps:[
- {id:'eiwit',label:'Eiwit',cat:'eiwit',opts:[['Kipfilet','150 g',165,34],['Zalm','125 g',260,25],['Merluza (heek)','175 g',140,30],['Mager rundergehakt','125 g',170,27],['Varkenshaas (solomillo)','150 g',180,33],['Garnalen','175 g',150,32],['Linzen, gekookt','200 g',230,18,'overig']],def:[0,2,4,3,1,5,6]},
- {id:'groente',label:'Groente',cat:'groente',opts:[['Broccoli','300 g',100,8],['Bloemkool','300 g',75,6],['Sperziebonen','300 g',90,5],['Courgette','300 g',50,4],['Paprika & ui','300 g',90,3],['Spinazie','300 g',70,9],['Champignons','300 g',65,9],['Gemengde salade','250 g',50,3]],def:[0,4,2,1,5,6,3]},
- {id:'koolh',label:'Bijgerecht',cat:'granen',opts:[['Volkorenpasta','75 g droog',260,10],['Zilvervliesrijst','70 g droog',250,5],['Aardappelen','250 g',195,5],['Zoete aardappel','250 g',215,4],['Volkoren couscous','70 g droog',250,9]],def:[0,2,1,3,4,0,2]},
- {id:'vet',label:'Bereiding',cat:'overig',opts:[['Olijfolie','1 el',120,0],['Olijfolie + kruiden','½ el',60,0],['Tomatensaus + olijfolie','100 g + ½ el',100,1.5]],def:[0,0,2,0,1,0,2]}]},
+ {id:'eiwit',label:'Vlees / vis / vega',cat:'eiwit',opts:[['Kipfilet','150 g',165,34],['Biefstuk','150 g',190,33],['Mager rundergehakt','125 g',170,27],['Varkenshaas','150 g',180,33],['Witvis (kabeljauw/merluza)','175 g',140,30],['Vega gehakt','100 g',180,18],['Frikandel (airfryer)','1 stuk',160,8],['Geen vlees','',0,0]],def:[0,2,4,5,1,3,6]},
+ {id:'groente',label:'Groente',cat:'groente',opts:[['Broccoli','300 g',100,8],['Bloemkool','300 g',75,6],['Sperziebonen','300 g',90,5],['Worteltjes','300 g',105,3],['Spinazie','300 g',70,9],['Rode kool','300 g',75,4],['Wokgroente','300 g',90,5],['Champignons','300 g',65,9],['Sla & rauwkost','250 g',50,3]],def:[0,6,2,7,1,3,8]},
+ {id:'koolh',label:'Aardappel / pasta / rijst',cat:'granen',opts:[['Aardappelen','250 g',195,5],['Krieltjes','250 g',200,5],['Volkorenpasta','75 g droog',260,10],['Rijst','70 g droog',250,5],['Patat (airfryer/oven)','250 g',375,6],['Patat (frituur)','200 g',500,7]],def:[0,2,3,2,0,1,4]},
+ {id:'saus',label:'Saus / bakken',cat:'overig',opts:[['Boter of olie om te bakken','1 el',100,0],['Boter of olie om te bakken','½ el',50,0],['Pastasaus (tomaat) + ½ el olie','150 g',110,2],['Jus + ½ el boter','50 ml',75,0],['Fritessaus','25 g',75,0],['Mayonaise','20 g',140,0]],def:[0,2,1,2,0,3,4]}]},
 {id:'a',time:'21:00',name:'Avond',comps:[
- {id:'toetje',label:'Toetje / drankje',cat:'overig',opts:[['Pure chocolade 85%','2 blokjes (10 g)',60,1],['Kwark met kaneel','150 g',85,14,'zuivel'],['Thee of Cola Zero','',2,0],['Cola (gewoon), weekmoment','1 blikje 330 ml',139,0],['Mandarijn','1 stuk',35,.6,'fruit']],def:[0,1,0,1,0,3,2]}]}];
+ {id:'snack',label:'Iets lekkers',cat:'overig',opts:[['Ongezouten noten','handje (15 g)',95,3],['Pure chocolade','2 blokjes (10 g)',60,1],['Mandarijn','1 stuk',35,.6,'fruit'],['Niets','',0,0]],def:[0,1,0,0,1,0,3]},
+ {id:'drank',label:'Drinken',cat:'overig',opts:[['Water of thee','',0,0],['Cola Zero','1 blikje',1,0],['Cola (gewoon)','1 glas (250 ml)',105,0]],def:[0,0,0,0,0,0,0]}]}];
 export const DAYS = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
 const PADEL = [0, 2];
-const SKIP = new Set(['Niets extra', 'Thee of Cola Zero']);
+const SKIP = new Set(['Niets extra', 'Niets erbij', 'Niets', 'Geen vlees', 'Water of thee']);
 const COMPS = []; SLOTS.forEach(s => s.comps.forEach(c => { c.key = s.id + '.' + c.id; COMPS.push(c); }));
 
 export const freshPlan = () => DAYS.map((_, d) => Object.fromEntries(COMPS.map(c => [c.key, c.def[d]])));

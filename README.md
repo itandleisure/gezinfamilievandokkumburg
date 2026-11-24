@@ -3,7 +3,7 @@
 Een eigen gezinsapp voor Frans en partner op **gezin.fransvandokkumburg.com**. Er zitten vijf onderdelen in:
 
 - **Boodschappen.** Je vinkt af met een groen vinkje en filtert per winkel (Lidl, Aldi, Mercadona). Er is een keuzemenu met algemene spullen, en je kunt eigen items toevoegen die de app onthoudt. Items kunnen elke week terugkomen. Met **Nieuwe week** ruim je de lijst op en met **Lijst delen** stuur je hem door.
-- **Weekmenu.** Het afvalschema van Frans, met ongeveer 1.850 kcal per dag. Je kunt onderdelen wisselen, ook voor de hele week tegelijk, en met **Zet op boodschappenlijst** komt alles op de lijst.
+- **Weekmenu.** Het afvalschema van Frans, met ongeveer 1.600 tot 1.950 kcal per dag en gewoon, makkelijk eten. Je kunt onderdelen wisselen, ook voor de hele week tegelijk, en met **Zet op boodschappenlijst** komt alles op de lijst.
 - **Cadeaus.** Een lijst per verjaardag of gelegenheid. Ideeën vink je af zodra ze gekocht zijn.
 - **Notities.** Je kunt zoeken en notities bovenaan vastzetten.
 - **Nummers.** Belangrijke telefoonnummers die je met één tik belt.
