@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gezin">
+<title>Gezin</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Inloggen -->
+<section id="login" class="login" hidden>
+  <div class="login-card">
+    <h1>Gezin</h1>
+    <p class="mut">Boodschappen, menu, cadeaus, notities en nummers.</p>
+    <form id="loginForm">
+      <label>E-mail<input type="email" id="loginEmail" autocomplete="username" required></label>
+      <label>Wachtwoord<input type="password" id="loginPass" autocomplete="current-password" required></label>
+      <button class="btn primary" type="submit">Inloggen</button>
+      <button class="btn link" type="button" id="forgot">Wachtwoord vergeten?</button>
+    </form>
+    <form id="newPassForm" hidden>
+      <label>Nieuw wachtwoord<input type="password" id="newPass" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn primary" type="submit">Wachtwoord opslaan</button>
+    </form>
+    <p id="loginMsg" class="msg" role="status"></p>
+  </div>
+</section>
+
+<!-- App -->
+<div id="app" hidden>
+  <header class="top">
+    <h1 id="viewTitle">Boodschappen</h1>
+    <button class="icon-btn" id="logout" aria-label="Uitloggen" title="Uitloggen">
+      <svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- Boodschappen -->
+    <section class="view" id="view-boodschappen">
+      <form class="card add" id="shopAdd">
+        <label class="sr" for="shopPick">Wat moet er gehaald worden?</label>
+        <select id="shopPick"></select>
+        <div class="custom" id="shopCustom" hidden>
+          <input id="shopName" placeholder="Wat is het?" autocomplete="off">
+          <select id="shopCat" aria-label="Categorie"></select>
+          <label class="check"><input type="checkbox" id="shopRemember" checked> Onthouden in de keuzelijst</label>
+        </div>
+        <div class="row2">
+          <input id="shopQty" placeholder="Aantal (optioneel)" autocomplete="off" aria-label="Aantal">
+          <select id="shopStore" aria-label="Winkel"></select>
+        </div>
+        <button class="btn primary" type="submit">Toevoegen</button>
+      </form>
+      <div class="chips" id="storeFilter" role="tablist" aria-label="Winkel"></div>
+      <div class="list" id="shopList"></div>
+      <div class="actions">
+        <button class="btn" id="shopShare">Lijst delen</button>
+        <button class="btn" id="shopNewWeek">Nieuwe week</button>
+      </div>
+    </section>
+
+    <!-- Weekmenu -->
+    <section class="view" id="view-menu" hidden>
+      <div id="menuRoot"></div>
+    </section>
+
+    <!-- Cadeaus -->
+    <section class="view" id="view-cadeaus" hidden>
+      <button class="btn primary wide" id="giftNew">Nieuwe cadeaulijst</button>
+      <div class="list" id="giftList"></div>
+    </section>
+
+    <!-- Notities -->
+    <section class="view" id="view-notities" hidden>
+      <div class="row2">
+        <input type="search" id="noteSearch" placeholder="Zoeken in notities" aria-label="Zoeken">
+        <button class="btn primary" id="noteNew">Nieuwe notitie</button>
+      </div>
+      <div class="list" id="noteList"></div>
+    </section>
+
+    <!-- Nummers -->
+    <section class="view" id="view-nummers" hidden>
+      <button class="btn primary wide" id="contactNew">Nummer toevoegen</button>
+      <div class="list" id="contactList"></div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Onderdelen">
+    <a href="#boodschappen" data-v="boodschappen"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg><span>Lijst</span></a>
+    <a href="#menu" data-v="menu"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3.5"/><path d="M2 4v6M2 7h0M22 4v16"/></svg><span>Menu</span></a>
+    <a href="#cadeaus" data-v="cadeaus"><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M12 9v12M3 13h18M12 9c-2-4-6-4-6-1.5S10 9 12 9c2 0 6 1 6-1.5S14 5 12 9"/></svg><span>Cadeaus</span></a>
+    <a href="#notities" data-v="notities"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/></svg><span>Notities</span></a>
+    <a href="#nummers" data-v="nummers"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1"/></svg><span>Nummers</span></a>
+  </nav>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h2 id="dlgTitle"></h2>
+    <div id="dlgFields"></div>
+    <div class="dlg-actions">
+      <button class="btn danger" type="button" id="dlgDelete" hidden>Verwijderen</button>
+      <span></span>
+      <button class="btn" value="cancel" type="button" id="dlgCancel">Annuleren</button>
+      <button class="btn primary" value="save" type="submit">Opslaan</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
