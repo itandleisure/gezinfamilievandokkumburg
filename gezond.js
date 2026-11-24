@@ -43,7 +43,7 @@ export function nudge({ weights, sport, settings }, now = new Date()) {
   if (settings && settings.reminders === false) return null;
   const today = iso(now), h = now.getHours(), dow = (now.getDay() + 6) % 7;
   const wogen = weights.some(r => r.day === today), mine = sport.filter(r => r.day === today).map(r => r.kind);
-  if (!wogen && h >= 5 && h < 12) return { id: 'wegen', text: 'Goedemorgen! Even op de weegschaal? Het liefst nu, vóór het ontbijt.' };
+  if (!wogen && h >= 7 && h < 12) return { id: 'wegen', text: 'Goedemorgen! Even op de weegschaal? Het liefst nu, vóór het ontbijt.' };
   if ((dow === 0 || dow === 2) && h >= 12 && !mine.includes('padel')) return { id: 'padel', text: '¿Qué tal el pádel? Gespeeld vandaag? Vink het even af.' };
   if (!mine.length && h >= 17) return { id: 'bewegen', text: 'Heb je vandaag al bewogen? Een wandeling in de bergen telt ook.' };
   return null;
@@ -77,6 +77,32 @@ function chart(rows, goal, range) {
     <p class="gz-leg"><span class="gz-k1"></span>gemiddelde van 7 dagen <span class="gz-k2"></span>losse ochtenden <span class="gz-k3"></span>doel</p>`;
 }
 
+// ---------- BMI-meter (halve maan met wijzer) ----------
+const BMI_MIN = 16, BMI_MAX = 36;
+const BMI_ZONES = [[16, 18.5, 'gz-z0', 'Ondergewicht'], [18.5, 25, 'gz-z1', 'Gezond gewicht'], [25, 30, 'gz-z2', 'Overgewicht'], [30, 36, 'gz-z3', 'Obesitas']];
+export const bmi = (kg, cm) => kg / ((cm / 100) ** 2);
+function gauge(kg, goalKg, cm, bron) {
+  const v = bmi(kg, cm), goal = bmi(goalKg, cm);
+  const cx = 110, cy = 124, r = 86;
+  const ang = x => Math.PI * (1 - (Math.min(Math.max(x, BMI_MIN), BMI_MAX) - BMI_MIN) / (BMI_MAX - BMI_MIN));
+  const pt = (x, rr) => [cx + rr * Math.cos(ang(x)), cy - rr * Math.sin(ang(x))].map(n => n.toFixed(1));
+  const arc = (a, b) => { const [x1, y1] = pt(a, r), [x2, y2] = pt(b, r); return `M${x1} ${y1} A${r} ${r} 0 0 1 ${x2} ${y2}`; };
+  const zone = BMI_ZONES.find(z => v < z[1]) || BMI_ZONES[3];
+  const [nx, ny] = pt(v, r - 18), [g1x, g1y] = pt(goal, r - 14), [g2x, g2y] = pt(goal, r + 14), [gtx, gty] = pt(goal, r + 22);
+  const labels = [18.5, 25, 30].map(x => { const [lx, ly] = pt(x, r - 26); return `<text x="${lx}" y="${ly}" text-anchor="middle">${String(x).replace('.', ',')}</text>`; }).join('');
+  const nodig = v >= 25 ? `Voor een BMI onder 25 zit je op ${kgf(24.9 * (cm / 100) ** 2)} kg of minder.` : 'Je zit in het groene gebied. Mooi zo!';
+  return `<div class="card gz-bmi">
+    <svg viewBox="0 0 220 142" role="img" aria-label="BMI-meter: ${kgf(v)}, ${zone[3].toLowerCase()}">
+      ${BMI_ZONES.map(z => `<path d="${arc(z[0], z[1])}" class="gz-zone ${z[2]}"/>`).join('')}
+      ${labels}
+      <line x1="${g1x}" y1="${g1y}" x2="${g2x}" y2="${g2y}" class="gz-gtick"/><text x="${gtx}" y="${gty}" text-anchor="middle" class="gz-gtxt">doel</text>
+      <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" class="gz-needle"/><circle cx="${cx}" cy="${cy}" r="7" class="gz-hub"/>
+    </svg>
+    <div class="gz-bmival"><b>${kgf(v)}</b> <span class="${zone[2]}t">${zone[3]}</span></div>
+    <p class="gz-pace">BMI bij ${kgf(kg)} kg (${bron}) en ${String(cm / 100).replace('.', ',')} m. Je doel van ${kgf(goalKg)} kg is een BMI van ${kgf(goal)}. ${nodig}</p>
+  </div>`;
+}
+
 // ---------- Tabblad ----------
 export function mountGezond(root, api) {
   // api: { get() -> {weights, sport, settings}, saveWeight(day, kg), deleteWeight(day), toggleSport(day, kind, on), saveSettings(obj), openDialog }
@@ -88,6 +114,7 @@ export function mountGezond(root, api) {
     if (missing) { root.innerHTML = '<div class="task-alert">Nog één stap: de database voor gewicht en sport moet nog worden aangemaakt in Supabase. Daarna werkt dit tabblad.</div>'; return; }
     const today = iso(new Date());
     const startKg = Number(settings?.start_kg ?? 93.9), goal = Number(settings?.goal_kg ?? 78);
+    const lengte = Number(settings?.height_cm ?? 179);
     const byDay = Object.fromEntries(weights.map(r => [r.day, Number(r.kg)]));
     const last = sorted(weights).filter(r => r.day <= day).pop();
     if (draftDay !== day) { draft = byDay[day] ?? (last ? last.kg : startKg); draftDay = day; }
@@ -159,6 +186,7 @@ export function mountGezond(root, api) {
       </div>
       <h2 class="gz-h2">Voortgang</h2>
       ${prog}
+      ${(() => { const lw = sorted(weights).pop(); return cur ? gauge(cur.avg, goal, lengte, 'weekgemiddelde') : gauge(lw ? lw.kg : startKg, goal, lengte, 'startgewicht'); })()}
       <div class="chips" role="tablist" aria-label="Periode">${[['4', '4 weken'], ['8', '8 weken'], ['26', 'Half jaar'], ['alles', 'Alles']].map(([k, n]) => `<button class="chip" role="tab" data-range="${k}" aria-selected="${range === k}">${n}</button>`).join('')}</div>
       <div class="card">${chart(weights, goal, range)}</div>
       ${table}
@@ -197,13 +225,15 @@ export function mountGezond(root, api) {
       fields: [
         { name: 'start_kg', label: 'Startgewicht (kg)', value: kgf(s.start_kg ?? 93.9), inputmode: 'decimal' },
         { name: 'goal_kg', label: 'Doelgewicht (kg)', value: kgf(s.goal_kg ?? 78), inputmode: 'decimal' },
+        { name: 'height_cm', label: 'Lengte (cm), voor de BMI', value: String(s.height_cm ?? 179), inputmode: 'numeric' },
         { name: 'reminders', label: 'Herinneringen bovenaan de app tonen ("Heb je vandaag al bewogen?")', type: 'checkbox', value: s.reminders !== false }
       ],
       onSave: async v => {
         const n = x => parseFloat(String(x).replace(',', '.'));
         const start_kg = n(v.start_kg), goal_kg = n(v.goal_kg);
-        if (!(start_kg >= 30 && start_kg <= 300 && goal_kg >= 30 && goal_kg <= 300)) return false;
-        return api.saveSettings({ start_kg, goal_kg, reminders: v.reminders });
+        const height_cm = Math.round(n(v.height_cm));
+        if (!(start_kg >= 30 && start_kg <= 300 && goal_kg >= 30 && goal_kg <= 300 && height_cm >= 100 && height_cm <= 230)) return false;
+        return api.saveSettings({ start_kg, goal_kg, height_cm, reminders: v.reminders });
       }
     });
   }

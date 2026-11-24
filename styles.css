@@ -289,3 +289,17 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .gz-wrow b{text-align:right}
 .gz-wrow .gz-delta{margin:0;text-align:right;font-size:14px}
 .tile .badge{display:inline-block;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--terra);color:#fff;font-size:13px;font-weight:800;line-height:22px;text-align:center;vertical-align:middle}
+/* BMI-meter */
+.gz-bmi{margin-top:12px;text-align:center}
+.gz-bmi svg{width:100%;max-width:320px;height:auto;display:block;margin:0 auto}
+.gz-bmi text{font-size:9px;fill:var(--mut);font-family:inherit;font-weight:700}
+.gz-zone{fill:none;stroke-width:20;stroke-linecap:butt}
+.gz-z0{stroke:var(--blue)}.gz-z1{stroke:var(--ok)}.gz-z2{stroke:var(--warn)}.gz-z3{stroke:var(--danger)}
+.gz-z0t{color:var(--blue)}.gz-z1t{color:var(--ok)}.gz-z2t{color:var(--warn)}.gz-z3t{color:var(--danger)}
+.gz-gtick{stroke:var(--ink);stroke-width:2.5}
+.gz-bmi .gz-gtxt{fill:var(--ink)}
+.gz-needle{stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+.gz-hub{fill:var(--ink)}
+.gz-bmival{margin-top:-4px;font-size:15px;font-weight:800}
+.gz-bmival b{font-size:34px}
+.gz-bmi .gz-pace{text-align:left}

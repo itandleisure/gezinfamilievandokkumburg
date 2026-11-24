@@ -179,6 +179,7 @@ create table if not exists public.health_settings (
   owner uuid primary key default auth.uid() references auth.users(id) on delete cascade,
   start_kg numeric(5,1) default 93.9,
   goal_kg numeric(5,1) default 78,
+  height_cm integer default 179,
   reminders boolean default true,
   updated_at timestamptz default now()
 );
