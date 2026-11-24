@@ -10,6 +10,8 @@ const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/><
 const ICON_X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 const ICON_REPEAT = '<svg viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg>';
 const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+const ICON_UP = '<svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
+const ICON_DOWN = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
 const ICON_PHONE = '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1"/></svg>';
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
 function confirmTwice(btn, label, fn) {
@@ -348,13 +350,26 @@ $('#contactList').addEventListener('click', e => { const b = e.target.closest('[
 // ---------- Cadeaus ----------
 const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 const safeUrl = s => /^https:\/\/\S+$/i.test(s) ? s : '';
+// Volgorde: eigen volgorde (kolom position, gedeeld), anders op datum
+function sortedGiftLists() {
+  return [...S.gift_lists].sort((a, b) => (a.position ?? 1e9) - (b.position ?? 1e9) || ((a.event_date || '9999') < (b.event_date || '9999') ? -1 : (a.event_date || '9999') > (b.event_date || '9999') ? 1 : 0));
+}
+async function moveList(id, dir) {
+  const lists = sortedGiftLists(), i = lists.findIndex(l => l.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= lists.length) return;
+  [lists[i], lists[j]] = [lists[j], lists[i]];
+  lists.forEach((l, k) => { l.position = k; });
+  renderGifts();
+  const res = await Promise.all(lists.map((l, k) => sb.from('gift_lists').update({ position: k }).eq('id', l.id)));
+  if (res.some(r => r.error)) { toast('Volgorde opslaan mislukt'); await load('gift_lists'); renderGifts(); }
+}
 function renderGifts() {
-  const lists = [...S.gift_lists].sort((a, b) => (a.event_date || '9999') < (b.event_date || '9999') ? -1 : 1);
-  $('#giftList').innerHTML = lists.length ? lists.map(l => {
+  const lists = sortedGiftLists();
+  $('#giftList').innerHTML = lists.length ? lists.map((l, idx) => {
     const items = S.gift_items.filter(i => i.list_id === l.id), n = items.filter(i => i.bought).length;
     return `<section class="gift" data-id="${esc(l.id)}">
       <div class="gift-head"><div><h3>${esc(l.title)}</h3><small>${[fmtDate(l.event_date), items.length ? `${n} van ${items.length} gekocht` : ''].filter(Boolean).join(' · ')}</small></div>
-      <button class="mini" data-act="editlist" aria-label="Lijst bewerken">${ICON_EDIT}</button></div>
+      <div class="gift-btns">${lists.length > 1 ? `<button class="mini" data-act="up" aria-label="Lijst omhoog"${idx === 0 ? ' disabled' : ''}>${ICON_UP}</button><button class="mini" data-act="down" aria-label="Lijst omlaag"${idx === lists.length - 1 ? ' disabled' : ''}>${ICON_DOWN}</button>` : ''}<button class="mini" data-act="editlist" aria-label="Lijst bewerken">${ICON_EDIT}</button></div></div>
       <ul class="items">${items.map(i => {
         const url = safeUrl(i.note);
         return `<li class="item${i.bought ? ' done' : ''}" data-item="${esc(i.id)}">
@@ -373,6 +388,7 @@ function editList(l = {}) {
     onSave: async v => {
       if (!v.title) return false;
       const row = { title: v.title, event_date: v.event_date || null };
+      if (!l.id && S.gift_lists.some(x => x.position != null)) row.position = Math.max(...S.gift_lists.map(x => x.position ?? 0)) + 1;
       const ok = await run(l.id ? sb.from('gift_lists').update(row).eq('id', l.id) : sb.from('gift_lists').insert(row));
       if (ok) { await load('gift_lists'); renderGifts(); } return ok;
     },
@@ -384,6 +400,7 @@ $('#giftList').addEventListener('click', async e => {
   const el = e.target.closest('[data-act]'); if (!el || el.tagName === 'FORM') return;
   const listId = el.closest('.gift').dataset.id, act = el.dataset.act;
   if (act === 'editlist') { editList(S.gift_lists.find(l => l.id === listId)); return; }
+  if (act === 'up' || act === 'down') { moveList(listId, act === 'up' ? -1 : 1); return; }
   const itemId = el.closest('[data-item]')?.dataset.item, it = S.gift_items.find(i => i.id === itemId); if (!it) return;
   if (act === 'buy') { it.bought = !it.bought; renderGifts(); run(sb.from('gift_items').update({ bought: it.bought }).eq('id', it.id)); }
   if (act === 'delitem') { S.gift_items = S.gift_items.filter(i => i.id !== it.id); renderGifts(); run(sb.from('gift_items').delete().eq('id', it.id)); }

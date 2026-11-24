@@ -122,3 +122,6 @@ where not exists (select 1 from public.contacts);
 -- Notities afvinken en archiveren (toegevoegd later)
 alter table public.notes add column if not exists done boolean default false;
 alter table public.notes add column if not exists done_at timestamptz;
+
+-- Eigen volgorde van de cadeaulijsten (pijltjes omhoog/omlaag)
+alter table public.gift_lists add column if not exists position integer;

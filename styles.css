@@ -106,6 +106,9 @@ main{max-width:760px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-lef
 .gift-head{display:flex;justify-content:space-between;gap:10px;align-items:start}
 .gift-head h3{margin:0;font-size:19px;line-height:1.25}
 .gift-head small{color:var(--mut)}
+.gift-btns{display:flex;gap:2px;flex:none}
+.gift-btns .mini{width:44px;height:44px;color:var(--blue)}
+.gift-btns .mini:disabled{opacity:.25;cursor:default}
 .gift form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
 .gift a{color:var(--blue)}
 

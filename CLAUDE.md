@@ -11,7 +11,7 @@ De gebruikers zitten in Cómpeta (Málaga, Spanje). De app is Nederlandstalig en
 |---|---|---|
 | Lijst (boodschappen) | `app.js`, deel Boodschappen | `shopping_items`, `catalog_items` |
 | Menu (afvalschema Frans, ca. 1.600–1.950 kcal) | `menu.js` | `menu_plan` (id `frans-v2` = weekplan, `frans-v2-gegeten` = afgevinkte eetmomenten per datum, `frans-v2-standaard` = eigen standaardmenu via de knop "Maak standaardmenu"; zonder die rij geldt `freshPlan()`; zondag is daarin de "strandzondag" met een groot broodje, afwijkende standaardporties staan in `DEFQ`) |
-| Cadeaus | `app.js` | `gift_lists`, `gift_items` |
+| Cadeaus (volgorde van de lijsten met pijltjes omhoog/omlaag, gedeeld via `gift_lists.position`; zonder eigen volgorde op datum) | `app.js` | `gift_lists`, `gift_items` |
 | Notities (met afvinken en archief) | `app.js` | `notes` (`done`, `done_at`) |
 | Nummers (bellen met één tik) | `app.js` | `contacts` |
 | Spaans ("Woorden en zinnen": losse woorden, voorstellen, winkel, dagen, getallen, vaste fouten; plus "Werkwoorden". Alleen typen, geen inspreken) | `spaans.js` (nieuwe lesstof achteraan in `ZIN` toevoegen) | localStorage op het toestel |
