@@ -1,0 +1,41 @@
+# Gezinsapp familie Van Dokkumburg: instructies voor Claude
+
+Lees dit eerst in elke chat die aan deze app werkt. Er werken meerdere chats aan dezelfde repo.
+
+## Wat het is
+Een eigen gezinsapp voor Frans en zijn partner. Hij draait op **https://gezin.fransvandokkumburg.com**, staat op GitHub Pages (branch `main`, root) en gebruikt Supabase voor de database en het inloggen.
+De gebruikers zitten in Cómpeta (Málaga, Spanje). De app is Nederlandstalig en wordt vooral op de iPhone gebruikt, op het beginscherm.
+
+## Onderdelen (tabbladen)
+| Tab | Bestand | Data |
+|---|---|---|
+| Lijst (boodschappen) | `app.js`, deel Boodschappen | `shopping_items`, `catalog_items` |
+| Menu (afvalschema Frans, ca. 1.600–1.950 kcal) | `menu.js` | `menu_plan` (id `frans-v2` = weekplan, `frans-v2-gegeten` = afgevinkte eetmomenten per datum) |
+| Cadeaus | `app.js` | `gift_lists`, `gift_items` |
+| Notities (met afvinken en archief) | `app.js` | `notes` (`done`, `done_at`) |
+| Nummers (bellen met één tik) | `app.js` | `contacts` |
+| Spaans (werkwoorden oefenen) | `spaans.js` | localStorage op het toestel |
+
+Er is geen build-stap. Alles is gewone ES-modules plus `styles.css`. Supabase-js wordt geladen vanaf jsDelivr, vastgezet op een versie.
+
+## Supabase
+- Project-id: `zopnuwnwceislikkvvsv` (naam `gezinfamilievandokkumburg`, regio eu-central-1, Free plan).
+- **Raak het andere project in dezelfde organisatie (Escape Game The Hunt) nooit aan.**
+- `config.js` bevat de URL en de *publishable* key. Die mogen openbaar zijn. Zet nooit een secret- of service_role-key in de repo.
+- Beveiliging: RLS staat aan op alle tabellen, met de policy "alleen gezin" (alleen voor ingelogde gebruikers). Aanmelden staat uit, de accounts maakt Frans zelf aan.
+- Schemawijzigingen: voeg ze toe aan `supabase/schema.sql` (idempotent, dus met `if not exists`). Pas ze daarna toe via de Supabase-tools als die beschikbaar zijn, of geef Frans de SQL om te plakken.
+- Een GitHub Action (`.github/workflows/keepalive.yml`) pingt twee keer per week `rpc/ping`, zodat het gratis project niet gepauzeerd wordt.
+
+## Werkafspraken
+1. **Haal altijd eerst de laatste versie op voordat je pusht**, want andere chats pushen ook. Gebruik `git fetch --depth=20 origin main` en rebase daarna op `FETCH_HEAD`. Los conflicten op zo dat **beide** wijzigingen blijven bestaan.
+2. Houd commits klein en schrijf commitberichten in het Nederlands.
+3. Test na een wijziging (op zijn minst `node --check` en het liefst in een browser). Daarbij is `createClient` te vervangen door een in-memory mock.
+4. Stijl: mobiel eerst, knoppen minimaal 44px, kleuren azulejo-blauw `#1d4e89`, terracotta `#c4502b` en groen voor afgevinkt. Licht en donker thema via `light-dark()`.
+5. Waarden uit de database altijd escapen (`esc()`) voordat ze in HTML komen.
+6. Wijzig je opties in `menu.js`: **voeg nieuwe opties achteraan toe**. De opgeslagen plannen verwijzen namelijk naar de positie in de lijst. Gooi je de volgorde toch om, verhoog dan `MENU_ID` in `app.js`.
+7. Nieuw tabblad: voeg een `<section class="view">` toe in `index.html`, een link in `<nav class="tabs">`, een entry in `VIEWS` en `render()` in `app.js`, en eventueel een eigen module zoals `spaans.js`.
+
+## Voorkeuren van Frans
+- Eten: gewoon en makkelijk (kwark met muesli, brood met kaas, salami of serranoham, aardappel, pasta of rijst met groente en vlees; zondag patat). Geen culinaire hoogstandjes.
+- Boodschappen: één lijst, ingedeeld per supermarktafdeling, zonder winkelkeuze.
+- Home Assistant-knoppen (deur, poort, lampen) komen later als tabblad **Huis**, via webhooks. Bouw dit pas als Frans erom vraagt.
