@@ -226,6 +226,8 @@ create table if not exists public.push_keys (
 );
 alter table public.push_keys enable row level security;
 revoke all on public.push_log, public.push_keys from anon, authenticated;
+-- De edge function gebruikt de service_role; die heeft hier rechten nodig ("Grant API access to new tables automatically" staat uit)
+grant select, insert, update, delete on public.push_keys, public.push_log, public.push_subscriptions, public.weight_log, public.sport_log to service_role;
 
 -- Planner: elke 10 minuten kijkt de functie gezond-push of er een melding moet (pas aanzetten als de functie bestaat)
 create extension if not exists pg_cron;
