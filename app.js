@@ -4,6 +4,7 @@ import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './me
 import { mountSpaans } from './spaans.js';
 import { mountTaken, dueCount } from './taken.js';
 import { mountGezond, nudge, iso } from './gezond.js';
+import { registerSW, pushState, enablePush, disablePush, testPush } from './push.js';
 
 // ---------- Helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -138,7 +139,9 @@ async function start() {
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes });
   spaans = mountSpaans($('#spaansRoot'));
   taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge });
-  gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, openDialog });
+  gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, openDialog,
+    push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: testPush } });
+  registerSW();
   route();
   await Promise.all(Object.keys(S).map(load));
   fillShopPick(); route();

@@ -303,3 +303,8 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .gz-bmival{margin-top:-4px;font-size:15px;font-weight:800}
 .gz-bmival b{font-size:34px}
 .gz-bmi .gz-pace{text-align:left}
+/* Pushmeldingen */
+.gz-push{margin-top:14px}
+.gz-push .gz-h3{margin-top:0}
+.gz-push p{font-size:14px;margin:0 0 10px}
+.gz-ok-txt{color:var(--ok);font-weight:600}

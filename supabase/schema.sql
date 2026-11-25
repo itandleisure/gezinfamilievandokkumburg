@@ -197,3 +197,32 @@ begin
     end;
   end loop;
 end $$;
+
+-- Pushmeldingen (Gezond): abonnementen per telefoon, logboek zodat elke melding hooguit één keer per dag gaat,
+-- en het VAPID-sleutelpaar (alleen leesbaar voor de edge function gezond-push, niet voor de app).
+create table if not exists public.push_subscriptions (
+  endpoint text primary key,
+  owner uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+alter table public.push_subscriptions enable row level security;
+drop policy if exists "alleen eigen gegevens" on public.push_subscriptions;
+create policy "alleen eigen gegevens" on public.push_subscriptions for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
+create table if not exists public.push_log (
+  owner uuid not null references auth.users(id) on delete cascade,
+  day date not null,
+  kind text not null,
+  sent_at timestamptz default now(),
+  primary key (owner, day, kind)
+);
+alter table public.push_log enable row level security;
+create table if not exists public.push_keys (
+  id integer primary key default 1 check (id = 1),
+  public_key text not null,
+  private_key text not null
+);
+alter table public.push_keys enable row level security;
+revoke all on public.push_log, public.push_keys from anon, authenticated;

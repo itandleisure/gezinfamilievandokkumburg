@@ -190,7 +190,9 @@ export function mountGezond(root, api) {
       <div class="chips" role="tablist" aria-label="Periode">${[['4', '4 weken'], ['8', '8 weken'], ['26', 'Half jaar'], ['alles', 'Alles']].map(([k, n]) => `<button class="chip" role="tab" data-range="${k}" aria-selected="${range === k}">${n}</button>`).join('')}</div>
       <div class="card">${chart(weights, goal, range)}</div>
       ${table}
+      <div class="card gz-push" id="gzPush"><h3 class="gz-h3">Meldingen op deze telefoon</h3><p class="mut" id="gzPushTxt">Even kijken…</p><div class="sp-row" id="gzPushBtns"></div></div>
       <div class="actions"><button class="btn" id="gzSet">Startgewicht, doel en herinneringen</button></div>`;
+    fillPush();
   }
 
   root.addEventListener('click', async e => {
@@ -206,7 +208,32 @@ export function mountGezond(root, api) {
     }
     if (t.id === 'gzDel') { await api.deleteWeight(day); draftDay = null; render(); return; }
     if (t.id === 'gzSet') settingsDialog();
+    if (t.dataset.push) {
+      t.disabled = true; const old = t.textContent; t.textContent = 'Bezig…';
+      const act = t.dataset.push;
+      try {
+        if (act === 'on') { const r = await api.push.enable(); if (!r.ok) pushMsg = r.msg; else pushMsg = 'Klaar! Om 07:00 krijg je de eerste herinnering, als je dan nog niet hebt gewogen.'; }
+        if (act === 'off') { await api.push.disable(); pushMsg = 'Meldingen staan uit op deze telefoon.'; }
+        if (act === 'test') pushMsg = await api.push.test() ? 'Testmelding verstuurd. Hij komt binnen een paar seconden.' : 'De testmelding lukte niet. Zet meldingen uit en weer aan.';
+      } catch (err) { pushMsg = 'Dat lukte niet: ' + err.message; }
+      t.textContent = old; t.disabled = false; fillPush(); return;
+    }
   });
+  let pushMsg = '';
+  async function fillPush() {
+    const txt = $('#gzPushTxt'), btns = $('#gzPushBtns'); if (!txt || !api.push) return;
+    const st = await api.push.state();
+    const T = {
+      'unsupported-ios': ['Meldingen werken alleen als je de app opent vanaf je beginscherm (het icoontje Gezin), niet in Safari.', ''],
+      unsupported: ['Deze telefoon of browser ondersteunt geen pushmeldingen. De herinneringen bovenaan de app blijven gewoon werken.', ''],
+      denied: ['Meldingen zijn geblokkeerd. Zet ze aan via Instellingen › Meldingen › Gezin, en tik daarna hier nog een keer.', ''],
+      off: ['Krijg een seintje om 07:00 om te wegen, op ma en wo om 12:00 voor padel, en om 17:00 als je nog niet hebt bewogen. Alleen als je het nog niet hebt ingevuld.', '<button class="btn primary" data-push="on">Meldingen aanzetten</button>'],
+      on: ['Meldingen staan aan ✓ Je krijgt alleen een seintje als je iets nog niet hebt ingevuld.', '<button class="btn" data-push="test">Testmelding</button><button class="btn" data-push="off">Uitzetten</button>']
+    }[st];
+    txt.textContent = pushMsg || T[0]; pushMsg = '';
+    txt.className = st === 'on' ? 'gz-ok-txt' : 'mut';
+    btns.innerHTML = T[1];
+  }
   function readDraft() { const v = parseFloat($('#gzKg').value.replace(',', '.')); if (v >= 30 && v <= 300) draft = Math.round(v * 10) / 10; }
   function refreshSave() { const b = $('#gzForm [type=submit]'); const saved = api.get().weights.find(r => r.day === day); b.className = 'btn primary'; b.textContent = saved ? 'Wijzigen' : 'Opslaan'; }
   root.addEventListener('input', e => { if (e.target.id === 'gzKg') refreshSave(); });

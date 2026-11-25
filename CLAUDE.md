@@ -22,6 +22,13 @@ De app opent op **Menu**: eten en afvallen staan voorop. De tabbalk heeft vier k
 
 Er is geen build-stap. Alles is gewone ES-modules plus `styles.css`. Supabase-js wordt geladen vanaf jsDelivr, vastgezet op een versie.
 
+## Pushmeldingen (iPhone)
+- `sw.js` is een service worker **alleen voor push** (geen cache, geen fetch-handler). `push.js` zet meldingen aan/uit per telefoon; de knop staat onderaan Gezond.
+- Abonnementen staan in `push_subscriptions` (per `owner`). Versturen doet de edge function `gezond-push` (`supabase/functions/gezond-push/index.ts`, verify_jwt uit): `?action=key` (openbare VAPID-sleutel), `?action=test`, `?action=run`.
+- pg_cron roept elke 10 minuten `?action=run` aan. Tijden in Europe/Madrid: wegen 07:00–12:00 als er nog geen gewicht is, padel ma/wo 12:00–17:00, bewegen 17:00–21:00 als er nog niets is afgevinkt. Elke soort hooguit één keer per dag (`push_log`).
+- Het VAPID-sleutelpaar maakt de functie zelf aan in `push_keys` (RLS aan, geen policies: alleen de functie kan erbij). Er staat dus geen geheime sleutel in de repo of in een chat.
+- iPhone: werkt alleen vanaf het beginscherm-icoon (iOS 16.4+), na een tik op "Meldingen aanzetten".
+
 ## Supabase
 - Project-id: `zopnuwnwceislikkvvsv` (naam `gezinfamilievandokkumburg`, regio eu-central-1, Free plan).
 - **Raak het andere project in dezelfde organisatie (Escape Game The Hunt) nooit aan.**
