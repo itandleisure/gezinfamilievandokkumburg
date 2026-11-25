@@ -105,10 +105,40 @@ export const RECIPES = [
     [['Serranoham', '150 g', V], ['Gebakken kipreepjes of kipfilet (beleg)', '200 g', V], ['Manchego of jonge kaas', '200 g', Z], ['Hummus', '1 bakje', Z], ['Olijven', '1 bakje', BA], ['Stokbrood (barra)', '1 stuk', B], ['Komkommer, paprika, worteltjes en snoeptomaatjes', 'voor 4', G], ['Druiven of mandarijnen', '1 tros of 4 stuks', 'Fruit'], ['Chips (voor de kinderen)', '1 zak', BA]],
     ['Snijd de groente in reepjes en leg ze als eerste op de plank: dat wordt de basis.', 'Rol de ham op, snijd de kaas in blokjes en leg de kip erbij.', 'Zet hummus, olijven en chips in schaaltjes.', 'Snijd het stokbrood en leg het fruit in de hoekjes.', 'Laat de kinderen helpen met leggen: dat is de halve pret.'],
     'Zo blijf je binnen je schema: begin met groente en ham of kip, neem 2 sneetjes brood en wat hummus. Een klein handje chips (20 g) is ongeveer 105 kcal: dat past als je die avond je laatste snack overslaat.'),
-  r('pizza-avond', 'zondag', 'Pizza-avond met een grote salade', 'Noche de pizza', 20, 5710200, [7, 11, 9, 1],
+  r('pizza-avond', ['zondag', 'snel'], 'Pizza-avond met een grote salade', 'Noche de pizza', 20, 5710200, [7, 11, 9, 1],
     [['Diepvriespizza’s (bijv. Ristorante)', '3 stuks', B], ['Snoeptomaatjes', '250 g', G], ['Sla of rucola', '1 zak', G], ['Komkommer', '1 stuk', G], ['Extra groente erop: paprika, champignons, ui', 'naar smaak', G], ['Olijfolie en balsamico', 'voor de dressing', BA, 1]],
     ['Verwarm de oven volgens de verpakking.', 'Beleg de pizza’s eventueel nog met extra paprika, champignons of ui: meer groente, meer vulling.', 'Maak intussen een grote salade met een dun laagje dressing.', 'Snijd elke pizza in 8 punten en zet alles op tafel.'],
-    'Mag pizza? Ja, met een halve pizza. Een hele Dr. Oetker Ristorante is al gauw 800 tot 950 kcal, een halve met een grote salade is ongeveer 535 kcal. Pizza heeft weinig eiwit, dus neem ’s middags een gekookt ei extra.')
+    'Mag pizza? Ja, met een halve pizza. Een hele Dr. Oetker Ristorante is al gauw 800 tot 950 kcal, een halve met een grote salade is ongeveer 535 kcal. Pizza heeft weinig eiwit, dus neem ’s middags een gekookt ei extra.'),
+
+  // ---------- Volledig vegetarisch: voor het hele gezin, ook voor Frans ----------
+  r('vega-bolognese', 'snel', 'Pasta bolognese met vega gehakt', 'Espaguetis boloñesa vegetarianos', 20, 21906876, [5, 9, 2, 2],
+    [['Spaghetti of penne (volkoren)', '350 g', B], ['Vega gehakt', '2 pakken (400 g)', V], ['Ui', '1 stuk', G], ['Wortel', '2 stuks', G], ['Paprika', '1 stuk', G], ['Tomate frito of passata', '1 pak (400 g)', BA], ['Geraspte kaas', '50 g', Z], ['Italiaanse kruiden', '1 tl', BA, 1], ['Olijfolie', '½ el', BA, 1]],
+    ['Kook de pasta.', 'Rasp de wortel fijn en snipper ui en paprika. Bak ze 5 minuten in de olie.', 'Doe het vega gehakt erbij en bak 4 minuten mee.', 'Giet de tomatensaus erbij, kruiden erin en laat 5 minuten pruttelen.', 'Kaas apart op tafel.'],
+    'Geraspte wortel verdwijnt in de saus: de kinderen proeven het niet, en jij krijgt extra groente.'),
+  r('ovenpasta', 'tijd', 'Ovenpasta met tomaat, courgette en mozzarella', 'Pasta al horno', 35, 11889305, [15, 4, 2, 2],
+    [['Penne (volkoren)', '350 g', B], ['Courgette', '1 stuk', G], ['Verse spinazie', '200 g', G], ['Tomate frito of passata', '1 pak (400 g)', BA], ['Mozzarella light', '2 bollen', Z], ['Geraspte Parmezaan', '30 g', Z], ['Olijfolie', '½ el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C en kook de pasta 2 minuten korter dan op het pak staat.', 'Bak blokjes courgette 4 minuten, roer de spinazie erdoor tot hij slinkt.', 'Meng pasta, groente en tomatensaus in een ovenschaal.', 'Leg plakjes mozzarella erop, Parmezaan erover en bak 15 minuten.'],
+    'Maak de schaal ’s middags klaar en schuif hem om 18:30 de oven in: makkelijk op een drukke dag.'),
+  r('tortilla-patatas', 'tijd', 'Tortilla de patatas met salade', 'Tortilla de patatas', 40, 4765652, [11, 11, 0, 0],
+    [['Eieren', '8 stuks', V], ['Aardappelen (vastkokend)', '800 g', B], ['Ui', '1 stuk', G], ['Sla, tomaat en komkommer', 'voor 4', G], ['Olijfolie', '2 el', BA, 1]],
+    ['Schil de aardappelen en snijd ze in dunne plakjes. Snipper de ui.', 'Bak aardappel en ui in 2 el olie met de deksel op de pan in 20 minuten zacht. Af en toe omscheppen.', 'Klop de eieren los met zout en meng de aardappel erdoor.', 'Giet alles terug in de pan en bak 5 minuten op laag vuur. Keer hem met een groot bord en bak de andere kant 3 minuten.', 'Snijd in punten en geef er een frisse salade bij.'],
+    'De Spaanse klassieker, maar met 2 el olie in plaats van een halve fles. Een punt over is je lunch van morgen.'),
+  r('shakshuka', 'snel', 'Eieren in tomatensaus met brood', 'Huevos a la flamenca', 25, 6275165, [11, 9, 8, 2],
+    [['Eieren', '8 stuks', V], ['Paprika’s', '2 stuks', G], ['Ui', '1 stuk', G], ['Gepelde tomaten (blik)', '2 blikken', BA], ['Gerookt paprikapoeder en komijn', '1 tl van elk', BA, 1], ['Stokbrood (barra)', '1 stuk', B], ['Feta', '100 g', Z], ['Olijfolie', '½ el', BA, 1]],
+    ['Bak reepjes ui en paprika 5 minuten in een grote pan.', 'Roer de kruiden erdoor, doe de tomaten erbij en laat 8 minuten inkoken.', 'Maak 8 kuiltjes in de saus en breek in elk kuiltje een ei.', 'Deksel erop, 6 tot 8 minuten zachtjes garen tot het eiwit gestold is.', 'Brokkel de feta erover en zet het stokbrood erbij om te dippen.'],
+    'Eén pan op tafel, iedereen schept zelf. Jouw portie: 2 eieren en 2 sneetjes brood.'),
+  r('lentejas', 'tijd', 'Linzenstoof met groente', 'Lentejas estofadas', 40, 6120506, [12, 3, 8, 1],
+    [['Linzen (pot) of droge linzen', '2 potten (800 g) of 300 g droog', BA], ['Wortel', '3 stuks', G], ['Aardappel', '2 stuks', B], ['Ui', '1 stuk', G], ['Paprika', '1 stuk', G], ['Knoflook', '2 teentjes', G], ['Groentebouillon', '1 liter', BA], ['Gerookt paprikapoeder', '1 tl', BA, 1], ['Stokbrood (barra)', '1 stuk', B], ['Olijfolie', '½ el', BA, 1]],
+    ['Snijd ui, wortel, paprika en aardappel in blokjes en bak ze 5 minuten in de olie met de knoflook.', 'Roer de pimentón erdoor.', 'Giet de bouillon erbij en laat 15 minuten koken tot de aardappel bijna gaar is.', 'Doe de uitgelekte linzen erbij en laat nog 10 minuten zachtjes doorkoken.', 'Met een stuk brood erbij.'],
+    'Lentejas eet half Spanje op een doordeweekse dag. Goedkoop, vult goed en is de volgende dag nog lekkerder.'),
+  r('quesadillas', 'snel', 'Quesadillas met bonen, mais en kaas', 'Quesadillas de alubias', 20, 13243944, [14, 9, 6, 1],
+    [['Tortilla-wraps', '8 stuks', B], ['Kidneybonen of zwarte bonen (blik)', '1 blik', BA], ['Mais (blik)', '1 klein blik', BA], ['Paprika', '1 stuk', G], ['Geraspte kaas', '150 g', Z], ['Griekse yoghurt 0%', '150 g', Z], ['Sla en tomaat', 'voor 4', G]],
+    ['Prak de uitgelekte bonen grof met een vork.', 'Besmeer de helft van elke wrap met bonen, strooi er mais, blokjes paprika en kaas over en vouw dicht.', 'Bak ze in een droge koekenpan 2 tot 3 minuten per kant tot de kaas smelt.', 'Snijd in punten en geef er yoghurt en salade bij.'],
+    'Jouw portie: 2 quesadillas met veel salade. Yoghurt in plaats van zure room.'),
+  r('halloumi-ovenschotel', 'tijd', 'Halloumi uit de oven met krieltjes en groente', 'Halloumi al horno con verduras', 40, 8751405, [13, 9, 1, 1],
+    [['Halloumi', '2 blokken', Z], ['Krieltjes', '1 kg', B], ['Paprika’s', '2 stuks', G], ['Courgette', '1 stuk', G], ['Rode ui', '2 stuks', G], ['Snoeptomaatjes', '250 g', G], ['Gedroogde oregano', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Halveer de krieltjes, snijd de groente in stukken en meng alles met olie, oregano en zout op een bakplaat.', 'Bak 25 minuten.', 'Leg plakken halloumi ertussen en bak nog 10 minuten tot ze goudbruin zijn.'],
+    'Halloumi is zout: strooi dus weinig zout over de groente.')
 ];
 // Vega-variant per recept: de partner van Frans eet geen vlees en vis, wel eieren en zuivel.
 // [uitleg, extra ingrediënten]. Lege uitleg = het recept is al vegetarisch.
@@ -133,9 +163,42 @@ const VEGA = {
   'wraps-kip': ['Bak voor je partner roerei met spinazie of een paar plakken halloumi.', [['Eieren', '3 stuks', V], ['Halloumi', '1 blok', Z]]],
   'wraps-oven': ['Maak 2 wraps met vega gehakt of alleen bonen en leg ze aan één kant van de schaal. Steek er een prikker in, dan weet je welke het zijn.', [['Vega gehakt', '1 pak (200 g)', V]]],
   'borrelplank': ['Maak één hoek van de plank vega: kaas, hummus, gekookte eitjes, olijven en tortilla de patatas. Leg de ham aan de andere kant.', [['Eieren (gekookt)', '4 stuks', V], ['Tortilla de patatas (koeling)', '1 stuk', V]]],
-  'pizza-avond': ['Kies voor je partner een Margherita, Funghi of Quattro Formaggi: die zijn zonder vlees.', []]
+  'pizza-avond': ['Kies voor je partner een Margherita, Funghi of Quattro Formaggi: die zijn zonder vlees.', []],
+  'vega-bolognese': ['', []], 'ovenpasta': ['', []], 'tortilla-patatas': ['', []], 'shakshuka': ['', []], 'lentejas': ['', []], 'quesadillas': ['', []], 'halloumi-ovenschotel': ['', []]
 };
-RECIPES.forEach(x => { const v = VEGA[x.id] || ['', []]; x.vega = v[0]; x.vingr = v[1]; });
+
+// Zo serveer je het voor de kinderen: zij eten het liefst pasta of rijst los, zonder saus erdoor, en alles naast elkaar op het bord.
+const KIDS = {
+  'pasta-kip-spinazie': 'Schep hun pasta af voordat alles door elkaar gaat. Kip en tomaatjes los ernaast, saus in een kommetje.',
+  'arroz-tres-delicias': 'Bak hun rijst zonder sojasaus, of geef gewone witte rijst met de reepjes ei, ham en doperwten los ernaast.',
+  'merluza-krieltjes': 'Vis, krieltjes en boontjes los op het bord. Geen knoflook-peterselie over hun stukje vis.',
+  'pollo-pimientos': 'Witte rijst naturel, kip apart uit de pan halen voordat de saus erbij gaat. Saus in een kommetje voor wie wil.',
+  'pollo-al-ajillo': 'Hun kip en aardappeltjes zonder de knoflook: haal hun stukken eruit voordat de knoflook erin gaat.',
+  'albondigas': 'Witte rijst naturel, balletjes eruit scheppen met een beetje saus apart, doperwten los ernaast.',
+  'espinacas-garbanzos': 'Geef ze witte rijst met een paar kikkererwten en een gekookt ei los ernaast. Of kook voor hen gewoon pasta met tomatensaus.',
+  'solomillo-champis': 'Varkenshaas, aardappel en broccoli los, zonder champignonsaus.',
+  'pollo-al-horno': 'Kip en aardappelpartjes van de bakplaat los op het bord: dat werkt meestal al zonder aanpassing.',
+  'paella-pollo': 'Geen paella-fan? Kook een pannetje witte rijst en geef de stukjes kip uit de paella erbij.',
+  'hamburgers': 'Laat ze zelf hun burger beleggen. Partjes met een beetje ketchup.',
+  'pinchitos': 'Witte rijst naturel en een spiesje zonder kruidenmarinade (kip met alleen een beetje zout en olie).',
+  'dorada-horno': 'Haal de graten eruit en leg de vis, aardappeltjes en wat komkommer los op het bord. Of maak voor hen vissticks in de airfryer.',
+  'tacos-pollo': 'Ze vullen hun wrap zelf, met wat ze lekker vinden: kip, kaas, mais.',
+  'nuggets-patat': 'Kinderfavoriet: hoeft niets aan te veranderen.',
+  'curry-rijst': 'Witte rijst naturel met kip en doperwten los. Haal hun kip eruit voordat de curry erin gaat.',
+  'rijstbowl': 'Een bowl is al los: rijst, kip, mais en kaas in eigen hoekjes.',
+  'wraps-kip': 'Zelf vullen: kip, kaas en komkommer. Saus erbij alleen als ze willen.',
+  'wraps-oven': 'Maak 2 wraps met alleen gehakt en kaas, zonder saus erover.',
+  'borrelplank': 'Een plank is ideaal: iedereen pakt wat hij lekker vindt. Chips in een eigen bakje.',
+  'pizza-avond': 'Hoeft niets aan te veranderen. Komkommer en tomaatjes los ernaast.',
+  'vega-bolognese': 'Schep hun pasta af voordat de saus erdoor gaat en geef de saus in een kommetje erbij.',
+  'ovenpasta': 'Houd een paar scheppen gewone pasta apart en geef een beetje tomatensaus en geraspte kaas erbij.',
+  'tortilla-patatas': 'Tortilla lusten de meeste kinderen. Doe er eventueel wat patat of brood bij.',
+  'shakshuka': 'Bak voor hen een gewoon gebakken eitje met brood en wat komkommer.',
+  'lentejas': 'Kook voor hen pasta of rijst naturel met een gekookt ei of een stukje kaas erbij.',
+  'quesadillas': 'Maak hun quesadilla met alleen kaas (en eventueel mais).',
+  'halloumi-ovenschotel': 'Krieltjes en stukjes halloumi los op hun bord, met de groente die ze lusten.'
+};
+RECIPES.forEach(x => { const v = VEGA[x.id] || ['', []]; x.vega = v[0]; x.vingr = v[1]; x.kids = KIDS[x.id] || ''; });
 export const byId = id => RECIPES.find(x => x.id === id);
 
 const DC = SLOTS.find(s => s.id === 'd').comps;
@@ -152,12 +215,12 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
   let soort = soortVan(todayIdx()), open = null;
 
   function list() {
-    const items = soort === 'alle' ? RECIPES : RECIPES.filter(x => x.soort === soort);
+    const items = soort === 'alle' ? RECIPES : soort === 'vega' ? RECIPES.filter(x => !x.vega) : RECIPES.filter(x => [].concat(x.soort).includes(soort));
     const s = SOORTEN.find(x => x.id === soort);
     return `<div class="chips rb-chips" role="tablist" aria-label="Soort avond">${
       SOORTEN.map(x => `<button class="chip" role="tab" data-soort="${x.id}" aria-selected="${x.id === soort}">${x.n}</button>`).join('')
-    }<button class="chip" role="tab" data-soort="alle" aria-selected="${soort === 'alle'}">Alles</button></div>
-    <p class="mut rb-sub">${s ? `${esc(s.n)}: ${esc(s.sub)}.` : 'Alle recepten.'} Tik op een recept voor ingrediënten en bereiding. Calorieën gelden voor jouw portie.</p>
+    }<button class="chip" role="tab" data-soort="vega" aria-selected="${soort === 'vega'}">🌱 Vega</button><button class="chip" role="tab" data-soort="alle" aria-selected="${soort === 'alle'}">Alles</button></div>
+    <p class="mut rb-sub">${s ? `${esc(s.n)}: ${esc(s.sub)}.` : soort === 'vega' ? 'Helemaal vegetarisch: geschikt voor jullie allebei.' : 'Alle recepten.'} Tik op een recept voor ingrediënten en bereiding. Calorieën gelden voor jouw portie.</p>
     <div class="rb-grid">${items.map(x => { const t = recipeKcal(x); return `<button class="rb-card" type="button" data-open="${x.id}">
       <img src="${foto(x.foto, 400)}" alt="" loading="lazy">
       <span class="rb-txt"><b>${esc(x.n)}</b>${x.vega ? '' : '<em class="rb-veg">🌱 vegetarisch</em>'}<i>${esc(x.es)}</i><small>⏱ ${x.min} min · ${nf(t.k)} kcal · ${nf(t.p)} g eiwit</small></span></button>`; }).join('')}</div>
@@ -167,7 +230,7 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
   const ingrRow = (g, i) => `<li><label class="check"><input type="checkbox" data-ingr="${i}"${g[3] ? '' : ' checked'}><span><b>${esc(g[0])}</b> ${esc(g[1])}${g[3] ? ' <small>(heb je meestal al)</small>' : ''}</span></label></li>`;
   function detail(x) {
     const t = recipeKcal(x), plan = getPlan(), td = todayIdx();
-    const s = SOORTEN.find(q => q.id === x.soort);
+    const ss = [].concat(x.soort).map(id => SOORTEN.find(q => q.id === id)), s = ss[0], fitDays = ss.flatMap(q => q.dagen);
     const days = [0, 1, 2, 3, 4, 5, 6].map(i => (td + i) % 7);
     const inList = getDishes().some(g => g.n.toLowerCase() === x.n.toLowerCase());
     return `<button class="btn link rb-back" type="button" data-back>‹ Terug naar het receptenboekje</button>
@@ -175,12 +238,13 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
       <img class="rb-hero" src="${foto(x.foto, 900)}" alt="${esc(x.n)}">
       <h2>${esc(x.n)}</h2>
       <p class="rb-es">${esc(x.es)}</p>
-      <p class="rb-meta"><span>⏱ ${x.min} min</span><span>${esc(s.n)} · ${esc(s.sub)}</span><span>Voor 4 personen</span></p>
+      <p class="rb-meta"><span>⏱ ${x.min} min</span>${ss.map(q => `<span>${esc(q.n)} · ${esc(q.sub)}</span>`).join('')}<span>Voor 4 personen</span></p>
       <div class="rb-kcal"><b>${nf(t.k)} kcal</b> · ${nf(t.p)} g eiwit <small>jouw portie</small></div>
       <p class="rb-tip">💡 ${esc(x.tip)}</p>
-      <p class="rb-vega">🌱 <b>Vega-variant:</b> ${x.vega ? esc(x.vega) : 'dit recept is al vegetarisch, dus iedereen eet hetzelfde.'}</p>
+      <p class="rb-kids">🧒 <b>Voor de kinderen:</b> ${esc(x.kids)}</p>
+      <p class="rb-vega">🌱 <b>Vega-variant:</b> ${x.vega ? esc(x.vega) : 'dit recept is al vegetarisch.'}</p>
       <h3>Zet op het menu</h3>
-      <div class="rb-days">${days.map((d, i) => { const on = plan[d][REC] === x.id, fit = s.dagen.includes(d); return `<button class="chip${fit ? ' fit' : ''}" type="button" data-day="${d}" aria-pressed="${on}">${on ? '✓ ' : ''}${i ? DAYS[d].slice(0, 2) : 'Vandaag'}</button>`; }).join('')}</div>
+      <div class="rb-days">${days.map((d, i) => { const on = plan[d][REC] === x.id, fit = fitDays.includes(d); return `<button class="chip${fit ? ' fit' : ''}" type="button" data-day="${d}" aria-pressed="${on}">${on ? '✓ ' : ''}${i ? DAYS[d].slice(0, 2) : 'Vandaag'}</button>`; }).join('')}</div>
       <p class="mut rb-small">Blauw omrand = past bij die dag. Het avondeten in het weekmenu wordt dan ingesteld op dit recept.</p>
       <h3>Ingrediënten <small>voor 4</small></h3>
       <ul class="rb-ingr">${x.ingr.map((g, i) => ingrRow(g, i)).join('')}</ul>
