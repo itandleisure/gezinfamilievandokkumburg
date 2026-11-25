@@ -41,10 +41,10 @@ export async function disablePush(sb) {
   if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
 }
 
-export async function testPush() {
+export async function testPush(action = 'test') {
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = reg && await reg.pushManager.getSubscription();
   if (!sub) return false;
-  const r = await fetch(FN + '?action=test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) });
+  const r = await fetch(FN + '?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) });
   return r.ok && (await r.json()).ok;
 }

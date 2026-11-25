@@ -239,3 +239,27 @@ select cron.schedule('gezond-push', '*/10 * * * *', $$
     headers := '{"Content-Type":"application/json"}'::jsonb,
     body := '{}'::jsonb)
 $$);
+
+-- Gezond, vijf hulpmiddelen: water en snacks per dag (health_day), mijlpalen en waterdoel (health_settings)
+create table if not exists public.health_day (
+  owner uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  day date not null,
+  water integer not null default 0 check (water between 0 and 30),   -- glazen water
+  snacks jsonb not null default '{}'::jsonb,                          -- {"kwark": 1, "ei": 2}
+  updated_at timestamptz default now(),
+  primary key (owner, day)
+);
+alter table public.health_settings add column if not exists water_goal integer default 8;
+alter table public.health_settings add column if not exists snack_kcal integer default 400;
+alter table public.sport_log add column if not exists minutes integer check (minutes between 1 and 600);   -- optioneel: hoe lang gewandeld of gelopen
+alter table public.health_settings add column if not exists milestone_kg numeric(5,1);   -- laagste mijlpaal die al gevierd is
+grant select, insert, update, delete on public.health_day to authenticated;
+alter table public.health_day enable row level security;
+drop policy if exists "alleen eigen gegevens" on public.health_day;
+create policy "alleen eigen gegevens" on public.health_day for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
+do $$ begin
+  alter publication supabase_realtime add table public.health_day;
+exception when duplicate_object then null;
+end $$;
+-- Weekoverzicht op zondag (pushmelding): de functie leest instellingen mee
+grant select on public.health_settings, public.health_day to service_role;

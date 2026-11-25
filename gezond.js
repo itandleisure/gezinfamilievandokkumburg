@@ -2,6 +2,8 @@
 // plus het duwtje ("Heb je vandaag al bewogen?") dat bovenaan de app verschijnt.
 // Elke ingelogde gebruiker ziet alleen zijn eigen gegevens (kolom owner, RLS).
 
+import { extrasHtml, celebrate, milestones, reached } from './gezondplus.js';
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kgf = n => Number(n).toLocaleString('nl-NL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const sgn = n => Math.abs(n) < 0.05 ? 'gelijk' : (n > 0 ? '+' : '−') + kgf(Math.abs(n));
@@ -106,11 +108,11 @@ function gauge(kg, goalKg, cm, bron) {
 // ---------- Tabblad ----------
 export function mountGezond(root, api) {
   // api: { get() -> {weights, sport, settings}, saveWeight(day, kg), deleteWeight(day), toggleSport(day, kind, on), saveSettings(obj), openDialog }
-  let day = iso(new Date()), range = '8', draft = null, draftDay = null;
+  let day = iso(new Date()), range = '8', draft = null, draftDay = null, openTrain = true;
   const $ = s => root.querySelector(s);
 
   function render() {
-    const { weights, sport, settings, missing } = api.get();
+    const { weights, sport, settings, missing, days, daysMissing } = api.get();
     if (missing) { root.innerHTML = '<div class="task-alert">Nog één stap: de database voor gewicht en sport moet nog worden aangemaakt in Supabase. Daarna werkt dit tabblad.</div>'; return; }
     const today = iso(new Date());
     const startKg = Number(settings?.start_kg ?? 93.9), goal = Number(settings?.goal_kg ?? 78);
@@ -126,6 +128,13 @@ export function mountGezond(root, api) {
         <small>${n}</small><b>${dt(d).getDate()}</b><span>${byDay[d] != null ? '<i class="w"></i>' : ''}${'<i class="s"></i>'.repeat(Math.min(cnt, 3))}</span></button>`;
     }).join('');
     const mine = sport.filter(r => r.day === day).map(r => r.kind);
+    const minsOf = k => { const r = sport.find(x => x.day === day && x.kind === k); return r && r.minutes ? Number(r.minutes) : null; };
+    // Wandelen en hardlopen: optioneel hoe lang (snelle knoppen)
+    const MIN_KINDS = { wandelen: 'Hoe lang gewandeld?', hardlopen: 'Hoe lang gelopen?' };
+    const minRows = Object.entries(MIN_KINDS).filter(([k]) => mine.includes(k)).map(([k, q]) => {
+      const cur = minsOf(k);
+      return `<div class="gz-mins"><span>${q}</span><div class="sp-row">${[30, 45, 60, 90].map(m => `<button class="chip" data-mins="${m}" data-kind="${k}" aria-pressed="${cur === m}">${m} min</button>`).join('')}<button class="chip" data-mins="?" data-kind="${k}" aria-pressed="${cur != null && ![30, 45, 60, 90].includes(cur)}">${cur != null && ![30, 45, 60, 90].includes(cur) ? cur + ' min' : 'Anders'}</button></div></div>`;
+    }).join('');
     const isToday = day === today;
     const dagNaam = isToday ? 'Vandaag' : dt(day).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -152,6 +161,7 @@ export function mountGezond(root, api) {
         <p class="gz-pace">${pace}</p></div>`;
     }
     const recentW = wk.slice(-8).reverse();
+    const minKg = weights.length ? Math.min(...weights.map(r => Number(r.kg))) : null;
     const table = recentW.length ? `<details class="sp-box gz-weeks"><summary>Per week</summary>${recentW.map((w, i) => {
       const p = recentW[i + 1], d = p ? w.avg - p.avg : null;
       return `<div class="gz-wrow"><span>Week ${weekNr(w.w)} <small class="mut">${kort(w.w)}</small></span><b>${kgf(w.avg)}</b><span class="gz-delta ${d == null || Math.abs(d) < 0.05 ? '' : d < 0 ? 'down' : 'up'}">${d == null ? '' : sgn(d)}</span></div>`;
@@ -161,6 +171,7 @@ export function mountGezond(root, api) {
     const weekSport = sport.filter(r => r.day >= mon && r.day <= addDays(mon, 6));
     const actDays = new Set(weekSport.map(r => r.day)).size;
     const perKind = SPORT.map(s => [s.n, weekSport.filter(r => r.kind === s.k).length]).filter(x => x[1]);
+    const weekMin = weekSport.reduce((t, r) => t + (Number(r.minutes) || 0), 0);
 
     root.innerHTML = `
       <div class="card gz-card list">
@@ -182,8 +193,10 @@ export function mountGezond(root, api) {
         <h3 class="gz-h3">Bewogen</h3>
         <div class="gz-sport">${SPORT.map(s => `<button class="gz-sp${mine.includes(s.k) ? ' on' : ''}" data-sport="${s.k}" aria-pressed="${mine.includes(s.k)}">
           <svg viewBox="0 0 24 24">${s.i}</svg><b>${s.n}</b><small>${s.x}</small><span class="gz-ok">✓</span></button>`).join('')}</div>
-        <p class="gz-weeksum">${actDays ? `Deze week ${actDays} ${actDays === 1 ? 'dag' : 'dagen'} bewogen${perKind.length ? ': ' + perKind.map(([n, c]) => `${n.toLowerCase()} ${c}×`).join(', ') : ''}.` : 'Deze week nog niets afgevinkt.'}</p>
+        ${minRows}
+        <p class="gz-weeksum">${actDays ? `Deze week ${actDays} ${actDays === 1 ? 'dag' : 'dagen'} bewogen${perKind.length ? ': ' + perKind.map(([n, c]) => `${n.toLowerCase()} ${c}×`).join(', ') : ''}.${weekMin ? ` Samen ${weekMin >= 60 ? Math.floor(weekMin / 60) + ' uur' + (weekMin % 60 ? ' en ' + (weekMin % 60) + ' min' : '') : weekMin + ' min'} wandelen en lopen.` : ''}` : 'Deze week nog niets afgevinkt.'}</p>
       </div>
+      ${daysMissing ? '' : extrasHtml({ day, today, dow: (dt(day).getDay() + 6) % 7, info: (days || []).find(r => r.day === day), sport: mine, settings, minKg, startKg, goal, openTrain })}
       <h2 class="gz-h2">Voortgang</h2>
       ${prog}
       ${(() => { const lw = sorted(weights).pop(); return cur ? gauge(cur.avg, goal, lengte, 'weekgemiddelde') : gauge(lw ? lw.kg : startKg, goal, lengte, 'startgewicht'); })()}
@@ -193,6 +206,22 @@ export function mountGezond(root, api) {
       <div class="card gz-push" id="gzPush"><h3 class="gz-h3">Meldingen op deze telefoon</h3><p class="mut" id="gzPushTxt">Even kijken…</p><div class="sp-row" id="gzPushBtns"></div></div>
       <div class="actions"><button class="btn" id="gzSet">Startgewicht, doel en herinneringen</button></div>`;
     fillPush();
+    checkMilestone(weights, settings, startKg, goal);
+  }
+
+  // Feestje bij elke 2 kg eraf (één keer per mijlpaal, onthouden in health_settings.milestone_kg)
+  let partied = null;
+  function checkMilestone(weights, settings, startKg, goal) {
+    if (!weights.length || !api.saveSettings) return;
+    const m = reached(milestones(startKg, goal), Math.min(...weights.map(r => Number(r.kg))));
+    if (m == null) return;
+    let seen = settings?.milestone_kg != null ? Number(settings.milestone_kg) : null;
+    try { const l = localStorage.getItem('gz-milestone'); if (l && (seen == null || Number(l) < seen)) seen = Number(l); } catch (e) {}
+    if ((seen != null && m >= seen - 1e-9) || partied === m) return;
+    partied = m;
+    try { localStorage.setItem('gz-milestone', String(m)); } catch (e) {}
+    celebrate(m, startKg, goal);
+    api.saveSettings({ milestone_kg: m }, true);
   }
 
   root.addEventListener('click', async e => {
@@ -206,6 +235,23 @@ export function mountGezond(root, api) {
       t.classList.toggle('on', on); t.setAttribute('aria-pressed', on);
       await api.toggleSport(day, t.dataset.sport, on); render(); return;
     }
+    // Waterteller, snackkaart en trainingskaart
+    const info = () => (api.get().days || []).find(r => r.day === day) || { water: 0, snacks: {} };
+    if (t.dataset.water != null) { await api.saveDay(day, { water: Number(t.dataset.water) }); render(); return; }
+    if (t.dataset.wpm) { await api.saveDay(day, { water: Math.max(0, Math.min(30, (info().water || 0) + Number(t.dataset.wpm))) }); render(); return; }
+    if (t.dataset.snack || t.dataset.snackmin) {
+      const k = t.dataset.snack || t.dataset.snackmin, sn = { ...(info().snacks || {}) };
+      sn[k] = Math.max(0, (sn[k] || 0) + (t.dataset.snack ? 1 : -1)); if (!sn[k]) delete sn[k];
+      await api.saveDay(day, { snacks: sn }); render(); return;
+    }
+    if (t.dataset.did) { const on = !api.get().sport.some(r => r.day === day && r.kind === 'kracht'); await api.toggleSport(day, 'kracht', on); render(); return; }
+    if (t.dataset.mins) {
+      const cur = api.get().sport.find(r => r.day === day && r.kind === t.dataset.kind);
+      let m = t.dataset.mins === '?' ? parseInt(prompt('Hoeveel minuten?', cur?.minutes || '') || '', 10) : Number(t.dataset.mins);
+      if (t.dataset.mins === '?' && !(m >= 1 && m <= 600)) return;
+      if (t.getAttribute('aria-pressed') === 'true' && t.dataset.mins !== '?') m = null;   // nog een tik = minuten weg
+      await api.setMinutes(day, t.dataset.kind, m); render(); return;
+    }
     if (t.id === 'gzDel') { await api.deleteWeight(day); draftDay = null; render(); return; }
     if (t.id === 'gzSet') settingsDialog();
     if (t.dataset.push) {
@@ -214,6 +260,7 @@ export function mountGezond(root, api) {
       try {
         if (act === 'on') { const r = await api.push.enable(); if (!r.ok) pushMsg = r.msg; else pushMsg = 'Klaar! Om 07:00 krijg je de eerste herinnering, als je dan nog niet hebt gewogen.'; }
         if (act === 'off') { await api.push.disable(); pushMsg = 'Meldingen staan uit op deze telefoon.'; }
+        if (act === 'week') pushMsg = await api.push.week() ? 'Je weekoverzicht is onderweg.' : 'Het weekoverzicht lukte niet. Zet meldingen uit en weer aan.';
         if (act === 'test') pushMsg = await api.push.test() ? 'Testmelding verstuurd. Hij komt binnen een paar seconden.' : 'De testmelding lukte niet. Zet meldingen uit en weer aan.';
       } catch (err) { pushMsg = 'Dat lukte niet: ' + err.message; }
       t.textContent = old; t.disabled = false; fillPush(); return;
@@ -227,8 +274,8 @@ export function mountGezond(root, api) {
       'unsupported-ios': ['Meldingen werken alleen als je de app opent vanaf je beginscherm (het icoontje Gezin), niet in Safari.', ''],
       unsupported: ['Deze telefoon of browser ondersteunt geen pushmeldingen. De herinneringen bovenaan de app blijven gewoon werken.', ''],
       denied: ['Meldingen zijn geblokkeerd. Zet ze aan via Instellingen › Meldingen › Gezin, en tik daarna hier nog een keer.', ''],
-      off: ['Krijg een seintje om 07:00 om te wegen, op ma en wo om 12:00 voor padel, en om 17:00 als je nog niet hebt bewogen. Alleen als je het nog niet hebt ingevuld.', '<button class="btn primary" data-push="on">Meldingen aanzetten</button>'],
-      on: ['Meldingen staan aan ✓ Je krijgt alleen een seintje als je iets nog niet hebt ingevuld.', '<button class="btn" data-push="test">Testmelding</button><button class="btn" data-push="off">Uitzetten</button>']
+      off: ['Krijg een seintje om 07:00 om te wegen, op ma en wo om 12:00 voor padel, en om 17:00 als je nog niet hebt bewogen. Alleen als je het nog niet hebt ingevuld. Op zondag om 19:00 krijg je je weekoverzicht.', '<button class="btn primary" data-push="on">Meldingen aanzetten</button>'],
+      on: ['Meldingen staan aan ✓ Je krijgt alleen een seintje als je iets nog niet hebt ingevuld, en op zondag om 19:00 je weekoverzicht.', '<button class="btn" data-push="test">Testmelding</button><button class="btn" data-push="week">Weekoverzicht nu</button><button class="btn" data-push="off">Uitzetten</button>']
     }[st];
     txt.textContent = pushMsg || T[0]; pushMsg = '';
     txt.className = st === 'on' ? 'gz-ok-txt' : 'mut';
@@ -236,6 +283,7 @@ export function mountGezond(root, api) {
   }
   function readDraft() { const v = parseFloat($('#gzKg').value.replace(',', '.')); if (v >= 30 && v <= 300) draft = Math.round(v * 10) / 10; }
   function refreshSave() { const b = $('#gzForm [type=submit]'); const saved = api.get().weights.find(r => r.day === day); b.className = 'btn primary'; b.textContent = saved ? 'Wijzigen' : 'Opslaan'; }
+  root.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('.gp-tr') && !d.closest('.gp-more')) openTrain = d.open; }, true);
   root.addEventListener('input', e => { if (e.target.id === 'gzKg') refreshSave(); });
   root.addEventListener('submit', async e => {
     e.preventDefault();
@@ -248,11 +296,13 @@ export function mountGezond(root, api) {
   function settingsDialog() {
     const s = api.get().settings || {};
     api.openDialog({
-      title: 'Doel en herinneringen',
+      title: 'Doel, water, snacks en herinneringen',
       fields: [
         { name: 'start_kg', label: 'Startgewicht (kg)', value: kgf(s.start_kg ?? 93.9), inputmode: 'decimal' },
         { name: 'goal_kg', label: 'Doelgewicht (kg)', value: kgf(s.goal_kg ?? 78), inputmode: 'decimal' },
         { name: 'height_cm', label: 'Lengte (cm), voor de BMI', value: String(s.height_cm ?? 179), inputmode: 'numeric' },
+        { name: 'water_goal', label: 'Glazen water per dag', value: String(s.water_goal ?? 8), inputmode: 'numeric' },
+        { name: 'snack_kcal', label: 'Kcal voor tussendoortjes per dag', value: String(s.snack_kcal ?? 400), inputmode: 'numeric' },
         { name: 'reminders', label: 'Herinneringen bovenaan de app tonen ("Heb je vandaag al bewogen?")', type: 'checkbox', value: s.reminders !== false }
       ],
       onSave: async v => {
@@ -260,7 +310,9 @@ export function mountGezond(root, api) {
         const start_kg = n(v.start_kg), goal_kg = n(v.goal_kg);
         const height_cm = Math.round(n(v.height_cm));
         if (!(start_kg >= 30 && start_kg <= 300 && goal_kg >= 30 && goal_kg <= 300 && height_cm >= 100 && height_cm <= 230)) return false;
-        return api.saveSettings({ start_kg, goal_kg, height_cm, reminders: v.reminders });
+        const water_goal = Math.round(n(v.water_goal)), snack_kcal = Math.round(n(v.snack_kcal));
+        if (!(water_goal >= 1 && water_goal <= 20 && snack_kcal >= 0 && snack_kcal <= 2000)) return false;
+        return api.saveSettings({ start_kg, goal_kg, height_cm, reminders: v.reminders, water_goal, snack_kcal });
       }
     });
   }

@@ -42,14 +42,15 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSessio
 const MENU_ID = 'frans-v2';
 let tasksMissing = false;
 const HEALTH = ['weight_log', 'sport_log', 'health_settings'], healthMissing = {};
+let healthDayMissing = false;
 // Terracotta getal bij Taken: zoveel taken zijn aan de beurt of te laat
 function taskBadge() {
   // Taken staat onder Meer: het getal staat op de knop Meer én op de tegel Taken
   const n = dueCount(S.tasks);
   for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], weight_log: [], sport_log: [], health_settings: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', weight_log: 'day', sport_log: 'day', health_settings: 'owner' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], weight_log: [], sport_log: [], health_settings: [], health_day: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
@@ -57,7 +58,9 @@ async function load(t) {
   if (t === 'tasks') tasksMissing = !!error;
   // Gezond: idem, tot de tabellen in Supabase zijn aangemaakt
   if (HEALTH.includes(t)) healthMissing[t] = !!error;
-  if (error) { if (t !== 'tasks' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
+  // Water en snacks (health_day): ontbreekt de tabel nog, dan blijft de rest van Gezond gewoon werken
+  if (t === 'health_day') healthDayMissing = !!error;
+  if (error) { if (t !== 'tasks' && t !== 'health_day' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -142,8 +145,8 @@ async function start() {
   recepten = mountRecepten($('#receptenRoot'), { getPlan, setPlan, getDishes, setDishes, addToShopping: recipeToShopping, toast });
   spaans = mountSpaans($('#spaansRoot'));
   taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge });
-  gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, openDialog,
-    push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: testPush } });
+  gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, saveDay, setMinutes, openDialog,
+    push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: () => testPush('test'), week: () => testPush('week') } });
   registerSW();
   route();
   await Promise.all(Object.keys(S).map(load));
@@ -163,7 +166,15 @@ async function start() {
 
 // ---------- Gezond (gewicht en sport, alleen eigen gegevens) ----------
 function healthData() {
-  return { missing: HEALTH.some(t => healthMissing[t]), weights: S.weight_log.filter(r => r.owner === userId), sport: S.sport_log.filter(r => r.owner === userId), settings: S.health_settings.find(r => r.owner === userId) };
+  return { missing: HEALTH.some(t => healthMissing[t]), weights: S.weight_log.filter(r => r.owner === userId), sport: S.sport_log.filter(r => r.owner === userId), settings: S.health_settings.find(r => r.owner === userId),
+    days: S.health_day.filter(r => r.owner === userId), daysMissing: healthDayMissing };
+}
+// Water en snacks per dag (health_day). Eerst lokaal bijwerken, zodat tikken meteen zichtbaar is.
+async function saveDay(day, v) {
+  const cur = S.health_day.find(r => r.owner === userId && r.day === day);
+  const row = { owner: userId, day, water: cur?.water ?? 0, snacks: cur?.snacks ?? {}, ...v, updated_at: new Date().toISOString() };
+  if (cur) Object.assign(cur, row); else S.health_day.push(row);
+  if (!await run(sb.from('health_day').upsert(row), '')) await load('health_day');
 }
 async function saveWeight(day, kg) {
   const ok = await run(sb.from('weight_log').upsert({ owner: userId, day, kg }), 'Gewicht opgeslagen');
@@ -176,8 +187,12 @@ async function toggleSport(day, kind, on) {
   const q = on ? sb.from('sport_log').upsert({ owner: userId, day, kind }) : sb.from('sport_log').delete().eq('owner', userId).eq('day', day).eq('kind', kind);
   if (await run(q, on ? 'Lekker bezig!' : '')) { await load('sport_log'); showNudge(); }
 }
-async function saveSettings(v) {
-  const ok = await run(sb.from('health_settings').upsert({ owner: userId, ...v, updated_at: new Date().toISOString() }), 'Opgeslagen');
+// Optioneel: hoeveel minuten gewandeld of gelopen (sport_log.minutes); het vinkje blijft gewoon staan
+async function setMinutes(day, kind, minutes) {
+  if (await run(sb.from('sport_log').upsert({ owner: userId, day, kind, minutes }), minutes ? minutes + ' minuten bewaard' : '')) await load('sport_log');
+}
+async function saveSettings(v, quiet) {
+  const ok = await run(sb.from('health_settings').upsert({ owner: userId, ...v, updated_at: new Date().toISOString() }), quiet ? '' : 'Opgeslagen');
   if (ok) { await load('health_settings'); gezond.render(); showNudge(); } return ok;
 }
 // Duwtje bovenaan de app ("Heb je vandaag al bewogen?"); wegtikken geldt voor de rest van de dag

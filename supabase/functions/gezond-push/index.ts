@@ -2,6 +2,8 @@
 // - ?action=key  : geeft de openbare VAPID-sleutel (maakt het sleutelpaar de eerste keer aan; de geheime helft blijft in de tabel push_keys)
 // - ?action=test : stuurt een testmelding naar één abonnement (body: {endpoint})
 // - ?action=run  : door pg_cron elke 10 minuten aangeroepen; stuurt per persoon hooguit één keer per dag per soort melding
+// - ?action=week : (test) stuurt het weekoverzicht nu naar één abonnement (body: {endpoint})
+// Op zondag tussen 19:00 en 21:00 gaat het weekoverzicht: gewicht, bewegen en water van de week, met een complimentje of tip.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -35,10 +37,10 @@ function madrid(now = new Date()) {
 }
 
 type Sub = { endpoint: string; owner: string; p256dh: string; auth: string };
-async function send(sub: Sub, kind: string) {
+async function send(sub: Sub, kind: string, msg?: { title: string; body: string }) {
   try {
     await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify({ ...MSG[kind], url: '/#gezond', tag: kind }), { TTL: 4 * 3600, urgency: 'normal' });
+      JSON.stringify({ ...(msg || MSG[kind]), url: '/#gezond', tag: kind }), { TTL: 4 * 3600, urgency: 'normal' });
     return true;
   } catch (e) {
     const code = (e as { statusCode?: number }).statusCode;
@@ -46,6 +48,37 @@ async function send(sub: Sub, kind: string) {
     console.error('push mislukt', code, String(e));
     return false;
   }
+}
+
+// ---------- Weekoverzicht (zondag) ----------
+const kgf = (n: number) => n.toLocaleString('nl-NL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const addDays = (s: string, n: number) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+async function weekMsg(owner: string, day: string, dow: number) {
+  const mon = addDays(day, -dow), prevMon = addDays(mon, -7), sun = addDays(mon, 6);
+  const [{ data: w }, { data: sp }, { data: hd }, { data: st }] = await Promise.all([
+    db.from('weight_log').select('day, kg').eq('owner', owner).gte('day', prevMon).lte('day', sun),
+    db.from('sport_log').select('day, kind, minutes').eq('owner', owner).gte('day', mon).lte('day', sun),
+    db.from('health_day').select('day, water').eq('owner', owner).gte('day', mon).lte('day', sun),
+    db.from('health_settings').select('goal_kg, water_goal').eq('owner', owner).maybeSingle()
+  ]);
+  const avg = (l: { kg: number }[]) => l.length ? l.reduce((a, r) => a + Number(r.kg), 0) / l.length : null;
+  const cur = avg((w || []).filter(r => r.day >= mon)), prev = avg((w || []).filter(r => r.day < mon));
+  const days = new Set((sp || []).map(r => r.day)).size, padel = (sp || []).filter(r => r.kind === 'padel').length;
+  const wgoal = Number(st?.water_goal ?? 8), waterDays = (hd || []).filter(r => r.water >= wgoal).length;
+  const parts: string[] = [];
+  if (cur != null) parts.push(`Gemiddeld ${kgf(cur)} kg${prev != null ? (Math.abs(cur - prev) < 0.05 ? ' (gelijk)' : ` (${cur < prev ? '−' : '+'}${kgf(Math.abs(cur - prev))})`) : ''}.`);
+  else parts.push('Deze week niet gewogen.');
+  const mins = (sp || []).reduce((t, r) => t + (Number(r.minutes) || 0), 0);
+  const dur = mins >= 60 ? `${Math.floor(mins / 60)} uur${mins % 60 ? ` en ${mins % 60} min` : ''}` : `${mins} min`;
+  parts.push(`${days} ${days === 1 ? 'dag' : 'dagen'} bewogen${padel ? `, ${padel}× padel` : ''}${mins ? `, ${dur} gewandeld en gelopen` : ''}.`);
+  if ((hd || []).length) parts.push(`${waterDays}× je waterdoel gehaald.`);
+  let tip = '';
+  if (cur != null && prev != null && cur < prev - 0.2) tip = '¡Muy bien! Je bent goed op weg.';
+  else if (days >= 4) tip = 'Lekker actief geweest, hou dat vast!';
+  else if (cur == null) tip = 'Tip: weeg je morgen om 7 uur, dan zie je volgende week je trend.';
+  else if (days < 3) tip = 'Tip: plan deze week twee trainingen van 15 minuten op de dagen zonder padel.';
+  else tip = 'Stilstand hoort erbij. Let deze week op de tussendoortjes en drink genoeg water.';
+  return { title: 'Jouw week 📊', body: parts.join(' ') + ' ' + tip };
 }
 
 async function run() {
@@ -62,13 +95,15 @@ async function run() {
     ]);
     const sent = new Set((log || []).map(r => r.kind)), kinds = (sp || []).map(r => r.kind);
     let kind = '';
-    if (hour >= 7 && hour < 12 && !(w || []).length) kind = 'wegen';
+    if (dow === 6 && hour >= 19 && hour < 21 && !sent.has('week')) kind = 'week';
+    else if (hour >= 7 && hour < 12 && !(w || []).length) kind = 'wegen';
     else if ((dow === 0 || dow === 2) && hour >= 12 && hour < 17 && !kinds.includes('padel')) kind = 'padel';
     else if (hour >= 17 && hour < 21 && !kinds.length) kind = 'bewegen';
     if (!kind || sent.has(kind)) continue;
     const { error } = await db.from('push_log').insert({ owner, day, kind });
     if (error) continue; // al verstuurd door een gelijktijdige run
-    for (const s of (subs as Sub[]).filter(s => s.owner === owner)) await send(s, kind);
+    const msg = kind === 'week' ? await weekMsg(owner, day, dow) : undefined;
+    for (const s of (subs as Sub[]).filter(s => s.owner === owner)) await send(s, kind, msg);
     out[owner] = kind;
   }
   return { day, hour, sent: out };
@@ -85,6 +120,15 @@ Deno.serve(async req => {
       if (!sub) return json({ ok: false, error: 'onbekend abonnement' }, 404);
       await keys();
       return json({ ok: await send(sub, 'test') });
+    }
+    if (action === 'week') {
+      const { endpoint } = await req.json();
+      const { data: sub } = await db.from('push_subscriptions').select('*').eq('endpoint', endpoint).maybeSingle();
+      if (!sub) return json({ ok: false, error: 'onbekend abonnement' }, 404);
+      await keys();
+      const { day, dow } = madrid();
+      const msg = await weekMsg(sub.owner, day, dow);
+      return json({ ok: await send(sub, 'week', msg), msg });
     }
     if (action === 'run') return json(await run());
     return json({ error: 'onbekende actie' }, 400);
