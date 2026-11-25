@@ -419,3 +419,4 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .gz-mins .chip[aria-pressed=true]{background:var(--ok);border-color:var(--ok);color:#fff}
 .gz-mins .sp-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 .gz-mins .chip{padding:0 4px;min-height:44px;font-size:14px}
+.rb-esn{display:block;font-size:14px;color:var(--blue)}
