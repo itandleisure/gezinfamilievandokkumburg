@@ -226,3 +226,14 @@ create table if not exists public.push_keys (
 );
 alter table public.push_keys enable row level security;
 revoke all on public.push_log, public.push_keys from anon, authenticated;
+
+-- Planner: elke 10 minuten kijkt de functie gezond-push of er een melding moet (pas aanzetten als de functie bestaat)
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+select cron.unschedule('gezond-push') where exists (select 1 from cron.job where jobname = 'gezond-push');
+select cron.schedule('gezond-push', '*/10 * * * *', $$
+  select net.http_post(
+    url := 'https://zopnuwnwceislikkvvsv.supabase.co/functions/v1/gezond-push?action=run',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := '{}'::jsonb)
+$$);
