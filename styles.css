@@ -351,3 +351,6 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .rb-shop{width:100%}
 .rb-steps{padding-left:22px;margin:0;display:grid;gap:10px}
 .rb-steps li::marker{color:var(--terra);font-weight:800}
+.rb-vega{background:var(--okbg);border-left:4px solid var(--ok);border-radius:10px;padding:10px 12px;font-size:15px}
+.rb-veg{font-style:normal;font-size:12px;font-weight:700;color:var(--ok)}
+.rb-vh{margin:4px 0 4px;font-size:15px;color:var(--ok)}
