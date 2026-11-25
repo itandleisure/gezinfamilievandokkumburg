@@ -2,6 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './menu.js';
 import { mountSpaans } from './spaans.js';
+import { mountRecepten, byId as recipeById } from './recepten.js';
 import { mountTaken, dueCount } from './taken.js';
 import { mountGezond, nudge, iso } from './gezond.js';
 import { registerSW, pushState, enablePush, disablePush, testPush } from './push.js';
@@ -108,7 +109,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', taken: 'Terugkerende taken', meer: 'Meer' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', meer: 'Meer' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
 const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
@@ -128,15 +129,17 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), taken: () => taken.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken, gezond;
+let menu, spaans, taken, gezond, recepten;
 async function start() {
   fillShopForm();
-  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes });
+  menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes,
+    recipeName: id => (recipeById(id) || {}).n || '', openRecipe: (id, day) => { recepten.show(id, day); location.hash = 'recepten'; } });
+  recepten = mountRecepten($('#receptenRoot'), { getPlan, setPlan, getDishes, setDishes, addToShopping: recipeToShopping, toast });
   spaans = mountSpaans($('#spaansRoot'));
   taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge });
   gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, openDialog,
@@ -222,6 +225,13 @@ function setDishes(list) {
   const row = S.menu_plan.find(r => r.id === DISHES_ID);
   if (row) row.plan = list; else S.menu_plan.push({ id: DISHES_ID, plan: list });
   run(sb.from('menu_plan').upsert({ id: DISHES_ID, plan: list, updated_at: new Date().toISOString() }));
+}
+// Ingrediënten uit het receptenboekje: komen erbij (source 'recept'), de rest van de lijst blijft staan
+async function recipeToShopping(items) {
+  if (!await run(sb.from('shopping_items').insert(items.map(i => ({ ...i, source: 'recept' }))))) return false;
+  await load('shopping_items');
+  toast(items.length + ' ingrediënten op de boodschappenlijst');
+  return true;
 }
 async function menuToShopping() {
   const items = menuShopping(getPlan());

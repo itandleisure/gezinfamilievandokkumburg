@@ -15,7 +15,7 @@ create table if not exists public.shopping_items (
   store text default 'Maakt niet uit',
   checked boolean default false,
   recurring boolean default false,
-  source text default 'eigen',          -- 'eigen' of 'menu'
+  source text default 'eigen',          -- 'eigen', 'menu' of 'recept'
   created_at timestamptz default now()
 );
 

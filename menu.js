@@ -22,9 +22,9 @@ export const SLOTS = [
 {id:'m',time:'15:30',name:'Tussendoor',comps:[
  {id:'snack',label:'Snack',cat:'eiwit',opts:[['Gekookt ei','1 stuk',75,6.5],['Gekookt ei + mandarijn','1 + 1 stuk',110,7.5],['Ongezouten noten','handje (20 g)',120,4,'overig'],['Appel','1 stuk',80,.4,'fruit'],['Kwark met kaneel (thuis)','150 g',85,14,'zuivel'],['Snoeptomaatjes + kaasblokjes','100 g + 20 g',100,6,'zuivel'],['Chips','klein handje (20 g)',105,1.3,'overig']],def:[1,0,1,0,1,2,1]}]},
 {id:'d',time:'19:00',name:'Avondeten',comps:[
- {id:'eiwit',label:'Vlees / vis / vega',cat:'eiwit',opts:[['Kipfilet','150 g',165,34],['Biefstuk','150 g',190,33],['Mager rundergehakt','125 g',170,27],['Varkenshaas','150 g',180,33],['Witvis (kabeljauw/merluza)','175 g',140,30],['Vega gehakt','100 g',180,18],['Frikandel (airfryer)','1 stuk',160,8],['Geen vlees','',0,0]],def:[0,2,4,5,1,3,6]},
- {id:'groente',label:'Groente',cat:'groente',opts:[['Broccoli','300 g',100,8],['Bloemkool','300 g',75,6],['Sperziebonen','300 g',90,5],['Worteltjes','300 g',105,3],['Spinazie','300 g',70,9],['Rode kool','300 g',75,4],['Wokgroente','300 g',90,5],['Champignons','300 g',65,9],['Sla & rauwkost','250 g',50,3]],def:[0,6,2,7,1,3,8]},
- {id:'koolh',label:'Aardappel / pasta / rijst',cat:'granen',opts:[['Aardappelen','250 g',195,5],['Krieltjes','250 g',200,5],['Volkorenpasta','75 g droog',260,10],['Rijst','70 g droog',250,5],['Patat (airfryer/oven)','250 g',375,6],['Patat (frituur)','200 g',500,7]],def:[0,2,3,2,0,1,4]},
+ {id:'eiwit',label:'Vlees / vis / vega',cat:'eiwit',opts:[['Kipfilet','150 g',165,34],['Biefstuk','150 g',190,33],['Mager rundergehakt','125 g',170,27],['Varkenshaas','150 g',180,33],['Witvis (kabeljauw/merluza)','175 g',140,30],['Vega gehakt','100 g',180,18],['Frikandel (airfryer)','1 stuk',160,8],['Geen vlees','',0,0],['Eieren & hamblokjes','2 eieren + 30 g',200,19],['Kikkererwten','200 g uitgelekt',240,14]],def:[0,2,4,5,1,3,6]},
+ {id:'groente',label:'Groente',cat:'groente',opts:[['Broccoli','300 g',100,8],['Bloemkool','300 g',75,6],['Sperziebonen','300 g',90,5],['Worteltjes','300 g',105,3],['Spinazie','300 g',70,9],['Rode kool','300 g',75,4],['Wokgroente','300 g',90,5],['Champignons','300 g',65,9],['Sla & rauwkost','250 g',50,3],['Paprika & ui','300 g',90,3],['Doperwten & wortel','250 g',150,9],['Salade: tomaat, sla & ui','250 g',55,2]],def:[0,6,2,7,1,3,8]},
+ {id:'koolh',label:'Aardappel / pasta / rijst',cat:'granen',opts:[['Aardappelen','250 g',195,5],['Krieltjes','250 g',200,5],['Volkorenpasta','75 g droog',260,10],['Rijst','70 g droog',250,5],['Patat (airfryer/oven)','250 g',375,6],['Patat (frituur)','200 g',500,7],['Tortilla-wraps','2 stuks',240,7],['Hamburgerbroodje volkoren','1 stuk',200,8]],def:[0,2,3,2,0,1,4]},
  {id:'saus',label:'Saus / bakken',cat:'overig',opts:[['Boter of olie om te bakken','1 el',100,0],['Boter of olie om te bakken','½ el',50,0],['Pastasaus (tomaat) + ½ el olie','150 g',110,2],['Jus + ½ el boter','50 ml',75,0],['Fritessaus','25 g',75,0],['Mayonaise','20 g',140,0]],def:[0,2,1,2,0,3,4]}]},
 {id:'a',time:'21:00',name:'Avond',comps:[
  {id:'snack',label:'Iets lekkers',cat:'overig',opts:[['Ongezouten noten','handje (15 g)',95,3],['Pure chocolade','2 blokjes (10 g)',60,1],['Mandarijn','1 stuk',35,.6,'fruit'],['Niets','',0,0]],def:[0,1,0,0,1,0,3]},
@@ -51,12 +51,14 @@ export const cleanPlan = p => Array.isArray(p) && p.length === 7
       const out = [[c.key, Number.isInteger(v) && c.opts[v] ? v : c.def[d]]];
       if (QVAL.has(q) && q !== 1) out.push([qk(c), q]);
       return out;
-    })))
+    }).concat(x && typeof x[REC] === 'string' && /^[a-z0-9-]{1,40}$/.test(x[REC]) ? [[REC, x[REC]]] : [])))
   : freshPlan();
 
 // Vaste avondmaaltijden (ideeënlijst): één tik zet de vier onderdelen van het avondeten.
 // Een gerecht = { n: naam, k: { 'd.eiwit': optie, ... }, q: { 'd.eiwit': portie, ... } }. Opties volgen de posities in SLOTS.
 const DKEYS = ['d.eiwit', 'd.groente', 'd.koolh', 'd.saus'];
+// Recept uit het receptenboekje dat op een dag staat (id uit recepten.js), alleen ter info bij Avondeten
+export const REC = 'd.rec';
 const dish = (n, e, g, k, s) => ({ n, k: { 'd.eiwit': e, 'd.groente': g, 'd.koolh': k, 'd.saus': s }, q: {} });
 export const DISHES = [
   dish('Aardappelen, sperziebonen & varkenshaas', 3, 2, 0, 3),
@@ -98,7 +100,7 @@ const MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', '
 const dateOf = d => { const t = new Date(); t.setHours(12, 0, 0, 0); t.setDate(t.getDate() + (d - todayIdx() + 7) % 7); return t; };
 const ahead = () => [0, 1, 2, 3, 4, 5, 6].map(i => { const d = (todayIdx() + i) % 7; return { d, date: dateOf(d) }; });
 
-export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten, getDefault = freshPlan, setDefault, getDishes, setDishes }) {
+export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEaten, getDefault = freshPlan, setDefault, getDishes, setDishes, recipeName, openRecipe }) {
   let day = todayIdx(), dishOpen = false;
   const opt = (plan, c, d) => c.opts[plan[d][c.key]];
   const mul = (plan, c, d) => plan[d][qk(c)] || 1;
@@ -110,8 +112,9 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
   const fromDay = (plan, d, n) => ({ n, k: Object.fromEntries(DC.map(c => [c.key, plan[d][c.key]])), q: Object.fromEntries(DC.filter(c => mul(plan, c, d) !== 1).map(c => [c.key, mul(plan, c, d)])) });
   const dishHtml = plan => {
     if (!getDishes) return '';
-    const list = getDishes();
-    return `<div class="dishes"><div class="dlab">Vaste gerechten: kies met één tik</div><div class="dchips">${
+    const list = getDishes(), rid = plan[day][REC], rn = rid && recipeName ? recipeName(rid) : '';
+    const book = openRecipe ? `<div class="mbook">${rn ? `<button class="mrec" type="button" data-rec="${esc(rid)}"><span>📖 Recept</span><b>${esc(rn)}</b><small>Tik voor ingrediënten en bereiding</small></button>` : ''}<button class="btn mbook-open" type="button" data-rec="">📖 Receptenboekje: ideeën met foto</button></div>` : '';
+    return `${book}<div class="dishes"><div class="dlab">Vaste gerechten: kies met één tik</div><div class="dchips">${
       list.map((g, i) => { const t = dishK(g), on = isDish(plan, g, day); return `<button class="dchip" type="button" data-dish="${i}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(g.n)}<small>${nf(t.k)} kcal · ${nf(t.p)} g eiwit</small></button>`; }).join('')
     }</div><details class="dedit"${dishOpen ? ' open' : ''}><summary>Gerechten aanpassen of toevoegen</summary>
       <p class="mut">Stel hieronder het avondeten in zoals jullie het willen. Geef het een naam en tik op Bewaar. Bij een bestaand gerecht tik je op Bijwerken: dan krijgt het het avondeten zoals het nu staat.</p>
@@ -171,8 +174,11 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
       const g = getDishes()[+dc.dataset.dish]; if (!g) return;
       const plan = getPlan().map(x => ({ ...x }));
       DKEYS.forEach(key => { plan[day][key] = g.k[key]; if (g.q[key]) plan[day][key + '#q'] = g.q[key]; else delete plan[day][key + '#q']; });
+      delete plan[day][REC];
       setPlan(plan); render(); return;
     }
+    const rb = e.target.closest('[data-rec]');
+    if (rb && openRecipe) { openRecipe(rb.dataset.rec || null, day); return; }
     if (e.target.closest('#dishAdd')) { addDish(); return; }
     const tab = e.target.closest('.mtab');
     if (tab) { day = +tab.dataset.d; render(); return; }

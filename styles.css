@@ -308,3 +308,46 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .gz-push .gz-h3{margin-top:0}
 .gz-push p{font-size:14px;margin:0 0 10px}
 .gz-ok-txt{color:var(--ok);font-weight:600}
+
+/* Receptenboekje */
+.mbook{display:grid;gap:8px;margin:4px 0 12px}
+.mbook-open{width:100%;border-color:var(--terra);color:var(--terra);background:var(--bg)}
+.mrec{display:grid;text-align:left;gap:1px;min-height:56px;padding:10px 14px;border-radius:14px;border:2px solid var(--blue);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.mrec span{font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.04em}
+.mrec b{font-size:16px}
+.mrec small{font-size:12px;color:var(--mut)}
+.rb-sub{font-size:14px;margin:4px 0 12px}
+.rb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.rb-card{display:grid;grid-template-rows:auto 1fr;padding:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);color:var(--ink);font:inherit;text-align:left;cursor:pointer;border-bottom:4px solid var(--terra)}
+.rb-card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--line)}
+.rb-txt{display:grid;gap:2px;padding:10px 12px 12px;line-height:1.25}
+.rb-txt b{font-size:15px}
+.rb-txt i{font-size:13px;color:var(--blue)}
+.rb-txt small{font-size:12px;color:var(--mut);margin-top:4px}
+.rb-credit{font-size:12px;margin-top:16px}
+.rb-credit a{color:var(--blue)}
+.rb-back{margin-bottom:8px;font-size:15px}
+.rb-hero{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:16px;display:block;background:var(--line)}
+.rb-detail h2{margin:14px 0 0;font-size:24px;line-height:1.2}
+.rb-detail h3{margin:22px 0 8px;font-size:18px}
+.rb-detail h3 small{font-weight:500;color:var(--mut);font-size:14px}
+.rb-es{margin:2px 0 8px;color:var(--blue);font-style:italic}
+.rb-meta{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;font-size:13px}
+.rb-meta span{padding:4px 10px;border-radius:12px;background:var(--card)}
+.rb-kcal{font-size:15px}
+.rb-kcal b{font-size:20px;color:var(--ok)}
+.rb-kcal small{color:var(--mut)}
+.rb-tip{background:var(--card);border-left:4px solid var(--terra);border-radius:10px;padding:10px 12px;font-size:15px}
+.rb-days{display:flex;flex-wrap:wrap;gap:8px}
+.rb-days .chip{min-height:44px}
+.rb-days .chip.fit{border:2px solid var(--blue)}
+.rb-days .chip[aria-pressed=true]{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.rb-small{font-size:13px;margin:6px 0 0}
+.rb-ingr{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:2px}
+.rb-ingr li{border-bottom:1px solid var(--line);padding:8px 0}
+.rb-ingr label.check{align-items:flex-start}
+.rb-ingr label.check input{margin-top:1px;flex:none}
+.rb-ingr small{color:var(--mut)}
+.rb-shop{width:100%}
+.rb-steps{padding-left:22px;margin:0;display:grid;gap:10px}
+.rb-steps li::marker{color:var(--terra);font-weight:800}
