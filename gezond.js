@@ -196,7 +196,7 @@ export function mountGezond(root, api) {
         ${minRows}
         <p class="gz-weeksum">${actDays ? `Deze week ${actDays} ${actDays === 1 ? 'dag' : 'dagen'} bewogen${perKind.length ? ': ' + perKind.map(([n, c]) => `${n.toLowerCase()} ${c}×`).join(', ') : ''}.${weekMin ? ` Samen ${weekMin >= 60 ? Math.floor(weekMin / 60) + ' uur' + (weekMin % 60 ? ' en ' + (weekMin % 60) + ' min' : '') : weekMin + ' min'} wandelen en lopen.` : ''}` : 'Deze week nog niets afgevinkt.'}</p>
       </div>
-      ${daysMissing ? '' : extrasHtml({ day, today, dow: (dt(day).getDay() + 6) % 7, info: (days || []).find(r => r.day === day), sport: mine, settings, minKg, startKg, goal, openTrain })}
+      ${daysMissing ? '' : extrasHtml({ day, today, dow: (dt(day).getDay() + 6) % 7, info: (days || []).find(r => r.day === day), days, sport: mine, settings, minKg, startKg, goal, openTrain })}
       <h2 class="gz-h2">Voortgang</h2>
       ${prog}
       ${(() => { const lw = sorted(weights).pop(); return cur ? gauge(cur.avg, goal, lengte, 'weekgemiddelde') : gauge(lw ? lw.kg : startKg, goal, lengte, 'startgewicht'); })()}
@@ -244,6 +244,8 @@ export function mountGezond(root, api) {
       sn[k] = Math.max(0, (sn[k] || 0) + (t.dataset.snack ? 1 : -1)); if (!sn[k]) delete sn[k];
       await api.saveDay(day, { snacks: sn }); render(); return;
     }
+    if (t.dataset.sleep) { const v = Number(t.dataset.sleep); await api.saveDay(day, { sleep: info().sleep === v ? null : v }); render(); return; }
+    if (t.dataset.wst) { const i = $('#gpCm'), v = parseFloat(i.value.replace(',', '.')) || 100; i.value = String(Math.round((v + Number(t.dataset.wst)) * 2) / 2).replace('.', ','); const b = $('#gpWaist [type=submit]'); b.className = 'btn primary'; b.textContent = 'Taille opslaan'; return; }
     if (t.dataset.did) { const on = !api.get().sport.some(r => r.day === day && r.kind === 'kracht'); await api.toggleSport(day, 'kracht', on); render(); return; }
     if (t.dataset.mins) {
       const cur = api.get().sport.find(r => r.day === day && r.kind === t.dataset.kind);
@@ -287,6 +289,11 @@ export function mountGezond(root, api) {
   root.addEventListener('input', e => { if (e.target.id === 'gzKg') refreshSave(); });
   root.addEventListener('submit', async e => {
     e.preventDefault();
+    if (e.target.id === 'gpWaist') {
+      const v = parseFloat($('#gpCm').value.replace(',', '.'));
+      if (!(v >= 40 && v <= 200)) { $('#gpCm').focus(); return; }
+      $('#gpCm').blur(); await api.saveDay(day, { waist_cm: Math.round(v * 10) / 10 }); render(); return;
+    }
     const v = parseFloat($('#gzKg').value.replace(',', '.'));
     if (!(v >= 30 && v <= 300)) { $('#gzKg').focus(); return; }
     draft = Math.round(v * 10) / 10;

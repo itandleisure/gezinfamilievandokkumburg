@@ -58,25 +58,34 @@ async function weekMsg(owner: string, day: string, dow: number) {
   const [{ data: w }, { data: sp }, { data: hd }, { data: st }] = await Promise.all([
     db.from('weight_log').select('day, kg').eq('owner', owner).gte('day', prevMon).lte('day', sun),
     db.from('sport_log').select('day, kind, minutes').eq('owner', owner).gte('day', mon).lte('day', sun),
-    db.from('health_day').select('day, water').eq('owner', owner).gte('day', mon).lte('day', sun),
+    db.from('health_day').select('day, water, sleep, waist_cm').eq('owner', owner).gte('day', addDays(mon, -56)).lte('day', sun),
     db.from('health_settings').select('goal_kg, water_goal').eq('owner', owner).maybeSingle()
   ]);
   const avg = (l: { kg: number }[]) => l.length ? l.reduce((a, r) => a + Number(r.kg), 0) / l.length : null;
   const cur = avg((w || []).filter(r => r.day >= mon)), prev = avg((w || []).filter(r => r.day < mon));
   const days = new Set((sp || []).map(r => r.day)).size, padel = (sp || []).filter(r => r.kind === 'padel').length;
-  const wgoal = Number(st?.water_goal ?? 8), waterDays = (hd || []).filter(r => r.water >= wgoal).length;
+  const week = (hd || []).filter(r => r.day >= mon);
+  const wgoal = Number(st?.water_goal ?? 8), waterDays = week.filter(r => r.water >= wgoal).length;
+  const sleeps = week.filter(r => r.sleep != null).map(r => Number(r.sleep)), badSleep = sleeps.filter(v => v === 1).length;
+  const waists = (hd || []).filter(r => r.waist_cm != null).sort((a, b) => (a.day < b.day ? -1 : 1));
+  const wNow = waists.filter(r => r.day >= mon).pop(), wBefore = waists.filter(r => r.day < mon).pop();
   const parts: string[] = [];
   if (cur != null) parts.push(`Gemiddeld ${kgf(cur)} kg${prev != null ? (Math.abs(cur - prev) < 0.05 ? ' (gelijk)' : ` (${cur < prev ? '−' : '+'}${kgf(Math.abs(cur - prev))})`) : ''}.`);
   else parts.push('Deze week niet gewogen.');
   const mins = (sp || []).reduce((t, r) => t + (Number(r.minutes) || 0), 0);
   const dur = mins >= 60 ? `${Math.floor(mins / 60)} uur${mins % 60 ? ` en ${mins % 60} min` : ''}` : `${mins} min`;
   parts.push(`${days} ${days === 1 ? 'dag' : 'dagen'} bewogen${padel ? `, ${padel}× padel` : ''}${mins ? `, ${dur} gewandeld en gelopen` : ''}.`);
-  if ((hd || []).length) parts.push(`${waterDays}× je waterdoel gehaald.`);
+  if (week.some(r => r.water > 0)) parts.push(`${waterDays}× je waterdoel gehaald.`);
+  if (sleeps.length) parts.push(`Slaap: ${sleeps.filter(v => v === 3).length}× goed, ${badSleep}× slecht.`);
+  if (wNow) parts.push(`Taille ${kgf(Number(wNow.waist_cm))} cm${wBefore ? (Math.abs(wNow.waist_cm - wBefore.waist_cm) < 0.05 ? ' (gelijk)' : ` (${wNow.waist_cm < wBefore.waist_cm ? '−' : '+'}${kgf(Math.abs(wNow.waist_cm - wBefore.waist_cm))})`) : ''}.`);
   let tip = '';
-  if (cur != null && prev != null && cur < prev - 0.2) tip = '¡Muy bien! Je bent goed op weg.';
+  if (wNow && wBefore && wNow.waist_cm < wBefore.waist_cm - 0.4 && !(cur != null && prev != null && cur < prev - 0.2)) tip = 'Je taille wordt smaller, ook al zegt de weegschaal weinig. Goed bezig!';
+  else if (cur != null && prev != null && cur < prev - 0.2) tip = '¡Muy bien! Je bent goed op weg.';
   else if (days >= 4) tip = 'Lekker actief geweest, hou dat vast!';
   else if (cur == null) tip = 'Tip: weeg je morgen om 7 uur, dan zie je volgende week je trend.';
+  else if (badSleep >= 3) tip = 'Tip: je sliep een paar keer slecht. Probeer deze week wat eerder naar bed te gaan, dat scheelt trek.';
   else if (days < 3) tip = 'Tip: plan deze week twee trainingen van 15 minuten op de dagen zonder padel.';
+  else if (!waists.some(r => r.day >= addDays(mon, -7))) tip = 'Tip: meet morgen je taille, dan zie je ook vooruitgang als de weegschaal stilstaat.';
   else tip = 'Stilstand hoort erbij. Let deze week op de tussendoortjes en drink genoeg water.';
   return { title: 'Jouw week 📊', body: parts.join(' ') + ' ' + tip };
 }

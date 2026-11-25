@@ -420,3 +420,9 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .gz-mins .sp-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 .gz-mins .chip{padding:0 4px;min-height:44px;font-size:14px}
 .rb-esn{display:block;font-size:14px;color:var(--blue)}
+.gp-sleep{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gp-sl{display:grid;justify-items:center;gap:4px;min-height:72px;padding:8px;border:2px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.gp-sl .gp-e{font-size:26px}
+.gp-sl.on.s3{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+.gp-sl.on.s2{border-color:var(--blue);color:var(--blue)}
+.gp-sl.on.s1{border-color:var(--terra);color:var(--terra)}

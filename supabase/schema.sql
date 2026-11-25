@@ -249,6 +249,8 @@ create table if not exists public.health_day (
   updated_at timestamptz default now(),
   primary key (owner, day)
 );
+alter table public.health_day add column if not exists sleep smallint check (sleep between 1 and 3);        -- 1 slecht, 2 matig, 3 goed
+alter table public.health_day add column if not exists waist_cm numeric(4,1) check (waist_cm between 40 and 200);   -- taille, 1× per week
 alter table public.health_settings add column if not exists water_goal integer default 8;
 alter table public.health_settings add column if not exists snack_kcal integer default 400;
 alter table public.sport_log add column if not exists minutes integer check (minutes between 1 and 600);   -- optioneel: hoe lang gewandeld of gelopen

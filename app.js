@@ -172,7 +172,7 @@ function healthData() {
 // Water en snacks per dag (health_day). Eerst lokaal bijwerken, zodat tikken meteen zichtbaar is.
 async function saveDay(day, v) {
   const cur = S.health_day.find(r => r.owner === userId && r.day === day);
-  const row = { owner: userId, day, water: cur?.water ?? 0, snacks: cur?.snacks ?? {}, ...v, updated_at: new Date().toISOString() };
+  const row = { owner: userId, day, water: cur?.water ?? 0, snacks: cur?.snacks ?? {}, sleep: cur?.sleep ?? null, waist_cm: cur?.waist_cm ?? null, ...v, updated_at: new Date().toISOString() };
   if (cur) Object.assign(cur, row); else S.health_day.push(row);
   if (!await run(sb.from('health_day').upsert(row), '')) await load('health_day');
 }

@@ -64,7 +64,7 @@ export function milestones(startKg, goal) {
 export const reached = (list, kg) => list.filter(m => kg <= m + 1e-9).pop() ?? null;
 
 // ---------- HTML ----------
-export function extrasHtml({ day, today, dow, info, sport, settings, minKg, startKg, goal, openTrain }) {
+export function extrasHtml({ day, today, dow, info, days, sport, settings, minKg, startKg, goal, openTrain }) {
   const water = info?.water ?? 0, wgoal = Number(settings?.water_goal ?? 8);
   const snacks = info?.snacks || {}, budget = Number(settings?.snack_kcal ?? 400), used = snackKcal(snacks), left = budget - used;
   const isToday = day === today, padel = dow === 0 || dow === 2;
@@ -91,7 +91,38 @@ export function extrasHtml({ day, today, dow, info, sport, settings, minKg, star
     return `<li class="gp-ms${ok ? ' ok' : ''}${isNext ? ' next' : ''}"><b>${kgf(m)}</b><small>${ok ? '✓ gehaald' : isNext && minKg != null ? 'nog ' + kgf(Math.max(0.1, minKg - m)) : m === goal ? 'doel' : '−' + nf(startKg - m) + ' kg'}</small></li>`;
   }).join('');
 
+  // Slaap (1 = slecht, 2 = matig, 3 = goed) en taille (1× per week)
+  const sl = info?.sleep ?? null;
+  const waists = (days || []).filter(r => r.waist_cm != null).map(r => ({ day: r.day, cm: Number(r.waist_cm) })).sort((a, b) => (a.day < b.day ? -1 : 1));
+  const wToday = info?.waist_cm != null ? Number(info.waist_cm) : null, wPrev = waists.filter(r => r.day < day).pop();
+  const wDraft = wToday ?? (wPrev ? wPrev.cm : 100);
+  const lastW = waists[waists.length - 1], firstW = waists[0];
+  const daysSince = lastW ? Math.round((new Date(today + 'T12:00') - new Date(lastW.day + 'T12:00')) / 864e5) : null;
+  const cmf = n => Number(n).toLocaleString('nl-NL', { maximumFractionDigits: 1 });
+  const recent = waists.slice(-6).reverse();
+  const wList = recent.map((r, i) => { const p = recent[i + 1], d = p ? r.cm - p.cm : null;
+    return `<div class="gz-wrow"><span>${new Date(r.day + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}</span><b>${cmf(r.cm)} cm</b><span class="gz-delta ${d == null || Math.abs(d) < 0.05 ? '' : d < 0 ? 'down' : 'up'}">${d == null || Math.abs(d) < 0.05 ? '' : (d < 0 ? '−' : '+') + cmf(Math.abs(d))}</span></div>`; }).join('');
+
   return `
+    <div class="card gp-card">
+      <h3 class="gz-h3">😴 Hoe heb je geslapen?</h3>
+      <div class="gp-sleep">${[[1, '😫', 'Slecht'], [2, '😐', 'Matig'], [3, '😴', 'Goed']].map(([v, e, n]) => `<button class="gp-sl${sl === v ? ' on s' + v : ''}" data-sleep="${v}" aria-pressed="${sl === v}"><span class="gp-e">${e}</span>${n}</button>`).join('')}</div>
+      ${sl === 1 ? '<p class="gp-tip mut">Slecht geslapen geeft vaak meer trek. Houd vandaag de snackkaart in de gaten en drink genoeg water.</p>' : ''}
+    </div>
+
+    <div class="card gp-card">
+      <h3 class="gz-h3">📏 Taille</h3>
+      <form class="gz-weigh gp-waist" id="gpWaist">
+        <button type="button" class="btn gz-pm" data-wst="-0.5" aria-label="Halve centimeter minder">−</button>
+        <label class="sr" for="gpCm">Taille in centimeter</label>
+        <input id="gpCm" inputmode="decimal" autocomplete="off" value="${cmf(wDraft)}">
+        <button type="button" class="btn gz-pm" data-wst="0.5" aria-label="Halve centimeter meer">+</button>
+        <button class="btn ${wToday != null ? 'done' : 'primary'}" type="submit">${wToday != null ? 'Opgeslagen ✓' : 'Taille opslaan'}</button>
+      </form>
+      <p class="gp-tip mut">${lastW && firstW && lastW.day !== firstW.day ? `<b class="${lastW.cm < firstW.cm ? 'gz-ok-txt' : ''}">${lastW.cm < firstW.cm ? cmf(firstW.cm - lastW.cm) + ' cm smaller' : 'Nog geen verschil'}</b> sinds ${new Date(firstW.day + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}. ` : ''}${daysSince != null && daysSince >= 7 ? 'Tijd om weer te meten! ' : ''}Meet één keer per week, 's ochtends, met het meetlint op de hoogte van je navel. Ontspannen, niet inhouden.</p>
+      ${wList ? `<details class="sp-box gz-weeks"><summary>Eerdere metingen</summary>${wList}</details>` : ''}
+    </div>
+
     <div class="card gp-card">
       <h3 class="gz-h3">💧 Water</h3>
       <div class="gp-water">${glasses}</div>
