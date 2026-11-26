@@ -500,3 +500,7 @@ $('#giftList').addEventListener('submit', async e => {
   const list_id = f.closest('.gift').dataset.id;
   if (await run(sb.from('gift_items').insert({ list_id, name }))) { inp.value = ''; await load('gift_items'); inp.blur(); pending = false; renderGifts(); }
 });
+
+// Niet in- en uitzoomen (iPhone negeert user-scalable=no in de viewport, dus ook het knijpgebaar tegenhouden)
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });

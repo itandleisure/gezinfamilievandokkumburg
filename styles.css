@@ -5,7 +5,7 @@
 --hdr:light-dark(#1d4e89,#142f52);--terra:light-dark(#c4502b,#f08a62);--ok:light-dark(#2e7a48,#5fc283);
 --okbg:light-dark(#e6f3ea,#173323);--warn:light-dark(#b5651d,#f0a95e);--danger:light-dark(#b42318,#ff8a80)}
 *{box-sizing:border-box;min-width:0}
-html,body{margin:0}
+html,body{margin:0;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 Manrope,system-ui,-apple-system,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -146,7 +146,7 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .eaten-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
 .eaten-row .btn{min-height:38px;font-size:14px}
 .mrow{display:grid;grid-template-columns:minmax(0,1fr) 96px 74px;gap:6px;align-items:center;margin:6px 0}
-.mrow select.q{padding:8px 6px;font-size:15px}
+.mrow select.q{padding:8px 6px;font-size:16px}
 .mrow .all{padding:0 6px;line-height:1.15;white-space:normal}
 .mrow label{grid-column:1/-1;margin:0;font-size:13px}
 .all{min-height:44px;border:1px solid var(--line);background:transparent;color:var(--blue);border-radius:12px;padding:0 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}

@@ -108,7 +108,7 @@ function gauge(kg, goalKg, cm, bron) {
 // ---------- Tabblad ----------
 export function mountGezond(root, api) {
   // api: { get() -> {weights, sport, settings}, saveWeight(day, kg), deleteWeight(day), toggleSport(day, kind, on), saveSettings(obj), openDialog }
-  let day = iso(new Date()), range = '8', draft = null, draftDay = null, openTrain = true;
+  let day = iso(new Date()), range = '8', draft = null, draftDay = null, dirty = false, openTrain = true;
   const $ = s => root.querySelector(s);
 
   function render() {
@@ -119,7 +119,10 @@ export function mountGezond(root, api) {
     const lengte = Number(settings?.height_cm ?? 179);
     const byDay = Object.fromEntries(weights.map(r => [r.day, Number(r.kg)]));
     const last = sorted(weights).filter(r => r.day <= day).pop();
-    if (draftDay !== day) { draft = byDay[day] ?? (last ? last.kg : startKg); draftDay = day; }
+    // Startwaarde: het gewicht van deze dag, anders het laatst ingevulde gewicht ervoor (meestal gisteren).
+    // Opnieuw bepalen zolang je zelf nog niets hebt aangepast, zodat het klopt zodra de gegevens binnen zijn.
+    if (draftDay !== day) dirty = false;
+    if (draftDay !== day || !dirty) { draft = byDay[day] ?? (last ? last.kg : startKg); draftDay = day; }
     const saved = byDay[day];
     const mon = monday(day);
     const strip = DAGEN.map((n, i) => {
@@ -229,7 +232,7 @@ export function mountGezond(root, api) {
     if (t.dataset.day) { day = t.dataset.day; render(); return; }
     if (t.dataset.nav) { const n = addDays(day, Number(t.dataset.nav)), today = iso(new Date()); day = n > today ? today : n; render(); return; }
     if (t.dataset.range) { range = t.dataset.range; render(); return; }
-    if (t.dataset.pm) { readDraft(); draft = Math.round((draft + Number(t.dataset.pm) / 10) * 10) / 10; $('#gzKg').value = kgf(draft); refreshSave(); return; }
+    if (t.dataset.pm) { dirty = true; readDraft(); draft = Math.round((draft + Number(t.dataset.pm) / 10) * 10) / 10; $('#gzKg').value = kgf(draft); refreshSave(); return; }
     if (t.dataset.sport) {
       const on = !t.classList.contains('on');
       t.classList.toggle('on', on); t.setAttribute('aria-pressed', on);
@@ -286,7 +289,7 @@ export function mountGezond(root, api) {
   function readDraft() { const v = parseFloat($('#gzKg').value.replace(',', '.')); if (v >= 30 && v <= 300) draft = Math.round(v * 10) / 10; }
   function refreshSave() { const b = $('#gzForm [type=submit]'); const saved = api.get().weights.find(r => r.day === day); b.className = 'btn primary'; b.textContent = saved ? 'Wijzigen' : 'Opslaan'; }
   root.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('.gp-tr') && !d.closest('.gp-more')) openTrain = d.open; }, true);
-  root.addEventListener('input', e => { if (e.target.id === 'gzKg') refreshSave(); });
+  root.addEventListener('input', e => { if (e.target.id === 'gzKg') { dirty = true; refreshSave(); } });
   root.addEventListener('submit', async e => {
     e.preventDefault();
     if (e.target.id === 'gpWaist') {
@@ -296,7 +299,7 @@ export function mountGezond(root, api) {
     }
     const v = parseFloat($('#gzKg').value.replace(',', '.'));
     if (!(v >= 30 && v <= 300)) { $('#gzKg').focus(); return; }
-    draft = Math.round(v * 10) / 10;
+    draft = Math.round(v * 10) / 10; dirty = false;
     $('#gzKg').blur();
     if (await api.saveWeight(day, draft)) render();
   });
