@@ -24,8 +24,8 @@ export const MODELS = [
 ];
 const MET = { id: 'met', naam: 'MET Norway', uit: 'Noorse weerdienst (Yr)' };
 
-const DAILY = 'weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,precipitation_probability_max,snowfall_sum,wind_speed_10m_max,wind_gusts_10m_max';
-const CURRENT = 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,snowfall';
+const DAILY = 'weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,precipitation_probability_max,snowfall_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max';
+const CURRENT = 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,snowfall,uv_index';
 
 // ---------- Weercodes (WMO) ----------
 export function codeInfo(c) {
@@ -55,6 +55,29 @@ export function symbolToCode(s) {
   if (s.includes('rain')) return s.includes('showers') ? (s.startsWith('heavy') ? 82 : 80) : s.startsWith('heavy') ? 65 : s.startsWith('light') ? 61 : 63;
   return { clearsky: 0, fair: 1, partlycloudy: 2, cloudy: 3, fog: 45 }[s] ?? 3;
 }
+
+// ---------- Wind: Beaufort en richting ----------
+const BFT_KMH = [1, 6, 12, 20, 29, 39, 50, 62, 75, 89, 103, 118];
+const BFT_NAAM = ['windstil', 'zwak', 'zwak', 'matig', 'matig', 'vrij krachtig', 'krachtig', 'hard', 'stormachtig', 'storm', 'zware storm', 'zeer zware storm', 'orkaan'];
+export const bft = kmh => kmh == null ? null : BFT_KMH.filter(x => kmh >= x).length;
+export const bftNaam = b => b == null ? '' : BFT_NAAM[b];
+// Richting waar de wind vandaan komt
+export const windDir = deg => deg == null ? '' : ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'][Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+// Gemiddelde richting over de bronnen (via sinus en cosinus, zodat 350° en 10° samen 0° geven)
+export function meanDir(a) {
+  const v = a.filter(x => typeof x === 'number' && isFinite(x));
+  if (!v.length) return null;
+  const s = v.reduce((t, d) => t + Math.sin(d * Math.PI / 180), 0), c = v.reduce((t, d) => t + Math.cos(d * Math.PI / 180), 0);
+  return ((Math.atan2(s, c) * 180 / Math.PI) + 360) % 360;
+}
+
+// ---------- UV-index (MET Norway geeft alleen UV bij onbewolkte lucht, dus die telt niet mee) ----------
+export function uvNaam(u) {
+  if (u == null) return '';
+  const r = Math.round(u);
+  return r <= 2 ? 'laag' : r <= 5 ? 'matig' : r <= 7 ? 'hoog' : r <= 10 ? 'zeer hoog' : 'extreem';
+}
+const uvTip = u => u == null ? '' : Math.round(u) >= 6 ? 'smeer je in, zoek schaduw rond het middaguur' : Math.round(u) >= 3 ? 'insmeren als je lang buiten bent' : 'geen zonnebrand nodig';
 
 // ---------- Rekenhulp ----------
 const nums = a => a.filter(v => typeof v === 'number' && isFinite(v));
@@ -104,13 +127,13 @@ export function parseOpenMeteo(j) {
       code: d.weather_code?.[i] ?? null, tmax: d.temperature_2m_max?.[i] ?? null, tmin: d.temperature_2m_min?.[i] ?? null,
       fmax: d.apparent_temperature_max?.[i] ?? null, fmin: d.apparent_temperature_min?.[i] ?? null,
       mm: d.precipitation_sum?.[i] ?? null, prob: d.precipitation_probability_max?.[i] ?? null, snow: d.snowfall_sum?.[i] ?? null,
-      wind: d.wind_speed_10m_max?.[i] ?? null, gust: d.wind_gusts_10m_max?.[i] ?? null,
+      wind: d.wind_speed_10m_max?.[i] ?? null, gust: d.wind_gusts_10m_max?.[i] ?? null, dir: d.wind_direction_10m_dominant?.[i] ?? null, uv: d.uv_index_max?.[i] ?? null,
     };
     if (day.tmax != null || day.mm != null) days[t] = day;
   });
   const now = c.temperature_2m == null ? null : {
     temp: c.temperature_2m, feel: c.apparent_temperature ?? null, mm: c.precipitation ?? null, code: c.weather_code ?? null,
-    wind: c.wind_speed_10m ?? null, gust: c.wind_gusts_10m ?? null, snow: c.snowfall ?? null,
+    wind: c.wind_speed_10m ?? null, gust: c.wind_gusts_10m ?? null, dir: c.wind_direction_10m ?? null, uv: c.uv_index ?? null, snow: c.snowfall ?? null,
   };
   return { now, days };
 }
@@ -122,11 +145,12 @@ export function parseMet(j, nowDate = new Date()) {
   let now = null;
   for (let i = 0; i < ts.length; i++) {
     const e = ts[i], t = new Date(e.time), inst = e.data?.instant?.details || {}, n1 = e.data?.next_1_hours, n6 = e.data?.next_6_hours;
-    const key = localDay(t), d = days[key] ??= { temps: [], feels: [], mm: 0, mmN: 0, probs: [], winds: [], gusts: [], snow: 0, codes: [], noon: null };
+    const key = localDay(t), d = days[key] ??= { temps: [], feels: [], mm: 0, mmN: 0, probs: [], winds: [], gusts: [], dirs: [], snow: 0, codes: [], noon: null };
     const T = inst.air_temperature, ws = inst.wind_speed, feel = apparent(T, inst.relative_humidity, ws);
     if (T != null) d.temps.push(T);
     if (feel != null) d.feels.push(feel);
     if (ws != null) d.winds.push(ws * 3.6);
+    if (inst.wind_from_direction != null) d.dirs.push(inst.wind_from_direction);
     if (inst.wind_speed_of_gust != null) d.gusts.push(inst.wind_speed_of_gust * 3.6);
     // Neerslag: per uur zolang er uurwaarden zijn, daarna per blok van 6 uur (de tijdreeks loopt dan ook in stappen van 6 uur)
     const step = ts[i + 1] ? (new Date(ts[i + 1].time) - t) / 36e5 : 1;
@@ -141,7 +165,7 @@ export function parseMet(j, nowDate = new Date()) {
     const h = Number(localParts(t).hour);
     if (n6?.summary?.symbol_code && h >= 10 && h <= 14 && d.noon == null) d.noon = symbolToCode(n6.summary.symbol_code);
     if (!now && t.getTime() + 36e5 > nowDate.getTime() && T != null) {
-      now = { temp: T, feel, mm: n1?.details?.precipitation_amount ?? null, code: symbolToCode((n1 || n6)?.summary?.symbol_code), wind: ws != null ? ws * 3.6 : null, gust: inst.wind_speed_of_gust != null ? inst.wind_speed_of_gust * 3.6 : null, snow: null };
+      now = { temp: T, feel, mm: n1?.details?.precipitation_amount ?? null, code: symbolToCode((n1 || n6)?.summary?.symbol_code), wind: ws != null ? ws * 3.6 : null, gust: inst.wind_speed_of_gust != null ? inst.wind_speed_of_gust * 3.6 : null, dir: inst.wind_from_direction ?? null, snow: null };
     }
   }
   const out = {};
@@ -152,7 +176,7 @@ export function parseMet(j, nowDate = new Date()) {
       code: sev ?? d.noon, tmax: Math.max(...d.temps), tmin: Math.min(...d.temps),
       fmax: d.feels.length ? Math.max(...d.feels) : null, fmin: d.feels.length ? Math.min(...d.feels) : null,
       mm: d.mmN ? Math.round(d.mm * 10) / 10 : null, prob: d.probs.length ? Math.max(...d.probs) : null,
-      snow: d.snow ? Math.round(d.snow * 10) / 10 : 0, wind: d.winds.length ? Math.max(...d.winds) : null, gust: d.gusts.length ? Math.max(...d.gusts) : null,
+      snow: d.snow ? Math.round(d.snow * 10) / 10 : 0, wind: d.winds.length ? Math.max(...d.winds) : null, gust: d.gusts.length ? Math.max(...d.gusts) : null, dir: meanDir(d.dirs),
     };
   }
   return { now, days: out };
@@ -180,7 +204,7 @@ export function combineDay(sources, key) {
   return {
     key, n: rows.length, rows,
     code: modeCode(pick('code')), tmax: stats(pick('tmax')), tmin: stats(pick('tmin')), fmax: stats(pick('fmax')), fmin: stats(pick('fmin')),
-    mm: stats(pick('mm')), prob: stats(pick('prob')), snow: stats(pick('snow')), wind: stats(pick('wind')), gust: stats(pick('gust')),
+    mm: stats(pick('mm')), prob: stats(pick('prob')), snow: stats(pick('snow')), wind: stats(pick('wind')), gust: stats(pick('gust')), dir: meanDir(pick('dir')), uv: stats(pick('uv')),
     wet: mmRows.filter(r => r.d.mm >= RAIN_MM).length, wetN: mmRows.length,
   };
 }
@@ -188,7 +212,7 @@ export function combineNow(sources) {
   const rows = sources.filter(s => s.ok && s.now).map(s => ({ s, d: s.now }));
   if (!rows.length) return null;
   const pick = f => rows.map(r => r.d[f]);
-  return { n: rows.length, rows, code: modeCode(pick('code')), temp: stats(pick('temp')), feel: stats(pick('feel')), mm: stats(pick('mm')), wind: stats(pick('wind')), gust: stats(pick('gust')), snow: stats(pick('snow')) };
+  return { n: rows.length, rows, code: modeCode(pick('code')), temp: stats(pick('temp')), feel: stats(pick('feel')), mm: stats(pick('mm')), wind: stats(pick('wind')), gust: stats(pick('gust')), dir: meanDir(pick('dir')), uv: stats(pick('uv')), snow: stats(pick('snow')) };
 }
 
 // Hoe eens zijn de bronnen het over de temperatuur?
@@ -226,6 +250,8 @@ export function hints(day, beach, home = true) {
 // ---------- Tekenen ----------
 const r0 = v => v == null ? '–' : Math.round(v);
 const range = (st, unit = '') => !st ? '–' : Math.round(st.min) === Math.round(st.max) ? `${Math.round(st.min)}${unit}` : `${Math.round(st.min)}–${Math.round(st.max)}${unit}`;
+// "4 Bft ZW" met de naam erbij als dat gevraagd wordt
+const windTxt = (kmh, dir, naam = false) => kmh == null ? '–' : `${bft(kmh)} Bft${dir != null ? ' ' + windDir(dir) : ''}${naam ? ` (${bftNaam(bft(kmh))})` : ''}`;
 const mm1 = v => v == null ? '–' : v < 0.1 ? '0' : v < 10 ? v.toFixed(1).replace('.', ',') : Math.round(v);
 function dayName(key, i) {
   if (i === 0) return 'Vandaag';
@@ -316,8 +342,8 @@ export function mountWeer(ctx) {
   function sourceTable(rows, kind) {
     const head = kind === 'now' ? '<th>Bron</th><th>Temp</th><th>Voelt</th><th>Wind</th><th>Regen</th>' : '<th>Bron</th><th>Max/min</th><th>Voelt</th><th>Regenkans</th><th>mm</th><th>Wind</th>';
     const body = rows.map(({ s, d }) => kind === 'now'
-      ? `<tr><td><b>${codeInfo(d.code)[0]} ${esc(s.naam)}</b></td><td>${r0(d.temp)}°</td><td>${r0(d.feel)}°</td><td>${r0(d.wind)}</td><td>${mm1(d.mm)}</td></tr>`
-      : `<tr><td><b>${codeInfo(d.code)[0]} ${esc(s.naam)}</b></td><td>${r0(d.tmax)}°/${r0(d.tmin)}°</td><td>${r0(d.fmax)}°</td><td>${d.prob == null ? '<span class="mut">–</span>' : r0(d.prob) + '%'}</td><td>${mm1(d.mm)}${d.snow > 0.1 ? ` <span class="wx-snow">❄ ${mm1(d.snow)}</span>` : ''}</td><td>${r0(d.wind)}</td></tr>`).join('');
+      ? `<tr><td><b>${codeInfo(d.code)[0]} ${esc(s.naam)}</b></td><td>${r0(d.temp)}°</td><td>${r0(d.feel)}°</td><td>${windTxt(d.wind, d.dir)}</td><td>${mm1(d.mm)}</td></tr>`
+      : `<tr><td><b>${codeInfo(d.code)[0]} ${esc(s.naam)}</b></td><td>${r0(d.tmax)}°/${r0(d.tmin)}°</td><td>${r0(d.fmax)}°</td><td>${d.prob == null ? '<span class="mut">–</span>' : r0(d.prob) + '%'}</td><td>${mm1(d.mm)}${d.snow > 0.1 ? ` <span class="wx-snow">❄ ${mm1(d.snow)}</span>` : ''}</td><td>${windTxt(d.wind, d.dir)}</td></tr>`).join('');
     return `<div class="wx-tablewrap"><table class="wx-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
 
@@ -330,7 +356,8 @@ export function mountWeer(ctx) {
       <div class="wx-facts">
         <div><small>Voelt als</small><b>${r0(now.feel?.avg)}°</b><i>${range(now.feel, '°')}</i></div>
         <div><small>Bronnen</small><b>${range(now.temp, '°')}</b><i class="wx-ag ${ag ? ag[0] : ''}">${ag ? esc(ag[0]) : ''}</i></div>
-        <div><small>Wind</small><b>${r0(now.wind?.avg)} km/u</b><i>${now.gust ? 'stoten ' + r0(now.gust.avg) : ''}</i></div>
+        <div><small>Windkracht</small><b>${windTxt(now.wind?.avg, now.dir)}</b><i>${esc(bftNaam(bft(now.wind?.avg)))}, ${r0(now.wind?.avg)} km/u${now.gust ? `, stoten ${r0(now.gust.avg)} (${bft(now.gust.avg)} Bft)` : ''}</i></div>
+        ${now.uv || d0?.uv ? `<div><small>UV-index</small><b>${r0(now.uv?.avg ?? d0.uv.avg)} <span class="wx-uv">${esc(uvNaam(now.uv?.avg ?? d0.uv.avg))}</span></b><i>${d0?.uv ? `vandaag tot ${r0(d0.uv.max)}: ${esc(uvTip(d0.uv.max))}` : ''}</i></div>` : ''}
         ${d0 ? `<div><small>Regenkans vandaag</small><b>${d0.prob ? range(d0.prob, '%') : '–'}</b><i>regen bij ${d0.wet} van ${d0.wetN} bronnen</i></div>` : ''}
       </div>
       ${snow ? `<p class="wx-alert">❄ Sneeuw mogelijk${d0?.snow?.max ? `: tot ${mm1(d0.snow.max)} cm volgens ${d0.rows.filter(r => r.d.snow > 0.1).length} bron(nen)` : ''}</p>` : ''}
@@ -359,7 +386,8 @@ export function mountWeer(ctx) {
         <span><small>Voelt als</small>${range(d.fmax, '°')}</span>
         <span><small>Regenkans</small>${d.prob ? range(d.prob, '%') : '–'}</span>
         <span><small>Regen</small>${d.wet}/${d.wetN} bronnen${d.mm && d.mm.max >= 0.1 ? ` · ${mm1(d.mm.min)}–${mm1(d.mm.max)} mm` : ''}</span>
-        <span><small>Wind</small>${range(d.wind, '')} km/u</span>
+        ${d.uv ? `<span><small>UV max</small>${r0(d.uv.avg)} ${esc(uvNaam(d.uv.avg))}</span>` : ''}
+        <span><small>Windkracht</small>${d.wind ? `${windTxt(d.wind.avg, d.dir, true)} · ${range(d.wind, '')} km/u` : '–'}${d.gust ? `, stoten ${r0(d.gust.avg)}` : ''}</span>
       </div>
       ${isOpen ? sourceTable(d.rows, 'day') : ''}
     </div>`;
@@ -382,8 +410,12 @@ export function mountWeer(ctx) {
 
   function rainCard() {
     if (!ctx.getPrefs || ctx.isMissing?.()) return '';
-    const p = ctx.getPrefs(), on = !!p?.rain_push, hour = p?.at_hour ?? 7;
+    const p = ctx.getPrefs(), on = !!p?.rain_push, hour = p?.at_hour ?? 7, uvOn = !!p?.uv_push, uvMin = p?.uv_min ?? 6;
     return `<div class="card dv-set wx-rain">
+      <label class="dv-row"><span><b>🧴 Seintje om in te smeren</b><small>Een melding als de UV-index in Cómpeta die dag ${uvMin} of hoger wordt, een uur voordat het zover is.</small></span>
+        <input type="checkbox" class="dv-switch" data-set="uv" ${uvOn ? 'checked' : ''} aria-label="Seintje om in te smeren"></label>
+      <label class="dv-row"><span><b>Vanaf welke UV?</b><small>3 = matig, 6 = hoog</small></span>
+        <select data-set="uvmin" ${uvOn ? '' : 'disabled'}>${[3, 5, 6, 8].map(u => `<option value="${u}" ${u === uvMin ? 'selected' : ''}>UV ${u}</option>`).join('')}</select></label>
       <label class="dv-row"><span><b>☔ Regenseintje voor Cómpeta</b><small>'s Ochtends een melding als het die dag gaat regenen, met de tijden erbij. Alleen op je eigen telefoon.</small></span>
         <input type="checkbox" class="dv-switch" data-set="rain" ${on ? 'checked' : ''} aria-label="Regenseintje"></label>
       <label class="dv-row"><span><b>Hoe laat?</b><small>Spaanse tijd</small></span>
@@ -393,8 +425,12 @@ export function mountWeer(ctx) {
   }
   async function saveRain(change) {
     const p = ctx.getPrefs() || {};
-    const row = { owner: ctx.userId(), rain_push: p.rain_push ?? false, at_hour: p.at_hour ?? 7, ...change, updated_at: new Date().toISOString() };
-    await ctx.run(ctx.sb.from('weer_prefs').upsert(row), row.rain_push ? `Regenseintje staat aan om ${String(row.at_hour).padStart(2, '0')}:00` : 'Regenseintje staat uit');
+    // Alleen bestaande kolommen plus de wijziging meesturen
+    const row = { ...p, owner: ctx.userId(), ...change, updated_at: new Date().toISOString() };
+    const msg = 'uv_push' in change || 'uv_min' in change
+      ? (row.uv_push ? `Seintje om in te smeren staat aan (vanaf UV ${row.uv_min ?? 6})` : 'Seintje om in te smeren staat uit')
+      : (row.rain_push ? `Regenseintje staat aan om ${String(row.at_hour ?? 7).padStart(2, '0')}:00` : 'Regenseintje staat uit');
+    await ctx.run(ctx.sb.from('weer_prefs').upsert(row), msg);
     await ctx.load('weer_prefs'); render();
   }
 
@@ -436,6 +472,8 @@ export function mountWeer(ctx) {
     const el = e.target.closest('[data-set]'); if (!el) return;
     if (el.dataset.set === 'rain') saveRain({ rain_push: el.checked });
     if (el.dataset.set === 'hour') saveRain({ at_hour: Number(el.value) });
+    if (el.dataset.set === 'uv') saveRain({ uv_push: el.checked });
+    if (el.dataset.set === 'uvmin') saveRain({ uv_min: Number(el.value) });
   });
   root.addEventListener('submit', e => {
     if (!e.target.matches('.wx-search')) return;

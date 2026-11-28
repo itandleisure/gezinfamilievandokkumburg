@@ -445,3 +445,6 @@ grant select on public.weer_prefs to service_role;
 alter table public.weer_prefs enable row level security;
 drop policy if exists "alleen eigen gegevens" on public.weer_prefs;
 create policy "alleen eigen gegevens" on public.weer_prefs for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
+-- Weer: seintje om in te smeren bij hoge UV (per persoon aan/uit en vanaf welke UV-index)
+alter table public.weer_prefs add column if not exists uv_push boolean not null default false;
+alter table public.weer_prefs add column if not exists uv_min smallint not null default 6 check (uv_min between 1 and 11);

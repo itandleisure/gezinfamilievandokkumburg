@@ -740,3 +740,4 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .zk-more{min-height:44px;border:0;background:none;color:var(--terra);font:inherit;font-weight:700;padding:0 4px;cursor:pointer}
 @keyframes zkflash{0%,60%{box-shadow:0 0 0 3px var(--terra);background-color:color-mix(in srgb,var(--terra) 14%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 .zk-flash{animation:zkflash 2.4s ease-out;border-radius:12px}
+.wx-uv{font-size:14px;font-weight:700;color:var(--terra)}

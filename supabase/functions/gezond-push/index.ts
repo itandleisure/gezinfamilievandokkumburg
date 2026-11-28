@@ -13,6 +13,8 @@
 // Vaste lasten: vanaf 10:00 een seintje remind_days vóór een afschrijving uit expenses (IBI, verzekering...). Naar iedereen, opent /#lasten.
 // Regen: op het gekozen uur (standaard 07:00) een seintje als het die dag in Cómpeta gaat regenen, met de tijdvakken erbij.
 //   Alleen voor wie het aanzet in weer_prefs. Bronnen: Open-Meteo per model, net als weer.js. Opent /#weer.
+// UV: voor wie uv_push aan heeft in weer_prefs een seintje "tijd om in te smeren", een uur voordat de UV-index in Cómpeta
+//   uv_min (standaard 6) haalt. Bron: Open-Meteo (uurwaarden, gemiddelde van de modellen). Eén keer per dag, opent /#weer.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -381,6 +383,60 @@ async function runRegen(subs: Sub[], day: string, hour: number) {
   return out;
 }
 
+// ---------- Seintje om in te smeren (UV) ----------
+const UV_MODELS = ['ecmwf_ifs025', 'gfs_seamless', ''];
+async function uvToday(day: string) {
+  const res = await Promise.allSettled(UV_MODELS.map(async m => {
+    const q = new URLSearchParams({ latitude: String(COMPETA.lat), longitude: String(COMPETA.lon), hourly: 'uv_index', timezone: 'Europe/Madrid', start_date: day, end_date: day });
+    if (m) q.set('models', m);
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?' + q);
+    if (!r.ok) throw new Error(m + ' ' + r.status);
+    return (await r.json()).hourly as { time: string[]; uv_index: (number | null)[] };
+  }));
+  const uv: Record<number, number> = {};
+  for (let h = 0; h < 24; h++) {
+    const v = res.flatMap(r => {
+      if (r.status !== 'fulfilled') return [];
+      const i = r.value.time.indexOf(`${day}T${String(h).padStart(2, '0')}:00`);
+      const x = i < 0 ? null : r.value.uv_index[i];
+      return x == null ? [] : [x];
+    });
+    if (v.length) uv[h] = v.reduce((a, b) => a + b, 0) / v.length;
+  }
+  return uv;
+}
+function uvMsg(uv: Record<number, number>, min: number, hour: number) {
+  const high = Object.keys(uv).map(Number).filter(h => uv[h] >= min - 0.5).sort((a, b) => a - b);
+  if (!high.length) return null;
+  const first = high[0], last = high[high.length - 1];
+  if (hour < first - 1 || hour > last) return null; // nog te vroeg, of het ergste is voorbij
+  const max = Math.round(Math.max(...high.map(h => uv[h])));
+  const label = max >= 11 ? 'extreem' : max >= 8 ? 'zeer hoog' : max >= 6 ? 'hoog' : 'matig';
+  const p = (h: number) => String(h).padStart(2, '0') + ':00';
+  return { title: '🧴 Tijd om in te smeren', body: `De UV-index in Cómpeta wordt vandaag ${max} (${label}), van ${p(first)} tot ${p(last + 1)}. Smeer je in, zet een pet op en zoek rond het middaguur de schaduw.`, url: '/#weer' };
+}
+async function runUV(subs: Sub[], day: string, hour: number) {
+  if (hour < 7 || hour >= 18) return {};
+  const { data: prefs, error } = await db.from('weer_prefs').select('owner, uv_min').eq('uv_push', true);
+  if (error || !prefs?.length) return {};   // kolommen nog niet aangemaakt, of niemand heeft het aan
+  const want = prefs.filter(p => subs.some(s => s.owner === p.owner));
+  if (!want.length) return {};
+  const { data: done } = await db.from('push_log').select('owner').eq('day', day).eq('kind', 'uv').in('owner', want.map(p => p.owner));
+  const todo = want.filter(p => !(done || []).some(d => d.owner === p.owner));
+  if (!todo.length) return {};
+  const uv = await uvToday(day);
+  const out: Record<string, string> = {};
+  for (const p of todo) {
+    const msg = uvMsg(uv, p.uv_min ?? 6, hour);
+    if (!msg) continue; // (nog) niet hoog genoeg: bij een volgende run opnieuw kijken
+    const { error: dup } = await db.from('push_log').insert({ owner: p.owner, day, kind: 'uv' });
+    if (dup) continue;
+    for (const s of subs.filter(s => s.owner === p.owner)) await send(s, 'uv', msg);
+    out[p.owner] = 'uv';
+  }
+  return out;
+}
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
@@ -423,7 +479,9 @@ async function run() {
   try { lasten = await runLasten((subs || []) as Sub[], owners, day, hour); } catch (e) { console.error('lasten', e); }
   let regen = {};
   try { regen = await runRegen((subs || []) as Sub[], day, hour); } catch (e) { console.error('regen', e); }
-  return { day, hour, sent: out, kijk, dagvraag, lasten, regen };
+  let uv = {};
+  try { uv = await runUV((subs || []) as Sub[], day, hour); } catch (e) { console.error('uv', e); }
+  return { day, hour, sent: out, kijk, dagvraag, lasten, regen, uv };
 }
 
 Deno.serve(async req => {
