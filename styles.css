@@ -698,3 +698,19 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .ls-row.soon{border-left:5px solid var(--terra)}
 .ls-row.soon .due{color:var(--terra);font-weight:800}
 .archive .group h3{display:flex;justify-content:space-between;gap:8px}
+
+/* Klussen: eenmalige klussen in huis met geschatte kosten */
+.kl-sum{background:#1d4e89;color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:12px}
+.kl-sum small{display:block;font-size:14px;opacity:.85}
+.kl-sum b{display:block;font-size:32px;line-height:1.15;margin:2px 0}
+.kl-sum span{display:block;font-size:14px;opacity:.9}
+.task.kl.p1{border-left:5px solid var(--terra)}
+.task.kl.done{border-left:0}
+.task.kl.done .txt b{text-decoration:line-through}
+.group h3 .mut{color:var(--mut);font-weight:600}
+.kl-thumb{flex:none;width:48px;height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:0;overflow:hidden;cursor:pointer;color:var(--mut);font:inherit;font-size:12px}
+.kl-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.kl-call{color:var(--blue)}
+.kl-photo{border:0;border-radius:16px;padding:12px;max-width:min(96vw,720px);background:var(--card)}
+.kl-photo::backdrop{background:rgb(0 0 0/.7)}
+.kl-photo img{display:block;max-width:100%;max-height:75vh;margin:0 auto 12px;border-radius:10px}

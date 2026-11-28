@@ -390,3 +390,45 @@ do $$ begin
   alter publication supabase_realtime add table public.expenses;
 exception when duplicate_object then null;
 end $$;
+
+-- ---------- Klussen in huis (tabblad Klussen onder Meer) ----------
+-- Eenmalige klussen die ooit nog moeten (schilderen, de goot), dus geen herhaling: dat is Taken.
+-- Gedeeld tussen beide accounts. Foto optioneel, in de Storage-bucket 'fotos' onder klussen/.
+create table if not exists public.house_jobs (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  place text not null default '',                 -- ruimte of plek, bijv. 'Terras', 'Dak'
+  priority smallint not null default 2 check (priority between 1 and 3),   -- 1 = snel, 2 = binnenkort, 3 = ooit
+  cost numeric(10,2) check (cost is null or cost >= 0),   -- geschatte prijs in euro
+  who text not null default 'zelf' check (who in ('zelf','vakman')),
+  contact_id uuid references public.contacts(id) on delete set null,   -- vakman uit Nummers
+  note text not null default '',
+  photo text,                                      -- pad in de bucket 'fotos', bijv. klussen/<id>.jpg
+  done boolean not null default false,
+  done_at timestamptz,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.house_jobs to authenticated;
+alter table public.house_jobs enable row level security;
+drop policy if exists "alleen gezin" on public.house_jobs;
+create policy "alleen gezin" on public.house_jobs for all to authenticated using (true) with check (true);
+create index if not exists house_jobs_contact on public.house_jobs (contact_id);
+do $$ begin
+  alter publication supabase_realtime add table public.house_jobs;
+exception when duplicate_object then null;
+end $$;
+
+-- ---------- Foto's (Storage) ----------
+-- Eén private bucket 'fotos' voor de hele app, met een map per onderdeel (klussen/, bonnetjes/).
+-- Niet openbaar: de app toont foto's via een tijdelijke link (createSignedUrl).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('fotos', 'fotos', false, 5242880, array['image/jpeg','image/png','image/webp','image/heic'])
+on conflict (id) do nothing;
+drop policy if exists "fotos: gezin lezen" on storage.objects;
+create policy "fotos: gezin lezen" on storage.objects for select to authenticated using (bucket_id = 'fotos');
+drop policy if exists "fotos: gezin schrijven" on storage.objects;
+create policy "fotos: gezin schrijven" on storage.objects for insert to authenticated with check (bucket_id = 'fotos');
+drop policy if exists "fotos: gezin wijzigen" on storage.objects;
+create policy "fotos: gezin wijzigen" on storage.objects for update to authenticated using (bucket_id = 'fotos') with check (bucket_id = 'fotos');
+drop policy if exists "fotos: gezin verwijderen" on storage.objects;
+create policy "fotos: gezin verwijderen" on storage.objects for delete to authenticated using (bucket_id = 'fotos');

@@ -8,6 +8,7 @@ import { mountKijken } from './kijken.js';
 import { mountDagvragen } from './dagvragen.js';
 import { mountLasten } from './lasten.js';
 import { mountWeer } from './weer.js';
+import { mountKlussen } from './klussen.js';
 import { mountBonnetjes } from './bonnetjes.js';
 import { mountKettlebell } from './kettlebell.js';
 import { mountGezond, nudge, iso } from './gezond.js';
@@ -53,6 +54,7 @@ const HEALTH = ['weight_log', 'sport_log', 'health_settings'], healthMissing = {
 let healthDayMissing = false;
 let watchMissing = false;
 let dvMissing = false;
+let jobsMissing = false;
 let receiptsMissing = false;
 let lastenMissing = false;
 // Terracotta getal bij Taken: zoveel taken zijn aan de beurt of te laat
@@ -61,8 +63,8 @@ function taskBadge() {
   const n = dueCount(S.tasks);
   for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], receipts: [], expenses: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], receipts: [], expenses: [], house_jobs: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date', house_jobs: 'created_at' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
@@ -80,7 +82,9 @@ async function load(t) {
   if (t === 'receipts') receiptsMissing = !!error;
   // Vaste lasten: idem, tot de tabel expenses in Supabase staat
   if (t === 'expenses') lastenMissing = !!error;
-  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'receipts' && t !== 'expenses' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
+  // Klussen: idem, tot de tabel house_jobs bestaat
+  if (t === 'house_jobs') jobsMissing = !!error;
+  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'receipts' && t !== 'expenses' && t !== 'house_jobs' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -132,7 +136,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', meer: 'Meer' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', klussen: 'Klussen in huis', meer: 'Meer' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
 const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
@@ -152,12 +156,12 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), klussen: () => klussen.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten;
+let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten, klussen;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes,
@@ -169,6 +173,7 @@ async function start() {
   kijken = mountKijken({ root: $('#kijkenRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.watch_items.filter(r => r.owner === userId), getPrefs: () => S.watch_prefs.find(r => r.owner === userId), isMissing: () => watchMissing, userId: () => userId });
   dagvragen = mountDagvragen({ root: $('#dagvragenRoot'), sb, esc, run, toast, load, getPrefs: () => S.dagvraag_prefs.find(r => r.owner === userId), isMissing: () => dvMissing, userId: () => userId });
   bonnetjes = mountBonnetjes({ root: $('#bonnetjesRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.receipts, isMissing: () => receiptsMissing });
+  klussen = mountKlussen({ root: $('#klussenRoot'), sb, esc, run, toast, openDialog, load, getJobs: () => S.house_jobs, getContacts: () => S.contacts, isMissing: () => jobsMissing });
   weer = mountWeer({ root: $('#weerRoot'), esc, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
   kettlebell = mountKettlebell({ root: $('#kettlebellRoot'), esc, toast, today: () => iso(new Date()),
     hasKracht: day => S.sport_log.some(r => r.owner === userId && r.day === day && r.kind === 'kracht'), markKracht: day => toggleSport(day, 'kracht', true) });
@@ -409,9 +414,9 @@ function openDialog({ title, fields, onSave, onDelete }) {
     const id = 'f-' + f.name, v = esc(f.value ?? '');
     if (f.type === 'textarea') return `<label for="${id}">${f.label}<textarea id="${id}" name="${f.name}">${v}</textarea></label>`;
     if (f.type === 'select') return `<label for="${id}">${f.label}<select id="${id}" name="${f.name}">${f.options.map(o => `<option${o === f.value ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
-    if (f.type === 'file') return `<label for="${id}">${f.label}<input id="${id}" name="${f.name}" type="file" accept="image/*"></label>`;
+    if (f.type === 'file') return `<label for="${id}">${f.label}<input id="${id}" name="${f.name}" type="file" accept="${esc(f.accept || 'image/*')}"></label>`;
     if (f.type === 'checkbox') return `<label class="check" style="margin-bottom:12px"><input type="checkbox" name="${f.name}"${f.value ? ' checked' : ''}> ${f.label}</label>`;
-    return `<label for="${id}">${f.label}<input id="${id}" name="${f.name}" type="${f.type || 'text'}" value="${v}"${f.required ? ' required' : ''}${f.inputmode ? ` inputmode="${f.inputmode}"` : ''} autocomplete="off"></label>`;
+    return `<label for="${id}">${f.label}<input id="${id}" name="${f.name}" type="${f.type || 'text'}" value="${v}"${f.required ? ' required' : ''}${f.inputmode ? ` inputmode="${f.inputmode}"` : ''}${f.list ? ` list="${id}-list"` : ''} autocomplete="off">${f.list ? `<datalist id="${id}-list">${f.list.map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : ''}</label>`;
   }).join('');
   const del = $('#dlgDelete'); del.hidden = !onDelete; del.textContent = 'Verwijderen'; delete del.dataset.sure; del.classList.remove('sure');
   del.onclick = () => confirmTwice(del, 'Verwijderen', async () => { dlg.close(); await onDelete(); });
