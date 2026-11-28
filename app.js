@@ -6,6 +6,7 @@ import { mountRecepten, byId as recipeById, recipeShopping } from './recepten.js
 import { mountTaken, dueCount } from './taken.js';
 import { mountKijken } from './kijken.js';
 import { mountDagvragen } from './dagvragen.js';
+import { mountLasten } from './lasten.js';
 import { mountWeer } from './weer.js';
 import { mountBonnetjes } from './bonnetjes.js';
 import { mountKettlebell } from './kettlebell.js';
@@ -53,14 +54,15 @@ let healthDayMissing = false;
 let watchMissing = false;
 let dvMissing = false;
 let receiptsMissing = false;
+let lastenMissing = false;
 // Terracotta getal bij Taken: zoveel taken zijn aan de beurt of te laat
 function taskBadge() {
   // Taken staat onder Meer: het getal staat op de knop Meer én op de tegel Taken
   const n = dueCount(S.tasks);
   for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], receipts: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', receipts: 'warranty_until' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], receipts: [], expenses: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
@@ -76,7 +78,9 @@ async function load(t) {
   if (t === 'dagvraag_prefs') dvMissing = !!error;
   // Bonnetjes: idem, tot de tabel in Supabase staat
   if (t === 'receipts') receiptsMissing = !!error;
-  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'receipts' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
+  // Vaste lasten: idem, tot de tabel expenses in Supabase staat
+  if (t === 'expenses') lastenMissing = !!error;
+  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'receipts' && t !== 'expenses' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -128,7 +132,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', meer: 'Meer' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', meer: 'Meer' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
 const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
@@ -148,12 +152,12 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes;
+let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes,
@@ -168,6 +172,7 @@ async function start() {
   weer = mountWeer({ root: $('#weerRoot'), esc, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
   kettlebell = mountKettlebell({ root: $('#kettlebellRoot'), esc, toast, today: () => iso(new Date()),
     hasKracht: day => S.sport_log.some(r => r.owner === userId && r.day === day && r.kind === 'kracht'), markKracht: day => toggleSport(day, 'kracht', true) });
+  lasten = mountLasten({ root: $('#lastenRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.expenses, isMissing: () => lastenMissing });
   gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, saveDay, setMinutes, openDialog,
     push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: () => testPush('test'), week: () => testPush('week') } });
   registerSW();

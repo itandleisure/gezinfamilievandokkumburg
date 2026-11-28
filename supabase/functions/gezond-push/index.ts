@@ -10,6 +10,7 @@
 // Cadeaus: vanaf 10:00 een seintje als een verjaardag (gift_lists.yearly) of andere datum over precies 14 dagen is. Naar iedereen.
 // Dagvragen: op het gekozen uur (standaard 21:00) de 3 vragen van de dag, alleen voor wie het aanzet in dagvraag_prefs.
 //   De vragen komen uit dagvragen.json op de site. Opent /#dagvragen.
+// Vaste lasten: vanaf 10:00 een seintje remind_days vóór een afschrijving uit expenses (IBI, verzekering...). Naar iedereen, opent /#lasten.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -265,6 +266,42 @@ async function runDagvraag(subs: Sub[], day: string, hour: number) {
   return out;
 }
 
+// ---------- Vaste lasten: seintje een paar dagen voordat iets wordt afgeschreven ----------
+// Rekent net als occurrences() in lasten.js door vanaf next_date (elke every_months maanden, zelfde dag van de maand).
+// Naar iedereen, vanaf 10:00. In push_log als day = afschrijfdatum, kind = 'last:<id>', dus één keer per afschrijving.
+type Expense = { id: string; title: string; amount: number; every_months: number; next_date: string; remind_days: number; note: string };
+function addMonthsUTC(s: string, n: number, day: number) {
+  const [y, m] = s.split('-').map(Number), t = new Date(Date.UTC(y, m - 1 + n, 1, 12));
+  const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  t.setUTCDate(Math.min(day, last));
+  return t.toISOString().slice(0, 10);
+}
+function nextExpense(e: Expense, from: string) {
+  const step = Math.max(1, e.every_months || 12), day = Number(e.next_date.slice(8, 10));
+  let k = 0, d = e.next_date;
+  while (d < from && k < 1000) d = addMonthsUTC(e.next_date, step * ++k, day);
+  return d;
+}
+async function runLasten(subs: Sub[], owners: string[], day: string, hour: number) {
+  if (hour < 10 || hour >= 21 || !owners.length) return {};
+  const { data, error } = await db.from('expenses').select('id, title, amount, every_months, next_date, remind_days, note').gt('remind_days', 0);
+  if (error || !data?.length) return {};   // tabel nog niet aangemaakt, of geen seintjes
+  const out: Record<string, string> = {};
+  for (const e of data as Expense[]) {
+    const d = nextExpense(e, day), left = Math.round((Date.parse(d) - Date.parse(day)) / 864e5);
+    if (left < 0 || left > e.remind_days) continue;
+    const when = left === 0 ? 'vandaag' : left === 1 ? 'morgen' : new Date(d + 'T12:00:00Z').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+    const msg = { title: `💶 ${e.title}`, body: `${euro(e.amount)} gaat er ${left > 1 ? 'op ' : ''}${when} af.${e.note ? ' ' + e.note : ''}`, url: '/#lasten' };
+    for (const owner of owners) {
+      const { error: dup } = await db.from('push_log').insert({ owner, day: d, kind: 'last:' + e.id });
+      if (dup) continue; // voor deze afschrijving al gestuurd
+      for (const s of subs.filter(s => s.owner === owner)) await send(s, 'last', msg);
+      out[owner] = out[owner] ? out[owner] + '+' + e.title : e.title;
+    }
+  }
+  return out;
+}
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
@@ -303,7 +340,9 @@ async function run() {
   try { kijk = await runKijk((subs || []) as Sub[], day, dow); } catch (e) { console.error('kijken', e); }
   let dagvraag = {};
   try { dagvraag = await runDagvraag((subs || []) as Sub[], day, hour); } catch (e) { console.error('dagvragen', e); }
-  return { day, hour, sent: out, kijk, dagvraag };
+  let lasten = {};
+  try { lasten = await runLasten((subs || []) as Sub[], owners, day, hour); } catch (e) { console.error('lasten', e); }
+  return { day, hour, sent: out, kijk, dagvraag, lasten };
 }
 
 Deno.serve(async req => {

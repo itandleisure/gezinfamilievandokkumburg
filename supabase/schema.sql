@@ -365,3 +365,28 @@ do $$ begin
   alter publication supabase_realtime add table public.receipts;
 exception when duplicate_object then null;
 end $$;
+
+-- ---------- Vaste lasten: terugkerende uitgaven (IBI, IVTM, basura, verzekeringen, abonnementen) ----------
+-- every_months = hoe vaak (1 maand, 3 kwartaal, 6 halfjaar, 12 jaar, 24 twee jaar); next_date = eerstvolgende afschrijving.
+-- De app rekent de volgende keren zelf door, dus next_date hoeft niet elke keer bijgewerkt te worden.
+-- remind_days = seintje zoveel dagen vooraf via gezond-push (0 = geen seintje). Gedeeld met het hele gezin.
+create table if not exists public.expenses (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (length(title) between 1 and 80),
+  cat text not null default 'Overig',              -- 'Huis', 'Auto', 'Verzekering', 'Abonnement', 'Overig'
+  amount numeric(9,2) not null default 0 check (amount >= 0),
+  every_months smallint not null default 12 check (every_months in (1, 2, 3, 6, 12, 24)),
+  next_date date not null default current_date,
+  remind_days smallint not null default 7 check (remind_days between 0 and 60),
+  note text not null default '',
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.expenses to authenticated;
+grant select on public.expenses to service_role;
+alter table public.expenses enable row level security;
+drop policy if exists "alleen gezin" on public.expenses;
+create policy "alleen gezin" on public.expenses for all to authenticated using (true) with check (true);
+do $$ begin
+  alter publication supabase_realtime add table public.expenses;
+exception when duplicate_object then null;
+end $$;
