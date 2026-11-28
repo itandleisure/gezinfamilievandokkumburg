@@ -1,4 +1,5 @@
-// Tabblad Gezond: gewicht per ochtend, weekgemiddelde met grafiek en doellijn, sport afvinken per dag,
+// Tabblad Gezond: gewicht per ochtend, weekgemiddelde met grafiek, doellijn, trendlijn en verwachte doeldatum,
+// sport afvinken per dag met een sportstreak (weken op rij minstens 3 dagen bewogen),
 // plus het duwtje ("Heb je vandaag al bewogen?") dat bovenaan de app verschijnt.
 // Elke ingelogde gebruiker ziet alleen zijn eigen gegevens (kolom owner, RLS).
 
@@ -40,6 +41,51 @@ function rolling(rows) {
   return s.map((r, i) => { const l = s.slice(0, i + 1).filter(x => daysBetween(x.day, r.day) < 7); return { day: r.day, kg: l.reduce((a, b) => a + b.kg, 0) / l.length }; });
 }
 
+// Trendlijn: rechte lijn door de weegmomenten van de laatste 4 weken (kleinste kwadraten).
+// Geeft ook het tempo per week en de verwachte datum waarop het doel gehaald wordt.
+export function trend(rows, goal, days = 28) {
+  const s = sorted(rows); if (s.length < 4) return null;
+  const end = s[s.length - 1].day, p = s.filter(r => r.day > addDays(end, -days));
+  if (p.length < 4 || daysBetween(p[0].day, end) < 10) return null;
+  const xs = p.map(r => daysBetween(p[0].day, r.day)), n = p.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n, my = p.reduce((a, r) => a + r.kg, 0) / n;
+  let sxy = 0, sxx = 0; p.forEach((r, i) => { sxy += (xs[i] - mx) * (r.kg - my); sxx += (xs[i] - mx) ** 2; });
+  const b = sxx ? sxy / sxx : 0, a = my - b * mx, at = d => a + b * daysBetween(p[0].day, d);
+  const now = at(end), perWeek = -b * 7;
+  let eta = null, reached = now <= goal;
+  if (!reached && perWeek > 0.05) { const dd = Math.round((now - goal) / -b); if (dd <= 730) eta = addDays(end, dd); }
+  return { from: p[0].day, end, at, now, perWeek, eta, reached };
+}
+
+// Sportstreak: weken op rij met minstens STREAK_DAGEN dagen bewogen. Padel op ma en wo telt gewoon mee.
+// De lopende week telt mee zodra hij gehaald is; anders breekt hij de reeks (nog) niet.
+export const STREAK_DAGEN = 3;
+export function streak(sport, today) {
+  const dagen = w => new Set(sport.filter(r => r.day >= w && r.day <= addDays(w, 6)).map(r => r.day)).size;
+  const thisW = monday(today), nu = dagen(thisW);
+  let n = nu >= STREAK_DAGEN ? 1 : 0, w = addDays(thisW, -7);
+  while (n < 520 && dagen(w) >= STREAK_DAGEN) { n++; w = addDays(w, -7); }
+  const last8 = Array.from({ length: 8 }, (_, i) => { const m = addDays(thisW, -7 * (7 - i)); return { w: m, n: dagen(m), cur: m === thisW }; });
+  // Padel: ma- en wo-sessies op rij gespeeld (vandaag telt alleen mee als hij al is afgevinkt)
+  const played = new Set(sport.filter(r => r.kind === 'padel').map(r => r.day));
+  let padel = 0, d = today;
+  for (let i = 0; i < 1500; i++, d = addDays(d, -1)) {
+    const dow = (dt(d).getDay() + 6) % 7; if (dow !== 0 && dow !== 2) continue;
+    if (played.has(d)) padel++; else if (d !== today) break;
+  }
+  return { n, nu, last8, padel };
+}
+function streakHtml(sport, today) {
+  const st = streak(sport, today), nog = Math.max(0, STREAK_DAGEN - st.nu);
+  const kop = st.n ? `<b>${st.n} ${st.n === 1 ? 'week' : 'weken'} op rij</b> minstens ${STREAK_DAGEN} dagen bewogen` : `Beweeg ${STREAK_DAGEN} dagen in een week en je reeks begint`;
+  const sub = nog ? `Deze week nog ${nog} ${nog === 1 ? 'dag' : 'dagen'} nodig${st.n ? ' om je reeks te verlengen' : ''}.` : 'Deze week is binnen. Lekker bezig!';
+  return `<div class="gz-streak">
+    <div class="gz-st-top"><span class="gz-fire${st.n ? ' on' : ''}" aria-hidden="true">🔥</span><p>${kop}<br><small class="mut">${sub}</small></p></div>
+    <div class="gz-st-wk" aria-label="De laatste 8 weken">${st.last8.map(w => `<span class="${w.n >= STREAK_DAGEN ? 'ok' : ''}${w.cur ? ' cur' : ''}" title="Week ${weekNr(w.w)}: ${w.n} ${w.n === 1 ? 'dag' : 'dagen'}"><i>${w.n}</i><small>${weekNr(w.w)}</small></span>`).join('')}</div>
+    ${st.padel ? `<p class="gz-st-padel">Padel: <b>${st.padel}× op rij</b> gespeeld op ma en wo.</p>` : ''}
+  </div>`;
+}
+
 // Het duwtje voor bovenaan de app (of null)
 export function nudge({ weights, sport, settings }, now = new Date()) {
   if (settings && settings.reminders === false) return null;
@@ -56,9 +102,10 @@ function chart(rows, goal, range) {
   let s = sorted(rows);
   if (!s.length) return '<p class="empty">Nog geen gewicht ingevuld. Zodra je een paar ochtenden hebt gewogen, verschijnt hier je lijn.</p>';
   const end = s[s.length - 1].day;
-  if (range !== 'alles') { const from = addDays(end, -7 * Number(range)); s = s.filter(r => r.day >= from); }
+  const tr = trend(rows, goal), naarDoel = range === 'doel' && tr && tr.eta;
+  if (range !== 'alles' && range !== 'doel') { const from = addDays(end, -7 * Number(range)); s = s.filter(r => r.day >= from); }
   const avg = rolling(rows).filter(r => r.day >= s[0].day);
-  const start = s[0].day, span = Math.max(daysBetween(start, end), 6);
+  const start = s[0].day, last = naarDoel ? tr.eta : end, span = Math.max(daysBetween(start, last), 6);
   const W = 340, H = 200, L = 34, R = 8, T = 10, B = 24;
   const vals = s.map(r => r.kg).concat(goal);
   const lo = Math.floor(Math.min(...vals) - 0.5), hi = Math.ceil(Math.max(...vals) + 0.5);
@@ -67,16 +114,26 @@ function chart(rows, goal, range) {
   const step = Math.max(1, Math.ceil((hi - lo) / 5));
   let grid = '';
   for (let v = Math.ceil(lo); v <= hi; v += step) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="gz-grid"/><text x="${L - 5}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-  const ticks = [start, end].concat(span > 20 ? [addDays(start, Math.round(span / 2))] : []);
-  const xl = ticks.map(d => `<text x="${x(d)}" y="${H - 6}" text-anchor="${d === start ? 'start' : d === end ? 'end' : 'middle'}">${kort(d)}</text>`).join('');
+  const ticks = [start, last].concat(span > 20 ? [addDays(start, Math.round(span / 2))] : []);
+  const xl = ticks.map(d => `<text x="${x(d)}" y="${H - 6}" text-anchor="${d === start ? 'start' : d === last ? 'end' : 'middle'}">${kort(d)}</text>`).join('');
   const line = avg.map((r, i) => `${i ? 'L' : 'M'}${x(r.day).toFixed(1)} ${y(r.kg).toFixed(1)}`).join(' ');
+  // Trendlijn (gestippeld) over de laatste 4 weken; bij "Tot doel" doorgetrokken tot de verwachte datum
+  let trl = '';
+  if (tr) {
+    const a = tr.from < start ? start : tr.from, b = naarDoel ? tr.eta : tr.end;
+    trl = `<path d="M${x(a).toFixed(1)} ${y(tr.at(a)).toFixed(1)} L${x(b).toFixed(1)} ${y(naarDoel ? goal : tr.at(b)).toFixed(1)}" class="gz-trend"/>`;
+    if (naarDoel) trl += `<line x1="${x(end).toFixed(1)}" x2="${x(end).toFixed(1)}" y1="${T}" y2="${H - B}" class="gz-now"/><text x="${(x(end) - 4).toFixed(1)}" y="${T + 9}" text-anchor="end">nu</text>
+      <circle cx="${x(tr.eta).toFixed(1)}" cy="${y(goal).toFixed(1)}" r="5.5" class="gz-flag"/><text x="${(x(tr.eta) - 2).toFixed(1)}" y="${(y(goal) - 10).toFixed(1)}" text-anchor="end" class="gz-goalt">doel ± ${kort(tr.eta)} ${dt(tr.eta).getFullYear()}</text>`;
+  }
   return `<svg class="gz-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafiek van je gewicht met weekgemiddelde en doel ${kgf(goal)} kilo">
     ${grid}
-    <line x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}" class="gz-goal"/><text x="${W - R}" y="${y(goal) - 5}" text-anchor="end" class="gz-goalt">doel ${kgf(goal)}</text>
+    <line x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}" class="gz-goal"/><text x="${naarDoel ? L + 4 : W - R}" y="${y(goal) - 5}" text-anchor="${naarDoel ? 'start' : 'end'}" class="gz-goalt">doel ${kgf(goal)}</text>
     ${s.map(r => `<circle cx="${x(r.day).toFixed(1)}" cy="${y(r.kg).toFixed(1)}" r="2.6" class="gz-dot"/>`).join('')}
     <path d="${line}" class="gz-avg"/>
+    ${trl}
     ${xl}</svg>
-    <p class="gz-leg"><span class="gz-k1"></span>gemiddelde van 7 dagen <span class="gz-k2"></span>losse ochtenden <span class="gz-k3"></span>doel</p>`;
+    <p class="gz-leg"><span class="gz-k1"></span>gemiddelde van 7 dagen <span class="gz-k2"></span>losse ochtenden ${tr ? '<span class="gz-k4"></span>trend ' : ''}<span class="gz-k3"></span>doel</p>
+    ${range === 'doel' && !naarDoel ? `<p class="gz-pace">${tr && tr.reached ? 'Je trend zit al op je doel. Nu vasthouden!' : tr ? 'Je trend gaat nu niet (genoeg) omlaag, dus er is nog geen verwachte datum. Hierboven zie je al je metingen.' : 'Na een week of twee wegen zie je hier wanneer je je doel verwacht te halen.'}</p>` : ''}`;
 }
 
 // ---------- BMI-meter (halve maan met wijzer) ----------
@@ -146,14 +203,14 @@ export function mountGezond(root, api) {
     let prog = '';
     if (cur) {
       const lost = startKg - cur.avg, togo = cur.avg - goal, pct = Math.max(0, Math.min(100, lost / (startKg - goal) * 100));
-      const ref = wk.length >= 4 ? wk[wk.length - 4] : wk[0], nW = daysBetween(ref.w, cur.w) / 7;
-      const rate = nW >= 2 ? (ref.avg - cur.avg) / nW : null;
+      const tr = trend(weights, goal);
       let pace = '';
       if (togo <= 0) pace = 'Doel gehaald! Nu vasthouden.';
-      else if (rate && rate > 0.05) {
-        const when = dt(cur.w); when.setDate(when.getDate() + Math.round(togo / rate * 7));
-        pace = `Je gaat ${kgf(rate)} kg per week omlaag. In dit tempo haal je ${kgf(goal)} kg rond <b>${when.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })}</b>.`;
-      } else if (rate != null) pace = 'De laatste weken staat het stil. Kijk even naar het menu en of je genoeg beweegt.';
+      else if (tr && tr.eta) {
+        const wkn = Math.round(daysBetween(today, tr.eta) / 7);
+        pace = `Je trend gaat ${kgf(tr.perWeek)} kg per week omlaag. In dit tempo haal je ${kgf(goal)} kg rond <b>${dt(tr.eta).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}</b>${wkn > 1 ? ` (nog ongeveer ${wkn} weken)` : ''}.${tr.perWeek > 1 ? ' Dat is snel: meer dan 1 kg per week houd je meestal niet vol.' : ''}`;
+      } else if (tr && tr.perWeek > 0.05) pace = `Je trend gaat ${kgf(tr.perWeek)} kg per week omlaag. Mooi, maar je doel ligt in dit tempo nog meer dan twee jaar weg.`;
+      else if (tr) pace = 'De laatste weken staat het stil. Kijk even naar het menu en of je genoeg beweegt.';
       else pace = 'Na twee weken wegen zie je hier je tempo. Gezond is 0,5 tot 0,7 kg per week.';
       prog = `<div class="msum gz-sum">
         <small class="mut">Weekgemiddelde${cur.w === monday(today) ? ' deze week' : ' week ' + weekNr(cur.w)} (${cur.n}× gewogen)</small>
@@ -198,12 +255,13 @@ export function mountGezond(root, api) {
           <svg viewBox="0 0 24 24">${s.i}</svg><b>${s.n}</b><small>${s.x}</small><span class="gz-ok">✓</span></button>`).join('')}</div>
         ${minRows}
         <p class="gz-weeksum">${actDays ? `Deze week ${actDays} ${actDays === 1 ? 'dag' : 'dagen'} bewogen${perKind.length ? ': ' + perKind.map(([n, c]) => `${n.toLowerCase()} ${c}×`).join(', ') : ''}.${weekMin ? ` Samen ${weekMin >= 60 ? Math.floor(weekMin / 60) + ' uur' + (weekMin % 60 ? ' en ' + (weekMin % 60) + ' min' : '') : weekMin + ' min'} wandelen en lopen.` : ''}` : 'Deze week nog niets afgevinkt.'}</p>
+        ${streakHtml(sport, today)}
       </div>
       ${daysMissing ? '' : extrasHtml({ day, today, dow: (dt(day).getDay() + 6) % 7, info: (days || []).find(r => r.day === day), days, sport: mine, settings, minKg, startKg, goal, openTrain })}
       <h2 class="gz-h2">Voortgang</h2>
       ${prog}
       ${(() => { const lw = sorted(weights).pop(); return cur ? gauge(cur.avg, goal, lengte, 'weekgemiddelde') : gauge(lw ? lw.kg : startKg, goal, lengte, 'startgewicht'); })()}
-      <div class="chips" role="tablist" aria-label="Periode">${[['4', '4 weken'], ['8', '8 weken'], ['26', 'Half jaar'], ['alles', 'Alles']].map(([k, n]) => `<button class="chip" role="tab" data-range="${k}" aria-selected="${range === k}">${n}</button>`).join('')}</div>
+      <div class="chips" role="tablist" aria-label="Periode">${[['4', '4 weken'], ['8', '8 weken'], ['26', 'Half jaar'], ['alles', 'Alles'], ['doel', 'Tot doel']].map(([k, n]) => `<button class="chip" role="tab" data-range="${k}" aria-selected="${range === k}">${n}</button>`).join('')}</div>
       <div class="card">${chart(weights, goal, range)}</div>
       ${table}
       <div class="card gz-push" id="gzPush"><h3 class="gz-h3">Meldingen op deze telefoon</h3><p class="mut" id="gzPushTxt">Even kijken…</p><div class="sp-row" id="gzPushBtns"></div></div>
