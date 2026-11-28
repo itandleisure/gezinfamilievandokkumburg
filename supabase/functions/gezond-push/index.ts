@@ -8,6 +8,8 @@
 // Kijken: bij elke run ook een seintje vlak voor wat je wilt kijken (watch_items en Formule 1, watch_prefs).
 // Op zondag tussen 19:00 en 21:00 gaat het weekoverzicht: gewicht, bewegen en water van de week, met een complimentje of tip.
 // Cadeaus: vanaf 10:00 een seintje als een verjaardag (gift_lists.yearly) of andere datum over precies 14 dagen is. Naar iedereen.
+// Dagvragen: op het gekozen uur (standaard 21:00) de 3 vragen van de dag, alleen voor wie het aanzet in dagvraag_prefs.
+//   De vragen komen uit dagvragen.json op de site. Opent /#dagvragen.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -228,6 +230,41 @@ async function runKijk(subs: Sub[], day: string, dow: number) {
   return out;
 }
 
+// ---------- Dagvragen ----------
+// Zelfde rekenwijze als pick() in dagvragen.js. Pas je dit aan, doe het daar ook.
+type Thema = { naam: string; vragen: string[] };
+function pickDagvragen(themas: Thema[], day: string) {
+  const T = themas.length, n = Math.round(Date.parse(day + 'T12:00:00Z') / 864e5);
+  const mod = (a: number, b: number) => ((a % b) + b) % b;
+  const set = (m: number) => [mod(m, T), mod(m + 1, T), mod(m + 3, T)];
+  return set(n).sort((a, b) => a - b).map(t => {
+    let occ = 3 * Math.floor(n / 6);
+    for (let m = n - mod(n, 6); m < n; m++) if (set(m).includes(t)) occ++;
+    const qs = themas[t].vragen;
+    return qs[mod(occ, qs.length)];
+  });
+}
+async function runDagvraag(subs: Sub[], day: string, hour: number) {
+  const { data: prefs, error } = await db.from('dagvraag_prefs').select('owner, at_hour').eq('push', true);
+  if (error || !prefs?.length) return {};
+  const due = prefs.filter(p => hour >= p.at_hour && hour < p.at_hour + 2);
+  if (!due.length) return {};
+  const r = await fetch('https://gezin.fransvandokkumburg.com/dagvragen.json', { headers: { 'Cache-Control': 'no-cache' } });
+  if (!r.ok) throw new Error('dagvragen.json ' + r.status);
+  const qs = pickDagvragen((await r.json()).themas, day);
+  const msg = { title: 'Drie vragen voor vandaag', body: qs.map((q, i) => `${i + 1}. ${q}`).join('\n'), url: '/#dagvragen' };
+  const out: Record<string, string> = {};
+  for (const p of due) {
+    const mine = subs.filter(s => s.owner === p.owner);
+    if (!mine.length) continue;
+    const { error: dup } = await db.from('push_log').insert({ owner: p.owner, day, kind: 'dagvraag' });
+    if (dup) continue; // vandaag al gestuurd
+    for (const s of mine) await send(s, 'dagvraag', msg);
+    out[p.owner] = 'dagvraag';
+  }
+  return out;
+}
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
@@ -264,7 +301,9 @@ async function run() {
   await runTasks((subs || []) as Sub[], owners, day, hour, out);
   let kijk = {};
   try { kijk = await runKijk((subs || []) as Sub[], day, dow); } catch (e) { console.error('kijken', e); }
-  return { day, hour, sent: out, kijk };
+  let dagvraag = {};
+  try { dagvraag = await runDagvraag((subs || []) as Sub[], day, hour); } catch (e) { console.error('dagvragen', e); }
+  return { day, hour, sent: out, kijk, dagvraag };
 }
 
 Deno.serve(async req => {

@@ -329,3 +329,16 @@ do $$ begin
   alter publication supabase_realtime add table public.watch_items;
 exception when duplicate_object then null;
 end $$;
+
+-- ---------- Dagvragen: melding met de 3 vragen van de dag (antwoorden worden niet opgeslagen) ----------
+create table if not exists public.dagvraag_prefs (
+  owner uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  push boolean not null default false,
+  at_hour smallint not null default 21 check (at_hour between 0 and 23),   -- uur in Spaanse tijd
+  updated_at timestamptz default now()
+);
+grant select, insert, update, delete on public.dagvraag_prefs to authenticated;
+grant select on public.dagvraag_prefs to service_role;
+alter table public.dagvraag_prefs enable row level security;
+drop policy if exists "alleen eigen gegevens" on public.dagvraag_prefs;
+create policy "alleen eigen gegevens" on public.dagvraag_prefs for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));

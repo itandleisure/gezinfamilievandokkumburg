@@ -1,0 +1,125 @@
+{
+  "_uitleg": "Dagvragen: elke dag 3 vragen uit 3 verschillende thema's. Zelf geschreven, niet uit een boek. Nieuwe vragen achteraan per thema toevoegen. Wordt gelezen door dagvragen.js (de tegel) en door de edge function gezond-push (de melding om 21:00).",
+  "themas": [
+    {
+      "naam": "Familie van herkomst",
+      "vragen": [
+        "Welke uitspraak of gewoonte uit je ouderlijk huis herken je vandaag in jezelf?",
+        "Over wie in je familie werd weinig gesproken? Wat voel je als je nu aan die persoon denkt?",
+        "Wat weet je van het leven van je grootouders toen zij zo oud waren als jij nu?",
+        "Welk verhaal werd in je familie steeds opnieuw verteld? Wat zegt dat over jullie?",
+        "Wie in je familie lijkt het meest op jou? Waarin precies?",
+        "Welk gevoel hing er vroeger vaak in huis aan tafel?",
+        "Wat is er in je familie gebeurd dat niemand echt heeft verwerkt?",
+        "Welke kracht heb je van je familie meegekregen, ook als je die niet zelf hebt gekozen?",
+        "Als je aan je familie denkt als één groep mensen achter je, hoe voelt dat?",
+        "Wie in je familie is vroeg overleden, vertrokken of uit beeld geraakt?",
+        "Wat werd er in jouw familie gevierd, en wat werd er stil gehouden?",
+        "Welke gewoonte uit je familie wil je doorgeven aan je eigen kinderen?",
+        "Van welk familielid had je als kind graag meer willen weten?",
+        "Welk beroep, welk geloof of welke plek was belangrijk in je familie? Wat doet dat nog met jou?",
+        "Waar voel je je verbonden met de plek waar je familie vandaan komt, nu je in Spanje woont?"
+      ]
+    },
+    {
+      "naam": "Je plek in het gezin",
+      "vragen": [
+        "Welke rol had jij als kind thuis: de verstandige, de grappige, de stille, de helper? Waar pak je die rol nu nog op?",
+        "Waar voelde je je vandaag op je plek, en waar juist niet?",
+        "Wat betekende het voor jou om het oudste, middelste, jongste of enige kind te zijn?",
+        "Wanneer voelde je je als kind echt gezien door je ouders?",
+        "Welke taak nam jij als kind op je die eigenlijk niet bij een kind hoorde?",
+        "Hoe was het om naast je broers of zussen op te groeien? Wat voel je als je aan hen denkt?",
+        "Waar neem je in je eigen gezin nu te veel of te weinig ruimte in?",
+        "Wie stond er vroeger thuis het dichtst bij je, en wie het verst weg?",
+        "Wat deed jij als kind om de rust in huis te bewaren?",
+        "Op welke plek in huis voelde je je vroeger het veiligst?",
+        "Wat zou het kind dat je was nu tegen je willen zeggen?",
+        "Is er iemand in je gezin van herkomst die geen goede plek kreeg? Hoe merk je dat?",
+        "Hoe voelt het om vader te zijn in plaats van zoon?",
+        "In welke situatie voel je je klein, alsof je weer kind bent?",
+        "Waar mag je in je gezin gewoon zijn wie je bent, zonder iets te hoeven doen?"
+      ]
+    },
+    {
+      "naam": "Vader en moeder",
+      "vragen": [
+        "Wat heb je van je vader meegekregen waar je dankbaar voor bent?",
+        "Wat had je als kind van je moeder nodig, en hoe geef je jezelf dat nu?",
+        "Wat zou je je vader willen zeggen als je wist dat hij echt zou luisteren?",
+        "Wat zou je je moeder willen zeggen als je wist dat zij echt zou luisteren?",
+        "Welk gevoel komt er als je je vader voor je ziet, zoals hij was toen je tien was?",
+        "Welk gevoel komt er als je je moeder voor je ziet, zoals zij was toen je tien was?",
+        "Waarin lijk je op je vader, ook als je dat liever niet zou willen?",
+        "Waarin lijk je op je moeder, ook als je dat liever niet zou willen?",
+        "Wat droegen je ouders met zich mee uit hun eigen jeugd?",
+        "Wat kreeg je niet van je ouders, en kun je accepteren dat ze het misschien niet konden geven?",
+        "Hoe gingen je ouders met elkaar om, en wat heb jij daarvan geleerd over liefde?",
+        "Wat zou je je ouders willen bedanken, gewoon omdat ze je het leven gaven?",
+        "Hoe toonde je vader zijn gevoelens, en hoe toonde je moeder ze?",
+        "Welke verwachting van je ouders draag je nog steeds mee?",
+        "Als je je ouders achter je voelt staan, waar in je lichaam merk je dat?"
+      ]
+    },
+    {
+      "naam": "Loyaliteit",
+      "vragen": [
+        "Welke ongeschreven regel uit je familie volg je nog, ook al past hij eigenlijk niet meer bij je?",
+        "Waarin doe jij het bewust anders dan je ouders, en wat kost dat je?",
+        "Mag je in jouw familie gelukkiger zijn dan je ouders waren? Hoe voelt die vraag?",
+        "Voor wie in je familie voel je je verantwoordelijk, misschien meer dan nodig is?",
+        "Welke zorg of last draag je die eigenlijk van iemand anders is?",
+        "Wat zou er gebeuren als je niet langer de sterke of verstandige zou zijn?",
+        "Waar houd je jezelf klein uit trouw aan iemand?",
+        "Welke keuze in je leven heb je gemaakt om iemand niet teleur te stellen?",
+        "Voelde je je schuldig toen je naar Spanje verhuisde? Tegenover wie?",
+        "Wat mag jij van jezelf niet voelen, omdat het in je familie niet hoorde?",
+        "Wat zou je los kunnen laten zonder ontrouw te zijn aan je familie?",
+        "Bij wie in je familie sta je stilletjes aan de kant, en waarom?",
+        "Welk patroon zie je terugkomen bij jou, je ouders en je grootouders?",
+        "Wat zou je willen teruggeven aan wie het toebehoort, met respect?",
+        "Wat mag je je kinderen meegeven zonder dat ze iets van jou hoeven te dragen?"
+      ]
+    },
+    {
+      "naam": "Gevoel in je lichaam",
+      "vragen": [
+        "Sluit even je ogen en adem drie keer rustig. Waar in je lichaam voel je nu iets, en hoe zou je het noemen?",
+        "Denk aan een moment van vandaag waarop je ergens op reageerde. Wat deed je lichaam, nog voordat je erover nadacht?",
+        "Waar in je lichaam houd je spanning vast als je je zorgen maakt?",
+        "Wanneer voelde je je lichaam vandaag ontspannen?",
+        "Als je boosheid voelt, waar begint die dan in je lichaam?",
+        "Hoe voelt verdriet in jouw lichaam? Wanneer liet je dat voor het laatst toe?",
+        "Wat voelt je buik op dit moment: rust, onrust of iets anders?",
+        "Leg je hand op je borst. Wat merk je?",
+        "Op welk moment vandaag wilde je iets zeggen en hield je het in? Waar voelde je dat?",
+        "Wanneer voelde je vandaag blijdschap? Hoe merkte je lichaam dat?",
+        "Welk gevoel probeer je vaak weg te redeneren?",
+        "Hoe voelt je lichaam na het padellen of een wandeling in de bergen, behalve moe?",
+        "Als je gevoel van vandaag een kleur of een weer had, welke zou dat zijn?",
+        "Waar in je lichaam voel je angst, en wat zou die angst nodig hebben?",
+        "Wat heeft je lichaam vandaag van je nodig: rust, beweging, warmte of iets anders?"
+      ]
+    },
+    {
+      "naam": "Relaties en nu",
+      "vragen": [
+        "Wanneer voelde je je vandaag echt verbonden met je partner?",
+        "Wat heb je vandaag niet gezegd tegen iemand die je lief is?",
+        "Bij wie kun je je kwetsbaar laten zien zonder je te schamen?",
+        "Welk gevoel van je kinderen herken je uit je eigen jeugd?",
+        "Waar was je vandaag met je hoofd, terwijl je lichaam ergens anders was?",
+        "Wat raakte je vandaag, ook al was het maar iets kleins?",
+        "Wie mis je, en wat voel je als je aan die persoon denkt?",
+        "Wat zou je willen ontvangen, maar vraag je niet?",
+        "Waar zeg je ja terwijl je eigenlijk nee voelt?",
+        "Wat waardeer je aan je partner, maar zeg je te weinig?",
+        "Hoe reageer je als iemand je verdrietig ziet?",
+        "Wat zou je anders doen als je meer op je gevoel en minder op je verstand vertrouwde?",
+        "Met wie heb je nog iets uit te praten?",
+        "Wat ging er vandaag goed tussen jou en je kinderen?",
+        "Wat neem je mee van vandaag, en wat mag je laten liggen?"
+      ]
+    }
+  ]
+}
