@@ -144,10 +144,13 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weersvoorspelling', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', financieel: 'Financieel', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weersvoorspelling', sporten: 'Sporten', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', financieel: 'Financieel', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer, of een subtegel van Financieel zoals Vaste lasten); dan licht Meer op in de tabbalk
 const inMeer = v => v === 'lasten' || !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 let lastView = '';
+// Oude link #kettlebell heet nu #sporten
+if (location.hash === '#kettlebell') history.replaceState(null, '', '#sporten');
+window.addEventListener('hashchange', () => { if (location.hash === '#kettlebell') location.replace('#sporten'); });
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
 function route() {
   const v = current();
@@ -171,7 +174,7 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), financieel: () => financieel.render(), klussen: () => klussen.render(), zoeken: () => zoeken.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), sporten: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), financieel: () => financieel.render(), klussen: () => klussen.render(), zoeken: () => zoeken.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
@@ -191,7 +194,8 @@ async function start() {
   klussen = mountKlussen({ root: $('#klussenRoot'), sb, esc, run, toast, openDialog, load, getJobs: () => S.house_jobs, getContacts: () => S.contacts, isMissing: () => jobsMissing });
   weer = mountWeer({ root: $('#weerRoot'), esc, sb, run, load, getPrefs: () => S.weer_prefs.find(r => r.owner === userId), isMissing: () => weerMissing, userId: () => userId, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
   kettlebell = mountKettlebell({ root: $('#kettlebellRoot'), esc, toast, today: () => iso(new Date()),
-    hasKracht: day => S.sport_log.some(r => r.owner === userId && r.day === day && r.kind === 'kracht'), markKracht: day => toggleSport(day, 'kracht', true) });
+    hasKracht: day => S.sport_log.some(r => r.owner === userId && r.day === day && r.kind === 'kracht'), markKracht: day => toggleSport(day, 'kracht', true),
+    getSport: () => S.sport_log.filter(r => r.owner === userId), toggleSport, setMinutes });
   zoeken = mountZoeken({ root: $('#zoekenRoot'), esc, open: openItem,
     data: () => ({ notes: S.notes, contacts: S.contacts, shopping_items: S.shopping_items, recipes: RECIPES, gift_lists: S.gift_lists, gift_items: S.gift_items,
       house_jobs: S.house_jobs, receipts: S.receipts, expenses: S.expenses }) });

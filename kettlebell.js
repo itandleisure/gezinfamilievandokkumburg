@@ -1,6 +1,10 @@
-// Tegel Kettlebell (onder Meer, en vanuit de trainingskaart op Gezond): schema van ca. 15 minuten met één kettlebell van 20 kg.
+// Tegel Sporten (onder Meer, #sporten; de oude link #kettlebell werkt ook). Bovenaan alle sporten van vandaag afvinken
+// (dezelfde sport_log als op Gezond, dus niets dubbel), de streak en een weekidee. Daaronder het kettlebell-schema
+// van ca. 15 minuten met één kettlebell van 20 kg.
 // Per oefening een zelfgetekend plaatje (begin en eind), techniekpunten, en een trainingsmodus met timer per set.
 // Opbouw per twee weken en de geschiedenis staan in localStorage op het toestel. Klaar = Kracht afgevinkt in sport_log.
+
+import { SPORT, MIN_KINDS, streakHtml } from './gezond.js';
 
 // ---------- Poppetje ----------
 // Zijaanzicht, kijkt naar rechts. Hoeken in graden.
@@ -218,7 +222,7 @@ let lock = null;
 async function wake(on) { try { if (on && 'wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); else if (!on && lock) { await lock.release(); lock = null; } } catch { } }
 
 // ---------- Scherm ----------
-// ctx: { root, esc, toast, today() -> 'jjjj-mm-dd', hasKracht(day), markKracht(day) }
+// ctx: { root, esc, toast, today() -> 'jjjj-mm-dd', hasKracht(day), markKracht(day), getSport() -> rijen, toggleSport(day, kind, on), setMinutes(day, kind, min) }
 export function mountKettlebell(ctx) {
   const { root, esc } = ctx;
   let st = loadLS(), runState = null, tick = null, finished = null;
@@ -237,6 +241,27 @@ export function mountKettlebell(ctx) {
   // Welke dag is de volgende? Afwisselend A en B; C alleen als je hem zelf kiest.
   const nextDay = () => { const last = (st.log || []).filter(x => x.d !== 'C').pop(); return last?.d === 'A' ? 'B' : 'A'; };
 
+  // Weekidee: maandag = 0. Padel staat vast op ma en wo van 11 tot 12.
+  const WEEK = [['Padel', '11–12 uur'], ['Kettlebell dag A', 'plus buik en rug'], ['Padel', '11–12 uur'], ['Wandelen of fietsen', 'de bergen in, 45 min of meer'],
+    ['Kettlebell dag B', 'plus buik en rug'], ['Hardlopen', 'op het strand, of dag C'], ['Rustig aan', 'een wandeling telt ook']];
+  function moveHtml() {
+    const today = ctx.today(), sport = ctx.getSport(), mine = sport.filter(r => r.day === today).map(r => r.kind);
+    const dow = (new Date(today + 'T12:00').getDay() + 6) % 7;
+    const mins = k => { const r = sport.find(x => x.day === today && x.kind === k); return r && r.minutes ? Number(r.minutes) : null; };
+    const minRows = Object.entries(MIN_KINDS).filter(([k]) => mine.includes(k)).map(([k, q]) => { const cur = mins(k), other = cur != null && ![30, 45, 60, 90].includes(cur);
+      return `<div class="gz-mins"><span>${q}</span><div class="sp-row">${[30, 45, 60, 90].map(m => `<button class="chip" data-spmin="${m}" data-kind="${k}" aria-pressed="${cur === m}">${m} min</button>`).join('')}<button class="chip" data-spmin="?" data-kind="${k}" aria-pressed="${other}">${other ? cur + ' min' : 'Anders'}</button></div></div>`; }).join('');
+    return `<div class="card kb-move">
+      <h2 class="kb-title kb-movet">Vandaag bewogen</h2>
+      <p class="mut kb-x">Tik aan wat je gedaan hebt. Dit is dezelfde lijst als op Gezond.</p>
+      <div class="gz-sport">${SPORT.map(s => `<button class="gz-sp${mine.includes(s.k) ? ' on' : ''}" data-sp="${s.k}" aria-pressed="${mine.includes(s.k)}">
+        <svg viewBox="0 0 24 24">${s.i}</svg><b>${esc(s.n)}</b><small>${esc(s.x)}</small><span class="gz-ok">✓</span></button>`).join('')}</div>
+      ${minRows}
+      ${streakHtml(sport, today)}
+      <details class="kb-week"><summary>📅 Weekidee</summary><ol>${WEEK.map(([a, b], i) => `<li class="${i === dow ? 'now' : ''}"><b>${['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'][i]}</b><span>${esc(a)}<small>${esc(b)}</small></span></li>`).join('')}</ol>
+        <p class="mut">Minstens 3 dagen per week bewegen houdt je streak vast. Kracht 2 keer per week is genoeg.</p></details>
+    </div>`;
+  }
+
   function render() {
     if (runState) return renderRun();
     if (finished) return renderDone();
@@ -250,7 +275,8 @@ export function mountKettlebell(ctx) {
       : day.blocks ? day.blocks(st.stage, o.light).map((bl, bi) => `<p class="kb-blockh">Blok ${bi + 1} · ${S.rounds} rondes, om en om</p>
           ${bl.map((k, i) => exCard(k, `${String.fromCharCode(65 + bi)}${i + 1} · ${S.rounds} sets van ${exLine(k, REPS[k][st.stage])} · dan ${S.rest[i ? 1 : 0]} sec rust`)).join('')}`).join('') : '') + coreList;
     const last = (st.log || []).slice(-1)[0];
-    root.innerHTML = `
+    root.innerHTML = `${moveHtml()}
+      <h2 class="kb-sec">🏋️ Kracht met de kettlebell</h2>
       <div class="card kb-head">
         <p class="kb-kicker">🏋️ Kettlebell 20 kg${st.light ? ` en ${st.light} kg` : ''} · ca. 15 minuten</p>
         <div class="kb-days" role="tablist">${DAYS.map(d => `<button role="tab" class="kb-day" aria-selected="${d.k === pick}" data-day="${d.k}"><b>${d.k}</b><small>${esc(d.when.split(',')[0])}</small></button>`).join('')}</div>
@@ -382,7 +408,15 @@ export function mountKettlebell(ctx) {
   }
 
   root.addEventListener('click', e => {
-    const t = e.target.closest('[data-act],[data-day],[data-stage],[data-light]'); if (!t || t.dataset.act === 'core') return;
+    const t = e.target.closest('[data-act],[data-day],[data-stage],[data-light],[data-sp],[data-spmin]'); if (!t || t.dataset.act === 'core') return;
+    if (t.dataset.sp) { const on = !t.classList.contains('on'); t.classList.toggle('on', on); Promise.resolve(ctx.toggleSport(ctx.today(), t.dataset.sp, on)).then(render); return; }
+    if (t.dataset.spmin) {
+      const cur = ctx.getSport().find(r => r.day === ctx.today() && r.kind === t.dataset.kind);
+      let m = t.dataset.spmin === '?' ? parseInt(prompt('Hoeveel minuten?', cur?.minutes || '') || '', 10) : Number(t.dataset.spmin);
+      if (t.dataset.spmin === '?' && !(m >= 1 && m <= 600)) return;
+      if (t.getAttribute('aria-pressed') === 'true' && t.dataset.spmin !== '?') m = null;
+      Promise.resolve(ctx.setMinutes(ctx.today(), t.dataset.kind, m)).then(render); return;
+    }
     if (t.dataset.day) { st.day = t.dataset.day; saveLS(st); render(); return; }
     if (t.dataset.light != null) { st.light = Number(t.dataset.light); saveLS(st); render(); ctx.toast(st.light ? `Halo en press met ${st.light} kg` : 'Alles met 20 kg'); return; }
     if (t.dataset.stage) { st.stage = Number(t.dataset.stage); st.since = ctx.today(); saveLS(st); render(); ctx.toast(`Opbouw: ${STAGES[st.stage].n}`); return; }

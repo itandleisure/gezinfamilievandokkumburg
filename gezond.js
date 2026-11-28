@@ -23,8 +23,11 @@ export const SPORT = [
   { k: 'padel', n: 'Padel', x: 'ma en wo 11–12', i: '<circle cx="10" cy="9" r="6"/><path d="M14 13l6 7M7 7l6 4M9 13l3-6"/>' },
   { k: 'kracht', n: 'Kracht', x: 'BODYPUMP of kettlebell', i: '<path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 7h8l1.5 3A6 6 0 1 1 6.5 10z"/>' },
   { k: 'wandelen', n: 'Wandelen', x: 'in de bergen', i: '<path d="M3 20l6-10 4 6 2-3 6 7z"/><circle cx="16" cy="5" r="2"/>' },
-  { k: 'hardlopen', n: 'Hardlopen', x: 'of strandwandeling', i: '<circle cx="14" cy="4.5" r="2"/><path d="M6 21l3.5-6 3 2.5V22M9.5 15l1.5-6 4 3h3M11 9l-4 1-1.5 3"/>' }
+  { k: 'hardlopen', n: 'Hardlopen', x: 'of strandwandeling', i: '<circle cx="14" cy="4.5" r="2"/><path d="M6 21l3.5-6 3 2.5V22M9.5 15l1.5-6 4 3h3M11 9l-4 1-1.5 3"/>' },
+  { k: 'fietsen', n: 'Fietsen', x: 'buiten of binnen', i: '<circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-7h5l3 7M10 9l3 7h-7M14 6h2.5"/>' }
 ];
+// Bij deze sporten kun je optioneel de minuten kiezen
+export const MIN_KINDS = { wandelen: 'Hoe lang gewandeld?', hardlopen: 'Hoe lang gelopen?', fietsen: 'Hoe lang gefietst?' };
 const SPORTN = Object.fromEntries(SPORT.map(s => [s.k, s.n]));
 
 // ---------- Berekeningen ----------
@@ -75,7 +78,7 @@ export function streak(sport, today) {
   }
   return { n, nu, last8, padel };
 }
-function streakHtml(sport, today) {
+export function streakHtml(sport, today) {
   const st = streak(sport, today), nog = Math.max(0, STREAK_DAGEN - st.nu);
   const kop = st.n ? `<b>${st.n} ${st.n === 1 ? 'week' : 'weken'} op rij</b> minstens ${STREAK_DAGEN} dagen bewogen` : `Beweeg ${STREAK_DAGEN} dagen in een week en je reeks begint`;
   const sub = nog ? `Deze week nog ${nog} ${nog === 1 ? 'dag' : 'dagen'} nodig${st.n ? ' om je reeks te verlengen' : ''}.` : 'Deze week is binnen. Lekker bezig!';
@@ -189,8 +192,7 @@ export function mountGezond(root, api) {
     }).join('');
     const mine = sport.filter(r => r.day === day).map(r => r.kind);
     const minsOf = k => { const r = sport.find(x => x.day === day && x.kind === k); return r && r.minutes ? Number(r.minutes) : null; };
-    // Wandelen en hardlopen: optioneel hoe lang (snelle knoppen)
-    const MIN_KINDS = { wandelen: 'Hoe lang gewandeld?', hardlopen: 'Hoe lang gelopen?' };
+    // Wandelen, hardlopen en fietsen: optioneel hoe lang (snelle knoppen)
     const minRows = Object.entries(MIN_KINDS).filter(([k]) => mine.includes(k)).map(([k, q]) => {
       const cur = minsOf(k);
       return `<div class="gz-mins"><span>${q}</span><div class="sp-row">${[30, 45, 60, 90].map(m => `<button class="chip" data-mins="${m}" data-kind="${k}" aria-pressed="${cur === m}">${m} min</button>`).join('')}<button class="chip" data-mins="?" data-kind="${k}" aria-pressed="${cur != null && ![30, 45, 60, 90].includes(cur)}">${cur != null && ![30, 45, 60, 90].includes(cur) ? cur + ' min' : 'Anders'}</button></div></div>`;
@@ -254,7 +256,7 @@ export function mountGezond(root, api) {
         <div class="gz-sport">${SPORT.map(s => `<button class="gz-sp${mine.includes(s.k) ? ' on' : ''}" data-sport="${s.k}" aria-pressed="${mine.includes(s.k)}">
           <svg viewBox="0 0 24 24">${s.i}</svg><b>${s.n}</b><small>${s.x}</small><span class="gz-ok">✓</span></button>`).join('')}</div>
         ${minRows}
-        <p class="gz-weeksum">${actDays ? `Deze week ${actDays} ${actDays === 1 ? 'dag' : 'dagen'} bewogen${perKind.length ? ': ' + perKind.map(([n, c]) => `${n.toLowerCase()} ${c}×`).join(', ') : ''}.${weekMin ? ` Samen ${weekMin >= 60 ? Math.floor(weekMin / 60) + ' uur' + (weekMin % 60 ? ' en ' + (weekMin % 60) + ' min' : '') : weekMin + ' min'} wandelen en lopen.` : ''}` : 'Deze week nog niets afgevinkt.'}</p>
+        <p class="gz-weeksum">${actDays ? `Deze week ${actDays} ${actDays === 1 ? 'dag' : 'dagen'} bewogen${perKind.length ? ': ' + perKind.map(([n, c]) => `${n.toLowerCase()} ${c}×`).join(', ') : ''}.${weekMin ? ` Samen ${weekMin >= 60 ? Math.floor(weekMin / 60) + ' uur' + (weekMin % 60 ? ' en ' + (weekMin % 60) + ' min' : '') : weekMin + ' min'} wandelen, lopen en fietsen.` : ''}` : 'Deze week nog niets afgevinkt.'}</p>
         ${streakHtml(sport, today)}
       </div>
       ${daysMissing ? '' : extrasHtml({ day, today, dow: (dt(day).getDay() + 6) % 7, info: (days || []).find(r => r.day === day), days, sport: mine, settings, minKg, startKg, goal, openTrain })}
