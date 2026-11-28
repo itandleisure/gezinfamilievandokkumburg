@@ -67,10 +67,29 @@ export function mortgage(m = {}) {
 }
 const unlockOf = s => s.unlock_date || (s.birth_date && s.category === 'kind' ? addYears(s.birth_date, 18) : null);
 
-// Totalen voor één gezinslid of 'all'. Woning en hypotheek horen bij 'ouders'.
-export function totals(sources, mort, member = 'all') {
-  const list = member === 'all' ? sources : sources.filter(s => s.member === member);
-  const house = member === 'all' || member === 'ouders';
+// Gezinsleden uit fin_settings.data.members, bijv. { samen: 'Samen', frans: 'Frans', ... }.
+// De oude opbouw { ouders: 'A & B' } wordt vanzelf omgezet naar Samen + A + B.
+const slug = n => String(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+export const splitNames = t => String(t || '').split(/\s*(?:&|\ben\b|,)\s*/).filter(Boolean);
+export function familyMembers(raw = {}) {
+  const out = { samen: 'Samen' };
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'ouders') for (const n of splitNames(v)) out[slug(n)] = n;
+    else out[k] = v;
+  }
+  return out;
+}
+// Bij wie hoort een rekening: member als dat een bekend gezinslid is; de oude 'ouders' via "op naam van", anders Samen
+export function memberKey(s, ms) {
+  if (s.member && s.member !== 'ouders' && ms[s.member]) return s.member;
+  const o = String(s.owner_label || '').toLowerCase();
+  const hit = Object.entries(ms).find(([k, n]) => k !== 'samen' && o && o.startsWith(String(n).toLowerCase()));
+  return hit ? hit[0] : 'samen';
+}
+// Totalen voor één gezinslid of 'all'. Woning en hypotheek horen bij Samen.
+export function totals(sources, mort, member = 'all', keyOf = s => s.member) {
+  const list = member === 'all' ? sources : sources.filter(s => keyOf(s) === member);
+  const house = member === 'all' || member === 'samen';
   let assets = 0, liquid = 0; const byCat = {};
   for (const s of list) {
     const b = num(s.balance); if (b === null) continue;
@@ -82,10 +101,10 @@ export function totals(sources, mort, member = 'all') {
   return { assets, liquid, debt, net: assets - debt, byCat, m };
 }
 // Momentopname voor fin_snapshots
-export function snapshot(sources, mort, members, month) {
+export function snapshot(sources, mort, members, month, keyOf) {
   const t = totals(sources, mort, 'all'), r = x => Math.round(x * 100) / 100;
   const byMember = {};
-  for (const k of members) { const x = totals(sources, mort, k); byMember[k] = { assets: Math.round(x.assets), debt: Math.round(x.debt), net: Math.round(x.net) }; }
+  for (const k of members) { const x = totals(sources, mort, k, keyOf); byMember[k] = { assets: Math.round(x.assets), debt: Math.round(x.debt), net: Math.round(x.net) }; }
   return { month, assets: Math.round(t.assets), debt: Math.round(t.debt), net: Math.round(t.net), by_cat: Object.fromEntries(Object.entries(t.byCat).map(([k, v]) => [k, r(v)])), by_member: byMember, saved_at: today() };
 }
 // Groei per maand: v = v·(1+i) + inleg; Y = extra inleg elke januari. C mag een functie van de maand k zijn.
@@ -140,11 +159,21 @@ export function mountFinancieel(ctx) {
     return { sources: [...d.sources].sort((a, b) => (a.position ?? 99) - (b.position ?? 99) || String(a.name).localeCompare(b.name)),
       mort: d.mortgage[0] || {}, snaps: [...d.snapshots].sort((a, b) => (a.month < b.month ? -1 : 1)), settings, todos: d.todos };
   };
-  const members = st => ({ ouders: 'Ouders', ...(st.members || {}) });
+  const members = st => familyMembers(st.members || {});
   const memberName = (st, k) => members(st)[k] || k;
-  // Wie hebben er pensioen: goal.people, anders de namen uit het gezinslid 'ouders' ("Frans & Samantha")
-  const pensionPeople = st => (st.goal && st.goal.people && st.goal.people.length ? st.goal.people
-    : String(members(st).ouders).split(/\s*(?:&|\ben\b|,)\s*/).filter(Boolean));
+  const keyOf = st => { const ms = members(st); return s => memberKey(s, ms); };
+  // Groepen per soort; pensioen apart per persoon ("Pensioen Frans"), want dat is van één iemand
+  function catGroups(list, st) {
+    const ko = keyOf(st), out = [];
+    for (const c of Object.keys(CATS)) {
+      const xs = list.filter(s => s.category === c); if (!xs.length) continue;
+      if (c !== 'pensioen') { out.push({ c, title: CATS[c], xs }); continue; }
+      for (const k of [...new Set(xs.map(ko))]) out.push({ c, title: k === 'samen' ? 'Pensioen samen' : 'Pensioen ' + memberName(st, k), xs: xs.filter(s => ko(s) === k) });
+    }
+    return out;
+  }
+  // Wie hebben er pensioen: goal.people, anders de namen uit het oude gezinslid 'ouders' ("Frans & Samantha")
+  const pensionPeople = st => (st.goal && st.goal.people && st.goal.people.length ? st.goal.people : splitNames((st.members || {}).ouders));
 
   function header(title) {
     return `<div class="fin-head"><button class="btn link" data-act="back">‹ Financieel</button><h2>${esc(title)}</h2></div>`;
@@ -192,25 +221,33 @@ export function mountFinancieel(ctx) {
   // ---------- Vermogen ----------
   function vermogen() {
     const { sources, mort, snaps, settings: st } = data();
-    const t = totals(sources, mort, cur), withHouse = cur === 'all' || cur === 'ouders';
+    const ko = keyOf(st), t = totals(sources, mort, cur, ko), withHouse = cur === 'all' || cur === 'samen';
+    const mineList = cur === 'all' ? sources : sources.filter(s => ko(s) === cur);
+    const pensOwners = [...new Set(mineList.filter(s => s.category === 'pensioen').map(ko))].filter(k => k !== 'samen');
+    const pensLabel = 'Pensioen' + (pensOwners.length ? ' ' + pensOwners.map(k => memberName(st, k)).join(' en ') : '');
     const cats = ['woning', ...Object.keys(CATS)].filter(c => t.byCat[c] > 0);
     const name = cur === 'all' ? 'hele gezin' : memberName(st, cur);
     const netOf = x => (cur === 'all' ? x.net : (x.by_member && x.by_member[cur] ? x.by_member[cur].net : null));
     const hist = snaps.map(x => ({ m: x.month, v: netOf(x) })).filter(x => x.v !== null);
     let h = header(SUBS.vermogen) + chips(st);
     h += `<div class="fin-hero card"><small>Netto vermogen ${esc(name)}</small><b class="fin-big">${esc(eur(t.net))}</b></div>
-      <div class="ls-sum">${kpi('Bezittingen', eur(t.assets))}${withHouse ? kpi('Hypotheek', t.debt ? '− ' + eur(t.debt) : '–', 'hot') : ''}${kpi('Direct beschikbaar', eur(t.liquid))}</div>`;
+      <div class="ls-sum">${kpi('Bezittingen', eur(t.assets))}${withHouse ? kpi('Hypotheek', t.debt ? '−\u00a0' + eur(t.debt) : '–', 'hot') : ''}${kpi('Direct beschikbaar', eur(t.liquid))}</div>`;
     if (cats.length) h += `<div class="fin-stack">${cats.map(c => `<span style="width:${(t.byCat[c] / t.assets * 100).toFixed(2)}%;background:${CAT_COLOR[c]}"></span>`).join('')}</div>
-      <div class="fin-legend">${cats.map(c => `<span><i style="background:${CAT_COLOR[c]}"></i>${c === 'woning' ? 'Geschatte woningwaarde' : CATS[c]} <b>${esc(eur(t.byCat[c]))}</b></span>`).join('')}</div>`;
+      <div class="fin-legend">${cats.map(c => `<span><i style="background:${CAT_COLOR[c]}"></i>${c === 'woning' ? 'Geschatte woningwaarde' : c === 'pensioen' ? pensLabel : CATS[c]} <b>${esc(eur(t.byCat[c]))}</b></span>`).join('')}</div>`;
     h += `<div class="group"><h3>Verloop per maand</h3>`;
     if (hist.length >= 2) h += `<div class="card">${lineChart([{ v: hist.map(x => x.v), color: 'var(--blue)', w: 2.5, dots: hist.length < 13, area: true }], { labels: [[0, hist[0].m.slice(5) + '/' + hist[0].m.slice(2, 4)], [hist.length - 1, hist[hist.length - 1].m.slice(5) + '/' + hist[hist.length - 1].m.slice(2, 4)]] })}</div>`;
-    else h += `<p class="ls-hint">De grafiek verschijnt vanaf twee vastgelegde maanden.</p>`;
+    else h += `<p class="ls-hint">${hist.length ? 'De grafiek verschijnt vanaf twee vastgelegde maanden.' : `Voor ${esc(name)} is nog geen maand apart vastgelegd. Dat gebeurt vanaf de volgende keer saldi bijwerken.`}</p>`;
     h += hist.slice().reverse().map((x, i, a) => {
       const prev = a[i + 1], diff = prev ? x.v - prev.v : null;
       return `<div class="fin-row"><span class="fin-name" style="text-transform:capitalize">${esc(monthName(x.m))}</span><span class="fin-amt">${esc(eur(x.v))}${diff !== null ? `<small class="${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '+' : '−'} ${esc(eur(Math.abs(diff)))}</small>` : ''}</span></div>`;
     }).join('') + `</div>`;
+    // Rekeningen van dit gezinslid
+    if (cur !== 'all' && cur !== 'samen' && !['sven', 'zoe'].includes(cur)) h += `<p class="ls-hint">Gezamenlijke rekeningen, het huis en de hypotheek staan onder Samen.</p>`;
+    if (cur !== 'all') h += `<div class="group"><h3>Rekeningen ${esc(name)}</h3>${mineList.length || withHouse ? '' : '<p class="ls-hint">Nog geen rekeningen. Voeg ze toe via Rekeningen, en kies bij "Van wie" deze naam.</p>'}${
+      (withHouse && num(mort.house_value) ? `<div class="fin-row"><span class="fin-name"><b>🏠 Geschatte woningwaarde</b><small>Hypotheek − ${esc(eur(t.debt))}</small></span><span class="fin-amt">${esc(eur(mort.house_value))}</span></div>` : '') +
+      mineList.map(s => `<div class="fin-row"><span class="fin-name"><b>${CAT_ICON[s.category] || ''} ${esc(s.name)}</b><small>${esc(s.institution || '')}${s.as_of ? ' · ' + esc(fmtD(s.as_of)) : ''}</small></span><span class="fin-amt">${num(s.balance) !== null ? esc(eur(s.balance)) : '–'}</span></div>`).join('')}</div>`;
     // Wanneer komt er geld vrij
-    const tl = (cur === 'all' ? sources : sources.filter(s => s.member === cur)).map(s => ({ s, u: unlockOf(s) })).filter(x => x.u);
+    const tl = mineList.map(s => ({ s, u: unlockOf(s) })).filter(x => x.u);
     if (t.m.end && withHouse) tl.push({ s: { name: 'Hypotheek afgelost', balance: null }, u: t.m.end, mort: true });
     tl.sort((a, b) => a.u.localeCompare(b.u));
     if (tl.length) h += `<div class="group"><h3>Wanneer komt het vrij</h3>${tl.map(({ s, u, mort: mo }) => {
@@ -222,17 +259,18 @@ export function mountFinancieel(ctx) {
 
   // ---------- Rekeningen ----------
   function rekeningen() {
-    const { sources, settings: st } = data();
-    let h = header(SUBS.rekeningen) + `<button class="btn primary wide" data-sub="bijwerken">Saldi bijwerken</button>`;
-    if (!sources.length) h += `<p class="empty">Nog geen rekeningen. Voeg je eerste rekening toe.</p>`;
-    for (const c of Object.keys(CATS)) {
-      const xs = sources.filter(s => s.category === c); if (!xs.length) continue;
+    const d = data(), st = d.settings, ko = keyOf(st);
+    let h = header(SUBS.rekeningen) + chips(st);
+    const sources = cur === 'all' ? d.sources : d.sources.filter(s => ko(s) === cur);
+    h += `<button class="btn primary wide" data-sub="bijwerken">Saldi bijwerken</button>`;
+    if (!sources.length) h += `<p class="empty">${cur === 'all' ? 'Nog geen rekeningen.' : 'Nog geen rekeningen van ' + esc(memberName(st, cur)) + '.'} Voeg ze hieronder toe.</p>`;
+    for (const { c, title, xs } of catGroups(sources, st)) {
       const tot = xs.reduce((a, s) => a + (num(s.balance) || 0), 0);
-      h += `<div class="group"><h3 class="fin-h3"><span>${CAT_ICON[c]} ${CATS[c]}</span><span>${esc(eur(tot))}</span></h3>${xs.map(s => {
+      h += `<div class="group"><h3 class="fin-h3"><span>${CAT_ICON[c]} ${esc(title)}</span><span>${esc(eur(tot))}</span></h3>${xs.map(s => {
         const u = unlockOf(s), old = stale(s);
         const inleg = [num(s.monthly_contribution) ? eur(s.monthly_contribution) + '/mnd' : '', num(s.yearly_contribution) ? eur(s.yearly_contribution) + ' elke jan' : ''].filter(Boolean).join(', ');
         return `<div class="task fin-src${old ? ' stale' : ''}" data-id="${esc(s.id)}"><button class="txt" data-act="edit"><b>${esc(s.name)}</b>
-          <small>${esc([s.institution, memberName(st, s.member) === s.owner_label ? '' : s.owner_label || memberName(st, s.member)].filter(Boolean).join(' · '))}</small>
+          <small>${esc([s.institution, memberName(st, keyOf(st)(s))].filter(Boolean).join(' · '))}</small>
           <small><span class="${old ? 'due' : ''}">${s.as_of ? 'Bijgewerkt ' + esc(fmtD(s.as_of)) : 'Nog geen saldo'}</span>${u ? ` · vrij ${u <= today() ? 'nu' : 'vanaf ' + esc(fmtD(u))}` : ''}${inleg ? ' · inleg ' + esc(inleg) : ''}</small></button>
           <span class="ls-amt">${num(s.balance) !== null ? esc(eur(s.balance)) : '–'}</span></div>`;
       }).join('')}</div>`;
@@ -250,7 +288,7 @@ export function mountFinancieel(ctx) {
         { name: 'name', label: 'Naam (geen volledig rekeningnummer, hooguit de laatste 4 cijfers)', value: s.name, required: true },
         { name: 'institution', label: 'Bank of instelling', value: s.institution },
         { name: 'category', label: 'Soort', type: 'select', options: catLabels, value: CATS[s.category] || CATS.sparen },
-        { name: 'member', label: 'Van wie', type: 'select', options: memLabels, value: ms[s.member] || memLabels[0] },
+        { name: 'member', label: 'Van wie (Samen = gezamenlijk)', type: 'select', options: memLabels, value: ms[memberKey(s, ms)] || memLabels[0] },
         { name: 'owner_label', label: 'Op naam van (bijv. Frans, gezamenlijk)', value: s.owner_label },
         { name: 'balance', label: 'Saldo in euro', inputmode: 'decimal', value: inAmt(s.balance) },
         { name: 'as_of', label: 'Saldo per datum', type: 'date', value: s.as_of || today() },
@@ -274,7 +312,7 @@ export function mountFinancieel(ctx) {
         const row = {
           name: v.name.slice(0, 80), institution: v.institution || '',
           category: Object.keys(CATS).find(k => CATS[k] === v.category) || 'sparen',
-          member: Object.keys(ms).find(k => ms[k] === v.member) || 'ouders', owner_label: v.owner_label || '',
+          member: Object.keys(ms).find(k => ms[k] === v.member) || 'samen', owner_label: v.owner_label || '',
           balance: n.balance, as_of: v.as_of || null, unlock_date: v.unlock_date || null, birth_date: v.birth_date || null,
           monthly_contribution: n.monthly || 0, next_contribution: n.next, next_contribution_from: v.next_from || null,
           yearly_contribution: n.yearly || 0, expected_return_pct: n.ret, payout_rate_pct: n.payout,
@@ -331,7 +369,7 @@ export function mountFinancieel(ctx) {
   function pensioen() {
     const { sources, settings: st } = data(), g = st.goal || {};
     const people = pensionPeople(st);
-    const potOwner = s => people.find(n => String(s.owner_label || '').toLowerCase().startsWith(n.toLowerCase())) || null;
+    const ko = keyOf(st), potOwner = s => people.find(n => ko(s) === slug(n) || String(s.owner_label || '').toLowerCase().startsWith(n.toLowerCase())) || null;
     const pensionsOf = name => (g.pensions || []).filter(p => (p.person || people[0]) === name);
     const potsOf = name => sources.filter(s => s.category === 'pensioen' && potOwner(s) === name);
     const missing = people.filter(n => !pensionsOf(n).length && !potsOf(n).length);
@@ -393,7 +431,7 @@ export function mountFinancieel(ctx) {
     if (ks.length) h += `<div class="group"><h3>Rekeningen kinderen: wat staat er op hun 18e</h3>${ks.map(s => {
       const M = monthsUntil(unlockOf(s)); if (M < 1) return '';
       const C = num(s.monthly_contribution) || 0, Y = num(s.yearly_contribution) || 0, vals = SCEN.slice(1).map(sc => project(num(s.balance), C, sc.r, M, Y)[M]);
-      return `<div class="card fin-card"><b>${esc(memberName(st, s.member))}</b><small class="mut">18 jaar op ${esc(fmtD(unlockOf(s)))} · nu ${esc(eur(s.balance))}${C || Y ? '' : ', zonder extra inleg'}</small>
+      return `<div class="card fin-card"><b>${esc(memberName(st, keyOf(st)(s)))}</b><small class="mut">18 jaar op ${esc(fmtD(unlockOf(s)))} · nu ${esc(eur(s.balance))}${C || Y ? '' : ', zonder extra inleg'}</small>
         <div class="fin-kids">${vals.map((v, i) => `<div><small>${SCEN[i + 1].r}%</small><b>${esc(eur(v))}</b></div>`).join('')}</div></div>`;
     }).join('')}</div>`;
     return h + `<button class="btn wide" data-act="settings">Pensioendoel aanpassen</button>`;
@@ -525,9 +563,8 @@ export function mountFinancieel(ctx) {
   function bijwerken() {
     const { sources, snaps } = data(), ym = today().slice(0, 7);
     return header(SUBS.bijwerken) + `<p class="ls-hint">Vul de saldi van vandaag in. Wat je niet weet, laat je staan. Daarna wordt ${esc(monthName(ym))} vastgelegd${monthDone(snaps) ? ' (de eerdere stand van deze maand wordt overschreven)' : ''}.</p>
-      <form id="finUpd">${Object.keys(CATS).map(c => {
-        const xs = sources.filter(s => s.category === c); if (!xs.length) return '';
-        return `<div class="group"><h3>${CAT_ICON[c]} ${CATS[c]}</h3>${xs.map(s => `<label class="fin-in${stale(s) ? ' stale' : ''}"><span><b>${esc(s.name)}</b><small>${esc(s.institution || '')} · nu ${num(s.balance) !== null ? esc(eur(s.balance, 2)) : '–'} (${esc(fmtD(s.as_of))})</small></span>
+      <form id="finUpd">${catGroups(sources, data().settings).map(({ c, title, xs }) => {
+        return `<div class="group"><h3>${CAT_ICON[c]} ${esc(title)}</h3>${xs.map(s => `<label class="fin-in${stale(s) ? ' stale' : ''}"><span><b>${esc(s.name)}</b><small>${esc(s.institution || '')} · nu ${num(s.balance) !== null ? esc(eur(s.balance, 2)) : '–'} (${esc(fmtD(s.as_of))})</small></span>
           <input name="${esc(s.id)}" inputmode="decimal" autocomplete="off" placeholder="${esc(inAmt(s.balance))}" aria-label="Nieuw saldo ${esc(s.name)}"></label>`).join('')}</div>`;
       }).join('')}
       <label class="fin-date">Saldo per datum<input type="date" name="__date" value="${today()}"></label>
@@ -543,7 +580,7 @@ export function mountFinancieel(ctx) {
     }
     for (const c of changes) if (!await run(sb.from('fin_sources').update({ balance: c.balance, as_of: c.as_of }).eq('id', c.id))) return;
     await ctx.load('fin_sources');
-    const fresh = data(), snap = snapshot(fresh.sources, fresh.mort, Object.keys(members(fresh.settings)), d.slice(0, 7));
+    const fresh = data(), snap = snapshot(fresh.sources, fresh.mort, Object.keys(members(fresh.settings)), d.slice(0, 7), keyOf(fresh.settings));
     if (await run(sb.from('fin_snapshots').upsert(snap), `${changes.length === 1 ? '1 saldo' : changes.length + ' saldi'} bijgewerkt, ${monthName(d.slice(0, 7))} vastgelegd`)) {
       await ctx.load('fin_snapshots'); sub = 'vermogen'; render(); window.scrollTo(0, 0);
     }
@@ -566,12 +603,12 @@ export function mountFinancieel(ctx) {
     if (act === 'back') { sub = ''; render(); window.scrollTo(0, 0); return; }
     if (act === 'member') { cur = el.dataset.m; try { localStorage.setItem('fin-member', cur); } catch { /* */ } render(); return; }
     if (act === 'years') { invYears = +el.dataset.y; render(); return; }
-    if (act === 'new') { editSource(); return; }
+    if (act === 'new') { editSource(cur !== 'all' ? { member: cur } : {}); return; }
     if (act === 'mort') { editMort(); return; }
     if (act === 'plan') { editPlan(); return; }
     if (act === 'settings') { editGoal(); return; }
     if (act === 'pensions') { editPensions(el.dataset.person); return; }
-    if (act === 'addpot') { editSource({ category: 'pensioen', member: 'ouders', owner_label: el.dataset.person }); return; }
+    if (act === 'addpot') { editSource({ category: 'pensioen', member: slug(el.dataset.person), owner_label: el.dataset.person }); return; }
     if (act === 'newtodo') { editTodo(); return; }
     const id = el.closest('[data-id]')?.dataset.id;
     if (act === 'edit') { const s = data().sources.find(x => x.id === id); if (s) editSource(s); return; }
