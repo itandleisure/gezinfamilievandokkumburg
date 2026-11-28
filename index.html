@@ -21,7 +21,7 @@
 <section id="login" class="login" hidden>
   <div class="login-card">
     <h1>Gezin</h1>
-    <p class="mut">Menu, gewicht en sport, boodschappen, cadeaus, notities, nummers, Spaans en taken.</p>
+    <p class="mut">Menu, gewicht en sport, boodschappen, cadeaus, notities, nummers, Spaans, taken en kijken.</p>
     <form id="loginForm">
       <label>E-mail<input type="email" id="loginEmail" autocomplete="username" required></label>
       <label>Wachtwoord<input type="password" id="loginPass" autocomplete="current-password" required></label>
@@ -111,6 +111,11 @@
       <div id="takenRoot"></div>
     </section>
 
+    <!-- Kijken: eigen kijklijst met Vanavond en Deze week -->
+    <section class="view" id="view-kijken" hidden>
+      <div id="kijkenRoot"></div>
+    </section>
+
     <!-- Nummers -->
     <section class="view" id="view-nummers" hidden>
       <button class="btn primary wide" id="contactNew">Nummer toevoegen</button>
@@ -126,6 +131,7 @@
       <a class="tile" href="#nummers" data-v="nummers"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1"/></svg><span>Nummers</span><small>Bellen met één tik</small></a>
       <a class="tile" href="#spaans" data-v="spaans"><svg viewBox="0 0 24 24"><path d="M4 5h9a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H9l-4 3v-3H4z"/><path d="M8 9.5h4M8 12.5h2.5"/><path d="M16 9h3a1 1 0 0 1 1 1v7h-1v3l-3-2.5"/></svg><span>Spaans</span><small>Woorden en werkwoorden oefenen</small></a>
       <a class="tile" href="#taken" data-v="taken"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/><path d="M8.5 12.5l2.5 2.5 5-5"/></svg><span>Taken <b class="badge" id="taskBadgeTile" hidden></b></span><small>Terugkerende klusjes, zoals het airco-filter</small></a>
+      <a class="tile" href="#kijken" data-v="kijken"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4M10 9l4 2-4 2z"/></svg><span>Kijken</span><small>Series, films en Formule 1, met een seintje vooraf</small></a>
       </nav>
     </section>
   </main>

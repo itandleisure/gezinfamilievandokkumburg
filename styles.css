@@ -492,3 +492,22 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .task .who{display:inline-block;vertical-align:2px;margin-left:6px;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700;background:light-dark(#e3ecf7,#1f3352);color:var(--blue)}
 .task .who.me{background:light-dark(#f8e3dc,#4a2418);color:var(--terra)}
 .task .who.samen{background:var(--bg);color:var(--mut);border:1px solid var(--line)}
+
+/* Kijken */
+.kj-tonight{border-bottom:5px solid var(--terra);margin-bottom:14px}
+.kj-tonight h3{margin:0 0 6px;color:var(--terra);font-size:18px}
+.kj-h{font-size:14px;color:var(--terra);margin:6px 0 4px}
+.kj-day h4{margin:12px 0 4px;font-size:15px;color:var(--blue)}
+.kj-ev{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
+.kj-day .kj-ev:first-of-type,.kj-tonight .kj-ev:first-of-type{border-top:0}
+.kj-time{flex:none;min-width:48px;font-weight:800;font-size:17px;color:var(--terra)}
+.kj-what b{display:block;font-size:16px;line-height:1.3}
+.kj-what small{color:var(--mut);font-size:13px}
+.kj-svc{display:inline-block;font-size:12px;font-weight:700;padding:1px 7px;border-radius:8px;background:var(--line);color:var(--ink);vertical-align:1px}
+.kj-svc.zi{background:#f48c00;color:#fff}.kj-svc.vl{background:#d0021b;color:#fff}.kj-svc.dp{background:#113ccf;color:#fff}
+.kj-svc.ap{background:#00a8e1;color:#fff}.kj-svc.np{background:#ff6d00;color:#fff}
+.kj-f1set{display:flex;align-items:center;gap:6px;width:100%;min-height:48px;margin:14px 0;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.kj-f1set span{flex:1}
+.kj-f1set em{font-style:normal;color:var(--blue);font-weight:600}
+.kj-bell svg{width:14px;height:14px;vertical-align:-2px;stroke:var(--blue);fill:none;stroke-width:2}
+.kj-seen summary{cursor:pointer;color:var(--ok);font-weight:600;font-size:14px;min-height:44px;display:flex;align-items:center}

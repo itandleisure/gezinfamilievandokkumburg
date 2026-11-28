@@ -293,3 +293,39 @@ alter table public.gift_lists add column if not exists yearly boolean default fa
 alter table public.gift_lists add column if not exists budget numeric(8,2);
 alter table public.gift_items add column if not exists price numeric(8,2);
 grant select on public.gift_lists, public.gift_items to service_role;
+
+-- Kijken: eigen kijklijst (series, films, sport), alleen voor jezelf. Formule 1 komt automatisch uit de openbare F1-kalender (jolpica).
+create table if not exists public.watch_items (
+  id uuid primary key default gen_random_uuid(),
+  owner uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  title text not null,
+  kind text not null default 'serie',          -- 'serie', 'film', 'sport', 'programma'
+  service text not null default '',            -- 'Ziggo', 'Videoland', 'Disney+', 'Amazon Prime', 'NPO Start', ''
+  weekday smallint check (weekday between 0 and 6),   -- elke week op deze dag (0 = maandag)
+  on_date date,                                -- of één keer op deze datum
+  at_time time,                                -- tijd in Spaanse tijd
+  remind_min integer not null default 30 check (remind_min between 0 and 1440),   -- 0 = geen melding
+  note text not null default '',               -- bijv. 'op de laptop'
+  seen boolean not null default false,
+  created_at timestamptz default now()
+);
+create table if not exists public.watch_prefs (
+  owner uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  f1 smallint not null default 1 check (f1 between 0 and 3),   -- 0 uit, 1 alleen race, 2 ook kwalificatie en sprint, 3 ook trainingen
+  f1_service text not null default 'Ziggo',
+  f1_remind_min integer not null default 30 check (f1_remind_min between 0 and 1440),
+  updated_at timestamptz default now()
+);
+grant select, insert, update, delete on public.watch_items, public.watch_prefs to authenticated;
+grant select on public.watch_items, public.watch_prefs to service_role;
+alter table public.watch_items enable row level security;
+alter table public.watch_prefs enable row level security;
+drop policy if exists "alleen eigen gegevens" on public.watch_items;
+create policy "alleen eigen gegevens" on public.watch_items for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
+drop policy if exists "alleen eigen gegevens" on public.watch_prefs;
+create policy "alleen eigen gegevens" on public.watch_prefs for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
+create index if not exists watch_items_owner on public.watch_items (owner);
+do $$ begin
+  alter publication supabase_realtime add table public.watch_items;
+exception when duplicate_object then null;
+end $$;

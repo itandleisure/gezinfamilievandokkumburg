@@ -4,6 +4,8 @@
 // - ?action=run  : door pg_cron elke 10 minuten aangeroepen; stuurt per persoon hooguit één keer per dag per soort melding
 // - ?action=week : (test) stuurt het weekoverzicht nu naar één abonnement (body: {endpoint})
 // Taken: elke dag vanaf 09:00 één melding per persoon als er taken over tijd zijn (eigen taken plus taken van samen).
+// - ?action=f1   : de Formule 1-sessies van dit seizoen (uit de openbare jolpica-kalender), voor het tabblad Kijken
+// Kijken: bij elke run ook een seintje vlak voor wat je wilt kijken (watch_items en Formule 1, watch_prefs).
 // Op zondag tussen 19:00 en 21:00 gaat het weekoverzicht: gewicht, bewegen en water van de week, met een complimentje of tip.
 // Cadeaus: vanaf 10:00 een seintje als een verjaardag (gift_lists.yearly) of andere datum over precies 14 dagen is. Naar iedereen.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
@@ -144,6 +146,88 @@ async function giftMsg(day: string) {
 }
 
 
+// ---------- Kijken: Formule 1-kalender en seintje vooraf ----------
+type F1 = { key: string; race: string; session: string; level: number; start: string };
+const F1_SES: [string, string, number][] = [['FirstPractice', 'Training 1', 3], ['SecondPractice', 'Training 2', 3], ['ThirdPractice', 'Training 3', 3],
+  ['SprintQualifying', 'Sprintkwalificatie', 2], ['Sprint', 'Sprintrace', 2], ['Qualifying', 'Kwalificatie', 2]];
+const NL_RACE: Record<string, string> = { 'Australian': 'Australië', 'Chinese': 'China', 'Japanese': 'Japan', 'Bahrain': 'Bahrein', 'Saudi Arabian': 'Saoedi-Arabië', 'Miami': 'Miami',
+  'Canadian': 'Canada', 'Monaco': 'Monaco', 'Spanish': 'Spanje', 'Barcelona-Catalunya': 'Barcelona', 'Austrian': 'Oostenrijk', 'British': 'Groot-Brittannië', 'Belgian': 'België',
+  'Hungarian': 'Hongarije', 'Dutch': 'Nederland', 'Italian': 'Italië', 'Madrid': 'Madrid', 'Azerbaijan': 'Azerbeidzjan', 'Singapore': 'Singapore', 'United States': 'Verenigde Staten',
+  'Mexico City': 'Mexico', 'São Paulo': 'Brazilië', 'Las Vegas': 'Las Vegas', 'Qatar': 'Qatar', 'Abu Dhabi': 'Abu Dhabi', 'Emilia Romagna': 'Imola' };
+const raceNl = (n: string) => { const b = n.replace(/ Grand Prix$/, ''); return NL_RACE[b] ? `GP ${NL_RACE[b]}` : n; };
+let f1Cache: { at: number; list: F1[] } | null = null;
+async function f1Season(year: number): Promise<F1[]> {
+  const r = await fetch(`https://api.jolpi.ca/ergast/f1/${year}/races.json?limit=40`);
+  if (!r.ok) throw new Error('F1-kalender ' + r.status);
+  const races = (await r.json())?.MRData?.RaceTable?.Races || [];
+  const out: F1[] = [];
+  for (const x of races) {
+    const race = raceNl(x.raceName);
+    const add = (d: { date?: string; time?: string } | undefined, session: string, level: number) => {
+      if (d?.date && d?.time) out.push({ key: `${x.season}-${x.round}-${session}`, race, session, level, start: `${d.date}T${d.time}` });
+    };
+    for (const [k, name, lvl] of F1_SES) add(x[k], name, lvl);
+    add({ date: x.date, time: x.time }, 'Race', 1);
+  }
+  return out;
+}
+async function f1Sessions(): Promise<F1[]> {
+  if (f1Cache && Date.now() - f1Cache.at < 6 * 3600e3) return f1Cache.list;
+  const y = new Date().getUTCFullYear();
+  let list = await f1Season(y);
+  if (!list.some(s => Date.parse(s.start) > Date.now())) list = list.concat(await f1Season(y + 1).catch(() => []));
+  list = list.filter(s => Date.parse(s.start) > Date.now() - 7 * 864e5).sort((a, b) => a.start.localeCompare(b.start));
+  f1Cache = { at: Date.now(), list };
+  return list;
+}
+// Dag + tijd in Cómpeta naar een echt moment (ms)
+function madridMs(day: string, time: string) {
+  const guess = Date.parse(`${day}T${time.slice(0, 5)}:00Z`);
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(guess)).map(x => [x.type, x.value]));
+  const asLocal = Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`);
+  return guess - (asLocal - guess);
+}
+const hhmm = (ms: number) => new Intl.DateTimeFormat('nl-NL', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+async function runKijk(subs: Sub[], day: string, dow: number) {
+  const owners = [...new Set(subs.map(s => s.owner))];
+  if (!owners.length) return {};
+  const [{ data: items, error }, { data: prefs }] = await Promise.all([
+    db.from('watch_items').select('*').in('owner', owners).eq('seen', false).gt('remind_min', 0).not('at_time', 'is', null),
+    db.from('watch_prefs').select('*').in('owner', owners)
+  ]);
+  if (error) return {}; // tabel bestaat (nog) niet
+  const now = Date.now(), tomorrow = addDays(day, 1);
+  type Ev = { owner: string; key: string; start: number; remind: number; title: string; body: string };
+  const ev: Ev[] = [];
+  for (const it of items || []) {
+    const days = it.weekday != null ? [[day, dow], [tomorrow, (dow + 1) % 7]].filter(([, d]) => d === it.weekday).map(([d]) => d as string) : it.on_date ? [it.on_date] : [];
+    for (const d of days) {
+      const start = madridMs(d, it.at_time);
+      ev.push({ owner: it.owner, key: `kijk:${it.id}:${d}`, start, remind: it.remind_min, title: `Om ${hhmm(start)}: ${it.title}`,
+        body: [it.service ? `Op ${it.service}` : '', it.note].filter(Boolean).join(' · ') || 'Zo begint het. Veel kijkplezier!' });
+    }
+  }
+  const f1Fans = (prefs || []).filter(p => p.f1 > 0 && p.f1_remind_min > 0);
+  if (f1Fans.length) {
+    const ses = await f1Sessions().catch(() => [] as F1[]);
+    for (const p of f1Fans) for (const s of ses) {
+      if (s.level > p.f1) continue;
+      const start = Date.parse(s.start);
+      ev.push({ owner: p.owner, key: `kijk:f1:${s.key}`, start, remind: p.f1_remind_min, title: `Om ${hhmm(start)}: Formule 1, ${s.race}`,
+        body: `${s.session}${p.f1_service ? ` op ${p.f1_service}` : ''}. ¡Vamos!` });
+    }
+  }
+  const out: Record<string, string[]> = {};
+  for (const e of ev) {
+    if (!(now >= e.start - e.remind * 60e3 && now < e.start)) continue;
+    const { error: dup } = await db.from('push_log').insert({ owner: e.owner, day: madrid(new Date(e.start)).day, kind: e.key });
+    if (dup) continue; // al verstuurd
+    for (const s of subs.filter(s => s.owner === e.owner)) await send(s, e.key, { title: e.title, body: e.body, url: '/#kijken' });
+    (out[e.owner] ||= []).push(e.key);
+  }
+  return out;
+}
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
@@ -178,7 +262,9 @@ async function run() {
     out[owner] = kind;
   }
   await runTasks((subs || []) as Sub[], owners, day, hour, out);
-  return { day, hour, sent: out };
+  let kijk = {};
+  try { kijk = await runKijk((subs || []) as Sub[], day, dow); } catch (e) { console.error('kijken', e); }
+  return { day, hour, sent: out, kijk };
 }
 
 Deno.serve(async req => {
@@ -203,6 +289,7 @@ Deno.serve(async req => {
       return json({ ok: await send(sub, 'week', msg), msg });
     }
     if (action === 'run') return json(await run());
+    if (action === 'f1') return new Response(JSON.stringify({ sessions: await f1Sessions() }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
     return json({ error: 'onbekende actie' }, 400);
   } catch (e) {
     console.error(e);
