@@ -265,3 +265,6 @@ exception when duplicate_object then null;
 end $$;
 -- Weekoverzicht op zondag (pushmelding): de functie leest instellingen mee
 grant select on public.health_settings, public.health_day to service_role;
+
+-- Nummers: groep Nood heet voortaan Spoed (staat bovenaan met grote belknoppen)
+update public.contacts set category = 'Spoed' where category = 'Nood';

@@ -16,6 +16,8 @@ const ICON_REPEAT = '<svg viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="
 const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const ICON_UP = '<svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
 const ICON_DOWN = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+const ICON_WA = '<svg viewBox="0 0 24 24"><path d="M4 20l1.3-4A8 8 0 1 1 8.4 19z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1-.4-2-1.4-2.4-2.4l.9-1-1-2z"/></svg>';
+const ICON_PIN = '<svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 4 4H6l4-4zM12 13v8"/></svg>';
 const ICON_PHONE = '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1"/></svg>';
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
 function confirmTwice(btn, label, fn) {
@@ -31,7 +33,7 @@ const DEFAULT_CATALOG = {
   Verzorging: ['Tandpasta', 'Tandenborstels', 'Douchegel', 'Shampoo', 'Deodorant', 'Scheermesjes', 'Handzeep', 'Zonnebrand', 'Wattenstaafjes'],
   Basis: ['Koffie', 'Thee', 'Melk', 'Eieren', 'Brood', 'Boter', 'Water', 'Cola Zero', 'Olijfolie', 'Zout', 'Peper', 'Suiker']
 };
-const CONTACT_CATS = ['Nood', 'Medisch', 'Gemeente & politie', 'School', 'Huis & klussen', 'Familie', 'Overig'];
+const CONTACT_CATS = ['Spoed', 'Medisch', 'Gemeente & politie', 'School', 'Huis & klussen', 'Familie', 'Overig'];
 
 // ---------- Supabase ----------
 if (SUPABASE_URL === 'VUL_IN' || SUPABASE_ANON_KEY === 'VUL_IN') {
@@ -372,6 +374,7 @@ function noteRow(n) {
   return `<div class="note-row${n.done ? ' done' : ''}" data-id="${esc(n.id)}">
     <button class="tick" data-act="done" aria-label="${n.done ? 'Terugzetten' : 'Afvinken'}: ${esc(n.title || 'notitie')}"><span>${ICON_CHECK}</span></button>
     <button class="note" data-act="open">${n.pinned && !n.done ? '<span class="pin">Vastgezet</span>' : ''}<b>${esc(n.title || 'Zonder titel')}</b>${n.body ? `<p>${esc(n.body)}</p>` : ''}${n.done && n.done_at ? `<small class="mut">Afgerond op ${new Date(n.done_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}</small>` : ''}</button>
+    ${n.done ? '' : `<button class="mini pinbtn${n.pinned ? ' on' : ''}" data-act="pin" aria-pressed="${!!n.pinned}" aria-label="${n.pinned ? 'Losmaken' : 'Vastzetten'}: ${esc(n.title || 'notitie')}" title="${n.pinned ? 'Losmaken' : 'Bovenaan vastzetten'}">${ICON_PIN}</button>`}
   </div>`;
 }
 function renderNotes() {
@@ -403,6 +406,11 @@ $('#noteList').addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const n = S.notes.find(x => x.id === el.closest('.note-row').dataset.id); if (!n) return;
   if (el.dataset.act === 'open') { editNote(n); return; }
+  if (el.dataset.act === 'pin') {
+    n.pinned = !n.pinned; renderNotes();
+    run(sb.from('notes').update({ pinned: n.pinned }).eq('id', n.id), n.pinned ? 'Bovenaan vastgezet' : 'Losgemaakt');
+    return;
+  }
   n.done = !n.done; n.done_at = n.done ? new Date().toISOString() : null;
   renderNotes();
   run(sb.from('notes').update({ done: n.done, done_at: n.done_at }).eq('id', n.id), n.done ? 'Afgerond en naar het archief' : 'Teruggezet');
@@ -410,21 +418,43 @@ $('#noteList').addEventListener('click', e => {
 
 // ---------- Nummers ----------
 const telHref = p => 'tel:' + String(p).replace(/[^\d+]/g, '');
+// WhatsApp-nummer in internationale vorm (zonder +), alleen voor mobiele nummers. Leeg = geen WhatsApp-knop.
+// Spaans zonder landcode (9 cijfers) krijgt 34 ervoor, Nederlands 06... wordt 316...
+function waNumber(p) {
+  let s = String(p || '').trim().replace(/[^\d+]/g, '');
+  if (s.startsWith('+')) s = s.slice(1);
+  else if (s.startsWith('00')) s = s.slice(2);
+  else if (/^[6-9]\d{8}$/.test(s)) s = '34' + s;
+  else if (/^06\d{8}$/.test(s)) s = '31' + s.slice(1);
+  else return '';
+  s = s.replace(/\D/g, '');
+  if (/^34[89]/.test(s) || /^31[1-57-9]/.test(s)) return ''; // vaste lijn
+  return s.length >= 10 ? s : '';
+}
+const contactCat = x => x.category === 'Nood' ? 'Spoed' : CONTACT_CATS.includes(x.category) ? x.category : 'Overig';
 function renderContacts() {
-  const groups = CONTACT_CATS.map(c => [c, S.contacts.filter(x => (CONTACT_CATS.includes(x.category) ? x.category : 'Overig') === c)]).filter(g => g[1].length);
-  $('#contactList').innerHTML = groups.length ? groups.map(([c, list]) => `<div class="group"><h3>${esc(c)}</h3>${list.map(x => `
+  const spoed = S.contacts.filter(x => contactCat(x) === 'Spoed');
+  const groups = CONTACT_CATS.filter(c => c !== 'Spoed').map(c => [c, S.contacts.filter(x => contactCat(x) === c)]).filter(g => g[1].length);
+  const spoedHtml = spoed.length ? `<div class="spoed"><h3>Spoed</h3><div class="spoed-grid">${spoed.map(x => `
+    <div class="spoed-tile" data-id="${esc(x.id)}">
+      <a class="spoed-call" href="${esc(telHref(x.phone))}" aria-label="Bel ${esc(x.name)}, ${esc(x.phone)}">${ICON_PHONE}<span class="nr">${esc(x.phone)}</span><b>${esc(x.name)}</b>${x.note ? `<small>${esc(x.note)}</small>` : ''}</a>
+      <button class="mini" data-act="edit" aria-label="Bewerken: ${esc(x.name)}">${ICON_EDIT}</button>
+    </div>`).join('')}</div></div>` : '';
+  const row = x => { const wa = waNumber(x.phone); return `
     <div class="contact" data-id="${esc(x.id)}">
       <div class="txt"><b>${esc(x.name)}</b><small>${esc(x.phone)}${x.note ? ' · ' + esc(x.note) : ''}</small></div>
       <button class="mini" data-act="edit" aria-label="Bewerken: ${esc(x.name)}">${ICON_EDIT}</button>
-      <a class="call" href="${esc(telHref(x.phone))}" aria-label="Bel ${esc(x.name)}">${ICON_PHONE}Bel</a>
-    </div>`).join('')}</div>`).join('')
+      <div class="contact-btns">${wa ? `<a class="wa" href="https://wa.me/${wa}" target="_blank" rel="noopener" aria-label="WhatsApp ${esc(x.name)}">${ICON_WA}<span>WhatsApp</span></a>` : ''}
+      <a class="call" href="${esc(telHref(x.phone))}" aria-label="Bel ${esc(x.name)}">${ICON_PHONE}Bel</a></div>
+    </div>`; };
+  $('#contactList').innerHTML = (spoedHtml || groups.length) ? spoedHtml + groups.map(([c, list]) => `<div class="group"><h3>${esc(c)}</h3>${list.map(row).join('')}</div>`).join('')
     : '<p class="empty">Nog geen nummers. Voeg de huisarts, school, gestor of loodgieter toe.</p>';
 }
 function editContact(x = {}) {
   openDialog({
     title: x.id ? 'Nummer bewerken' : 'Nummer toevoegen',
     fields: [{ name: 'name', label: 'Naam', value: x.name, required: true }, { name: 'phone', label: 'Telefoonnummer', type: 'tel', value: x.phone, required: true, inputmode: 'tel' },
-      { name: 'category', label: 'Groep', type: 'select', options: CONTACT_CATS, value: x.category || 'Overig' }, { name: 'note', label: 'Notitie (optioneel)', value: x.note }],
+      { name: 'category', label: 'Groep (Spoed staat bovenaan)', type: 'select', options: CONTACT_CATS, value: x.id ? contactCat(x) : 'Overig' }, { name: 'note', label: 'Notitie (optioneel)', value: x.note }],
     onSave: async v => {
       if (!v.name || !v.phone) return false;
       const ok = await run(x.id ? sb.from('contacts').update(v).eq('id', x.id) : sb.from('contacts').insert(v));
@@ -434,7 +464,7 @@ function editContact(x = {}) {
   });
 }
 $('#contactNew').addEventListener('click', () => editContact());
-$('#contactList').addEventListener('click', e => { const b = e.target.closest('[data-act=edit]'); if (b) editContact(S.contacts.find(x => x.id === b.closest('.contact').dataset.id)); });
+$('#contactList').addEventListener('click', e => { const b = e.target.closest('[data-act=edit]'); if (b) editContact(S.contacts.find(x => x.id === b.closest('[data-id]').dataset.id)); });
 
 // ---------- Cadeaus ----------
 const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
