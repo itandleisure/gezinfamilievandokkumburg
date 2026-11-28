@@ -287,3 +287,9 @@ end $$;
 alter table public.tasks add column if not exists assignee uuid references auth.users(id) on delete set null;
 -- Melding "taak over tijd": de functie gezond-push leest taken en namen
 grant select on public.tasks, public.family_members to service_role;
+
+-- Cadeaus: verjaardag (elk jaar terug, seintje twee weken vooraf via gezond-push) en budget per lijst, prijs per idee
+alter table public.gift_lists add column if not exists yearly boolean default false;
+alter table public.gift_lists add column if not exists budget numeric(8,2);
+alter table public.gift_items add column if not exists price numeric(8,2);
+grant select on public.gift_lists, public.gift_items to service_role;

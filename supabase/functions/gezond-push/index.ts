@@ -5,6 +5,7 @@
 // - ?action=week : (test) stuurt het weekoverzicht nu naar één abonnement (body: {endpoint})
 // Taken: elke dag vanaf 09:00 één melding per persoon als er taken over tijd zijn (eigen taken plus taken van samen).
 // Op zondag tussen 19:00 en 21:00 gaat het weekoverzicht: gewicht, bewegen en water van de week, met een complimentje of tip.
+// Cadeaus: vanaf 10:00 een seintje als een verjaardag (gift_lists.yearly) of andere datum over precies 14 dagen is. Naar iedereen.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -116,12 +117,47 @@ async function runTasks(subs: Sub[], owners: string[], day: string, hour: number
   }
 }
 
+// ---------- Cadeaus: twee weken vooraf ----------
+type Gift = { id: string; title: string; event_date: string | null; yearly: boolean | null; budget: number | null };
+function giftNext(l: Gift, today: string) {
+  if (!l.event_date) return null;
+  if (!l.yearly) return { date: l.event_date, age: null as number | null };
+  const [y, m, d] = l.event_date.split('-').map(Number), ty = Number(today.slice(0, 4));
+  const on = (yr: number) => new Date(Date.UTC(yr, m - 1, d, 12)).toISOString().slice(0, 10);
+  const date = on(ty) >= today ? on(ty) : on(ty + 1), age = Number(date.slice(0, 4)) - y;
+  return { date, age: age > 0 && age < 120 ? age : null };
+}
+const euro = (n: number) => '€ ' + Number(n).toLocaleString('nl-NL', { maximumFractionDigits: 2 });
+async function giftMsg(day: string) {
+  const target = addDays(day, 14);
+  const { data: lists } = await db.from('gift_lists').select('id, title, event_date, yearly, budget');
+  const due = (lists as Gift[] || []).map(l => ({ l, n: giftNext(l, day) })).filter(x => x.n && x.n.date === target);
+  if (!due.length) return null;
+  const { data: items } = await db.from('gift_items').select('list_id, bought').in('list_id', due.map(x => x.l.id));
+  const when = new Date(target + 'T12:00:00Z').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const parts = due.map(({ l, n }) => {
+    const its = (items || []).filter(i => i.list_id === l.id), bought = its.some(i => i.bought);
+    return `${l.title}${n!.age ? ` (wordt ${n!.age})` : ''}${l.budget != null ? `, budget ${euro(l.budget)}` : ''}. ${bought ? 'Er is al iets gekocht.' : its.length ? `${its.length} ${its.length === 1 ? 'idee' : 'ideeën'}, nog niets gekocht.` : 'Nog geen ideeën.'}`;
+  });
+  const anyBirthday = due.some(x => x.l.yearly);
+  return { title: anyBirthday ? '🎂 Over twee weken jarig' : '🎁 Over twee weken', body: `${when}: ${parts.join(' ')}`, url: '/#cadeaus' };
+}
+
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
   const { data: subs } = await db.from('push_subscriptions').select('*');
   const owners = [...new Set((subs || []).map((s: Sub) => s.owner))];
   const out: Record<string, string> = {};
+  // Cadeauseintje: vanaf 10:00, één keer per dag per persoon (los van de Gezond-meldingen)
+  const gift = hour >= 10 && hour < 21 ? await giftMsg(day) : null;
+  if (gift) for (const owner of owners) {
+    const { error } = await db.from('push_log').insert({ owner, day, kind: 'cadeau' });
+    if (error) continue; // vandaag al gestuurd
+    for (const s of (subs as Sub[]).filter(s => s.owner === owner)) await send(s, 'cadeau', gift);
+    out[owner + ':cadeau'] = 'cadeau';
+  }
   for (const owner of owners) {
     const [{ data: w }, { data: sp }, { data: log }] = await Promise.all([
       db.from('weight_log').select('day').eq('owner', owner).eq('day', day),

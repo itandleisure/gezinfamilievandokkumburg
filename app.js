@@ -500,10 +500,30 @@ $('#contactList').addEventListener('click', e => { const b = e.target.closest('[
 
 // ---------- Cadeaus ----------
 const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+const fmtDay = d => new Date(d + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
 const safeUrl = s => /^https:\/\/\S+$/i.test(s) ? s : '';
-// Volgorde: eigen volgorde (kolom position, gedeeld), anders op datum
+const euro = n => '€ ' + Number(n).toLocaleString('nl-NL', { minimumFractionDigits: Number(n) % 1 ? 2 : 0, maximumFractionDigits: 2 });
+const toNum = s => { const n = parseFloat(String(s ?? '').replace(/[€\s]/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null; };
+// Eerstvolgende datum: bij een verjaardag (yearly) dezelfde dag dit jaar of volgend jaar, anders gewoon de datum
+function giftNext(l, today = iso(new Date())) {
+  if (!l.event_date) return null;
+  if (!l.yearly) return l.event_date;
+  const [y, m, d] = l.event_date.split('-').map(Number), ty = Number(today.slice(0, 4));
+  const on = yr => { const dt = new Date(Date.UTC(yr, m - 1, d, 12)); return dt.toISOString().slice(0, 10); }; // 29 feb wordt 1 maart
+  const date = on(ty) >= today ? on(ty) : on(ty + 1), age = Number(date.slice(0, 4)) - y;
+  return { date, age: age > 0 && age < 120 ? age : null };
+}
+const giftDate = l => { const n = giftNext(l); return n && typeof n === 'object' ? n.date : n; };
+const daysUntil = d => Math.round((new Date(d + 'T12:00:00') - new Date(iso(new Date()) + 'T12:00:00')) / 864e5);
+function giftWhen(l) {
+  const n = giftNext(l); if (!n) return '';
+  if (!l.yearly) { const k = daysUntil(n); return fmtDate(n) + (k === 0 ? ' · vandaag' : k > 0 && k <= 60 ? ` · over ${k} ${k === 1 ? 'dag' : 'dagen'}` : ''); }
+  const k = daysUntil(n.date);
+  return `🎂 ${fmtDay(n.date)}${n.age ? ` · wordt ${n.age}` : ''} · ${k === 0 ? 'vandaag jarig!' : `over ${k} ${k === 1 ? 'dag' : 'dagen'}`}`;
+}
+// Volgorde: eigen volgorde (kolom position, gedeeld), anders op eerstvolgende datum
 function sortedGiftLists() {
-  return [...S.gift_lists].sort((a, b) => (a.position ?? 1e9) - (b.position ?? 1e9) || ((a.event_date || '9999') < (b.event_date || '9999') ? -1 : (a.event_date || '9999') > (b.event_date || '9999') ? 1 : 0));
+  return [...S.gift_lists].sort((a, b) => (a.position ?? 1e9) - (b.position ?? 1e9) || ((giftDate(a) || '9999') < (giftDate(b) || '9999') ? -1 : (giftDate(a) || '9999') > (giftDate(b) || '9999') ? 1 : 0));
 }
 async function moveList(id, dir) {
   const lists = sortedGiftLists(), i = lists.findIndex(l => l.id === id), j = i + dir;
@@ -514,36 +534,65 @@ async function moveList(id, dir) {
   const res = await Promise.all(lists.map((l, k) => sb.from('gift_lists').update({ position: k }).eq('id', l.id)));
   if (res.some(r => r.error)) { toast('Volgorde opslaan mislukt'); await load('gift_lists'); renderGifts(); }
 }
+// Budget: wat al gekocht is telt als besteed, de rest als idee
+function giftBudget(l, items) {
+  const spent = items.filter(i => i.bought && i.price != null).reduce((t, i) => t + Number(i.price), 0);
+  const ideas = items.filter(i => !i.bought && i.price != null).reduce((t, i) => t + Number(i.price), 0);
+  if (l.budget == null) return spent ? `<p class="gift-budget"><span>Besteed ${euro(spent)}</span></p>` : '';
+  const b = Number(l.budget), over = spent > b, pct = b ? Math.min(100, spent / b * 100) : 100;
+  return `<div class="gift-budget${over ? ' over' : ''}"><span>Besteed ${euro(spent)} van ${euro(b)}${over ? ` · ${euro(spent - b)} erover` : spent < b ? ` · nog ${euro(b - spent)}` : ''}</span>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${b}" aria-valuenow="${spent}"><i style="width:${pct}%"></i></div>
+    ${ideas ? `<small>Open ideeën samen ${euro(ideas)}</small>` : ''}</div>`;
+}
 function renderGifts() {
   const lists = sortedGiftLists();
   $('#giftList').innerHTML = lists.length ? lists.map((l, idx) => {
     const items = S.gift_items.filter(i => i.list_id === l.id), n = items.filter(i => i.bought).length;
     return `<section class="gift" data-id="${esc(l.id)}">
-      <div class="gift-head"><div><h3>${esc(l.title)}</h3><small>${[fmtDate(l.event_date), items.length ? `${n} van ${items.length} gekocht` : ''].filter(Boolean).join(' · ')}</small></div>
+      <div class="gift-head"><div><h3>${esc(l.title)}</h3><small>${[esc(giftWhen(l)), items.length ? `${n} van ${items.length} gekocht` : ''].filter(Boolean).join(' · ')}</small></div>
       <div class="gift-btns">${lists.length > 1 ? `<button class="mini" data-act="up" aria-label="Lijst omhoog"${idx === 0 ? ' disabled' : ''}>${ICON_UP}</button><button class="mini" data-act="down" aria-label="Lijst omlaag"${idx === lists.length - 1 ? ' disabled' : ''}>${ICON_DOWN}</button>` : ''}<button class="mini" data-act="editlist" aria-label="Lijst bewerken">${ICON_EDIT}</button></div></div>
+      ${giftBudget(l, items)}
       <ul class="items">${items.map(i => {
         const url = safeUrl(i.note);
         return `<li class="item${i.bought ? ' done' : ''}" data-item="${esc(i.id)}">
         <button class="tick" data-act="buy" aria-label="${i.bought ? 'Nog niet gekocht' : 'Gekocht'}: ${esc(i.name)}"><span>${ICON_CHECK}</span></button>
         <div class="txt"><b>${esc(i.name)}</b>${i.note ? `<small>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">Link</a>` : esc(i.note)}</small>` : ''}</div>
+        <button class="price" data-act="price" aria-label="Prijs: ${esc(i.name)}">${i.price != null ? esc(euro(i.price)) : '€ ?'}</button>
         <button class="mini" data-act="delitem" aria-label="Verwijderen: ${esc(i.name)}">${ICON_X}</button></li>`;
       }).join('')}</ul>
-      <form data-act="additem"><input name="name" placeholder="Idee toevoegen (A, B, C…)" aria-label="Cadeau-idee" autocomplete="off"><button class="btn" type="submit">Voeg toe</button></form>
+      <form data-act="additem"><input name="name" placeholder="Idee toevoegen (A, B, C…)" aria-label="Cadeau-idee" autocomplete="off"><input name="price" class="price-in" placeholder="€" aria-label="Prijs (optioneel)" inputmode="decimal" autocomplete="off"><button class="btn" type="submit">Voeg toe</button></form>
     </section>`;
-  }).join('') : '<p class="empty">Nog geen cadeaulijsten. Maak er een per verjaardag of feest, bijvoorbeeld "Verjaardag Frans".</p>';
+  }).join('') : '<p class="empty">Nog geen cadeaulijsten. Maak er een per persoon of feest, bijvoorbeeld "Verjaardag Frans". Vink "Verjaardag" aan, dan krijg je twee weken vooraf een seintje.</p>';
 }
 function editList(l = {}) {
   openDialog({
     title: l.id ? 'Cadeaulijst bewerken' : 'Nieuwe cadeaulijst',
-    fields: [{ name: 'title', label: 'Voor wie / welke gelegenheid', value: l.title, required: true }, { name: 'event_date', label: 'Datum (optioneel)', type: 'date', value: l.event_date }],
+    fields: [
+      { name: 'title', label: 'Voor wie / welke gelegenheid', value: l.title, required: true },
+      { name: 'event_date', label: 'Datum (bij een verjaardag: de geboortedatum)', type: 'date', value: l.event_date },
+      { name: 'yearly', label: 'Verjaardag: elk jaar terug, met een seintje twee weken vooraf', type: 'checkbox', value: l.yearly },
+      { name: 'budget', label: 'Budget in euro (optioneel)', value: l.budget != null ? String(l.budget).replace('.', ',') : '', inputmode: 'decimal' }
+    ],
     onSave: async v => {
       if (!v.title) return false;
-      const row = { title: v.title, event_date: v.event_date || null };
+      if (v.yearly && !v.event_date) { toast('Vul bij een verjaardag de datum in'); return false; }
+      const row = { title: v.title, event_date: v.event_date || null, yearly: !!v.yearly, budget: toNum(v.budget) };
       if (!l.id && S.gift_lists.some(x => x.position != null)) row.position = Math.max(...S.gift_lists.map(x => x.position ?? 0)) + 1;
       const ok = await run(l.id ? sb.from('gift_lists').update(row).eq('id', l.id) : sb.from('gift_lists').insert(row));
       if (ok) { await load('gift_lists'); renderGifts(); } return ok;
     },
     onDelete: l.id ? async () => { await run(sb.from('gift_lists').delete().eq('id', l.id), 'Lijst verwijderd'); await Promise.all([load('gift_lists'), load('gift_items')]); renderGifts(); } : null
+  });
+}
+function editPrice(it) {
+  openDialog({
+    title: it.name,
+    fields: [{ name: 'price', label: 'Prijs in euro (leeg = geen prijs)', value: it.price != null ? String(it.price).replace('.', ',') : '', inputmode: 'decimal' }],
+    onSave: async v => {
+      const price = toNum(v.price);
+      const ok = await run(sb.from('gift_items').update({ price }).eq('id', it.id));
+      if (ok) { it.price = price; renderGifts(); } return ok;
+    }
   });
 }
 $('#giftNew').addEventListener('click', () => editList());
@@ -554,13 +603,14 @@ $('#giftList').addEventListener('click', async e => {
   if (act === 'up' || act === 'down') { moveList(listId, act === 'up' ? -1 : 1); return; }
   const itemId = el.closest('[data-item]')?.dataset.item, it = S.gift_items.find(i => i.id === itemId); if (!it) return;
   if (act === 'buy') { it.bought = !it.bought; renderGifts(); run(sb.from('gift_items').update({ bought: it.bought }).eq('id', it.id)); }
+  if (act === 'price') { editPrice(it); return; }
   if (act === 'delitem') { S.gift_items = S.gift_items.filter(i => i.id !== it.id); renderGifts(); run(sb.from('gift_items').delete().eq('id', it.id)); }
 });
 $('#giftList').addEventListener('submit', async e => {
   e.preventDefault();
-  const f = e.target, inp = f.querySelector('input'), name = inp.value.trim(); if (!name) return;
-  const list_id = f.closest('.gift').dataset.id;
-  if (await run(sb.from('gift_items').insert({ list_id, name }))) { inp.value = ''; await load('gift_items'); inp.blur(); pending = false; renderGifts(); }
+  const f = e.target, inp = f.querySelector('input[name=name]'), pin = f.querySelector('input[name=price]'), name = inp.value.trim(); if (!name) return;
+  const list_id = f.closest('.gift').dataset.id, price = toNum(pin.value);
+  if (await run(sb.from('gift_items').insert({ list_id, name, price }))) { inp.value = ''; pin.value = ''; await load('gift_items'); inp.blur(); pin.blur(); pending = false; renderGifts(); }
 });
 
 // Niet in- en uitzoomen (iPhone negeert user-scalable=no in de viewport, dus ook het knijpgebaar tegenhouden)
