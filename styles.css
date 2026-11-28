@@ -819,3 +819,7 @@ small.down,.fin-amt.down{color:var(--terra)}
 .kb-week li.now{outline:2px solid var(--terra)}
 .kb-week li b{color:var(--blue)}
 .kb-week p{font-size:14px;margin:8px 0 0}
+.fin-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.fin-btns .btn{flex:1 1 auto}
+.fin-empty{border:2px dashed var(--line);background:transparent}
+.fin-warn{color:var(--terra)!important;font-weight:700}

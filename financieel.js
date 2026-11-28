@@ -142,6 +142,9 @@ export function mountFinancieel(ctx) {
   };
   const members = st => ({ ouders: 'Ouders', ...(st.members || {}) });
   const memberName = (st, k) => members(st)[k] || k;
+  // Wie hebben er pensioen: goal.people, anders de namen uit het gezinslid 'ouders' ("Frans & Samantha")
+  const pensionPeople = st => (st.goal && st.goal.people && st.goal.people.length ? st.goal.people
+    : String(members(st).ouders).split(/\s*(?:&|\ben\b|,)\s*/).filter(Boolean));
 
   function header(title) {
     return `<div class="fin-head"><button class="btn link" data-act="back">‹ Financieel</button><h2>${esc(title)}</h2></div>`;
@@ -327,6 +330,17 @@ export function mountFinancieel(ctx) {
   // ---------- Pensioen en prognose ----------
   function pensioen() {
     const { sources, settings: st } = data(), g = st.goal || {};
+    const people = pensionPeople(st);
+    const potOwner = s => people.find(n => String(s.owner_label || '').toLowerCase().startsWith(n.toLowerCase())) || null;
+    const pensionsOf = name => (g.pensions || []).filter(p => (p.person || people[0]) === name);
+    const potsOf = name => sources.filter(s => s.category === 'pensioen' && potOwner(s) === name);
+    const missing = people.filter(n => !pensionsOf(n).length && !potsOf(n).length);
+    const fallback = sources.filter(s => s.category === 'pensioen').map(s => s.unlock_date).filter(Boolean).sort()[0] || g.date;
+    const potCard = s => {
+      const p = projectPension(s, fallback); if (!p) return `<div class="card fin-card"><b>${esc(s.name)}</b><p class="ls-hint">Vul saldo en vrijvaldatum in.</p></div>`;
+      return `<div class="card fin-card"><b>${esc(s.name)}</b><small class="mut">Vrij op ${esc(fmtD(p.date))}${p.assumed ? ' (aangenomen)' : ''} · nu ${esc(eur(s.balance))}, dan ca. ${esc(eur(p.fv))} bij ${pct(p.r)}%. Als uitkering, bruto:</small>
+        <div class="fin-table"><table><thead><tr><th>Looptijd</th><th>Per maand</th><th>Per jaar</th></tr></thead><tbody>${p.options.map(o => `<tr><td>${o.y} jaar</td><td>${esc(eur(o.pm))}</td><td>${esc(eur(o.pm * 12))}</td></tr>`).join('')}</tbody></table></div></div>`;
+    };
     let h = header(SUBS.pensioen);
     // Beleggingen naar de pensioendatum, tegen wat er nodig is
     const inv = sources.filter(s => s.category === 'beleggen' && s.include_in_projection !== false);
@@ -343,14 +357,25 @@ export function mountFinancieel(ctx) {
         <small>In koopkracht van nu.${need ? ` Daarvoor is ca. ${esc(eur(need))} eigen vermogen nodig in ${esc(g.date.slice(0, 4))}, naast de staatspensioenen.` : ''}</small>
         ${need ? `<div class="gift-budget${ok ? '' : ' over'}"><span>Verwacht bij 4%: ${esc(eur(at4))} (${Math.round(at4 / need * 100)}% van wat nodig is)</span><div class="bar"><i style="width:${Math.min(100, at4 / need * 100).toFixed(1)}%"></i></div></div>
         <small>Beleggingen ${esc(eur(invAt))} + pensioenpotten ${esc(eur(potAt))}, met de huidige inleg.</small>
+        ${missing.length ? `<small class="fin-warn">⚠️ Het pensioen van ${esc(missing.join(' en '))} ontbreekt nog. Dit doel rekent alleen met het pensioen van ${esc(people.filter(n => !missing.includes(n)).join(' en ') || 'niemand')}.</small>` : ''}
         <small><b>${ok ? 'Op koers: het doel wordt gehaald bij 4% rendement.' : 'Nog niet op koers bij 4%: kijk naar meer inleg of een later doel.'}</b></small>` : ''}</div>`;
     }
-    if (Array.isArray(g.pensions) && g.pensions.length) {
-      const tot = g.pensions.reduce((a, p) => a + (num(p.amount) || 0), 0);
-      h += `<div class="group"><h3 class="fin-h3"><span>Opgebouwde pensioenen (bruto per jaar)</span><span>${esc(eur(tot))}</span></h3>${g.pensions.map(p =>
-        `<div class="fin-row"><span class="fin-name"><b>${esc(p.name)}</b><small>vanaf ${esc(p.from || '')}</small></span><span class="fin-amt">${esc(eur(p.amount))}</span></div>`).join('')}
-        ${g.pension_note ? `<p class="ls-hint">${esc(g.pension_note)}</p>` : ''}</div>`;
-    }
+    // Per persoon: opgebouwde pensioenen (goal.pensions, met `person`) en pensioenpotten (fin_sources, owner_label = naam)
+    h += people.map(name => {
+      const mine = pensionsOf(name), myPots = potsOf(name);
+      if (!mine.length && !myPots.length) return `<div class="group"><h3>Pensioen ${esc(name)}</h3><div class="card fin-card fin-empty"><b>Nog in te vullen</b>
+        <small class="mut">Hier staat nog niets. Zet de bedragen van mijnpensioenoverzicht.nl of de Seguridad Social erin, en eventuele pensioenrekeningen.</small>
+        <div class="fin-btns"><button class="btn primary" data-act="pensions" data-person="${esc(name)}">Opgebouwd pensioen toevoegen</button><button class="btn" data-act="addpot" data-person="${esc(name)}">Pensioenrekening toevoegen</button></div></div></div>`;
+      const tot = mine.reduce((a, p) => a + (num(p.amount) || 0), 0);
+      return `<div class="group"><h3 class="fin-h3"><span>Pensioen ${esc(name)}</span>${mine.length ? `<span>${esc(eur(tot))} per jaar</span>` : ''}</h3>
+        ${mine.length ? `<div class="card fin-card"><small class="mut">Opgebouwde pensioenen, bruto per jaar</small>${mine.map(p =>
+          `<div class="fin-row"><span class="fin-name"><b>${esc(p.name)}</b><small>vanaf ${esc(p.from || '')}</small></span><span class="fin-amt">${esc(eur(p.amount))}</span></div>`).join('')}</div>` : ''}
+        ${myPots.map(potCard).join('')}
+        <div class="fin-btns"><button class="btn" data-act="pensions" data-person="${esc(name)}">Pensioenen ${esc(name)} aanpassen</button><button class="btn" data-act="addpot" data-person="${esc(name)}">Pensioenrekening toevoegen</button></div></div>`;
+    }).join('');
+    const rest = sources.filter(s => s.category === 'pensioen' && !people.some(n => potOwner(s) === n));
+    if (rest.length) h += `<div class="group"><h3>Overige pensioenrekeningen</h3>${rest.map(potCard).join('')}</div>`;
+    if (g.pension_note) h += `<p class="ls-hint">${esc(g.pension_note)}</p>`;
     // Groeiprognose beleggingen
     if (inv.length) {
       const M = invYears * 12, { ser, html } = scenChart(V0, Cf, M);
@@ -363,13 +388,6 @@ export function mountFinancieel(ctx) {
         <div class="fin-table"><table><thead><tr><th>Na</th>${ser.slice(1).map(x => `<th>${x.r}%</th>`).join('')}</tr></thead><tbody>${marks.map(y => `<tr><td>${y} jaar <small class="mut">${y0 + y}</small></td>${ser.slice(1).map(x => `<td>${esc(eurK(x.v[y * 12]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
         ${sources.some(s => s.category === 'beleggen' && s.include_in_projection === false) ? `<p class="ls-hint">Niet meegenomen: ${esc(sources.filter(s => s.category === 'beleggen' && s.include_in_projection === false).map(s => s.name).join(', '))}.</p>` : ''}</div>`;
     }
-    // Pensioenpotten: uitkering per looptijd
-    const ps = sources.filter(s => s.category === 'pensioen'), fallback = ps.map(s => s.unlock_date).filter(Boolean).sort()[0] || g.date;
-    if (ps.length) h += `<div class="group"><h3>Pensioenpotten: wat levert het straks op</h3><p class="ls-hint">Op de pensioendatum koop je een uitkering. Hoe korter de looptijd, hoe hoger per maand. Bruto, vóór belasting.</p>${ps.map(s => {
-      const p = projectPension(s, fallback); if (!p) return `<div class="card fin-card"><b>${esc(s.name)}</b><p class="ls-hint">Vul saldo en vrijvaldatum in.</p></div>`;
-      return `<div class="card fin-card"><b>${esc(s.name)}</b><small class="mut">Vrij op ${esc(fmtD(p.date))}${p.assumed ? ' (aangenomen)' : ''} · nu ${esc(eur(s.balance))}, dan ca. ${esc(eur(p.fv))} bij ${pct(p.r)}%</small>
-        <div class="fin-table"><table><thead><tr><th>Looptijd</th><th>Per maand</th><th>Per jaar</th></tr></thead><tbody>${p.options.map(o => `<tr><td>${o.y} jaar</td><td>${esc(eur(o.pm))}</td><td>${esc(eur(o.pm * 12))}</td></tr>`).join('')}</tbody></table></div></div>`;
-    }).join('')}</div>`;
     // Rekeningen van de kinderen tot hun 18e
     const ks = sources.filter(s => s.category === 'kind' && unlockOf(s) && num(s.balance) !== null);
     if (ks.length) h += `<div class="group"><h3>Rekeningen kinderen: wat staat er op hun 18e</h3>${ks.map(s => {
@@ -378,7 +396,7 @@ export function mountFinancieel(ctx) {
       return `<div class="card fin-card"><b>${esc(memberName(st, s.member))}</b><small class="mut">18 jaar op ${esc(fmtD(unlockOf(s)))} · nu ${esc(eur(s.balance))}${C || Y ? '' : ', zonder extra inleg'}</small>
         <div class="fin-kids">${vals.map((v, i) => `<div><small>${SCEN[i + 1].r}%</small><b>${esc(eur(v))}</b></div>`).join('')}</div></div>`;
     }).join('')}</div>`;
-    return h + `<button class="btn wide" data-act="settings">Doel en pensioenen aanpassen</button>`;
+    return h + `<button class="btn wide" data-act="settings">Pensioendoel aanpassen</button>`;
   }
 
   // ---------- Maandverdeling ----------
@@ -446,14 +464,29 @@ export function mountFinancieel(ctx) {
         { name: 'per_year', label: 'Doel per jaar (koopkracht van nu)', inputmode: 'decimal', value: inAmt(g.per_year) },
         { name: 'date', label: 'Vanaf (pensioendatum)', type: 'date', value: g.date },
         { name: 'need_nominal', label: 'Eigen vermogen nodig op die datum (nominaal)', inputmode: 'decimal', value: inAmt(g.need_nominal) },
-        { name: 'pensions', label: 'Opgebouwde pensioenen, één per regel: naam; vanaf; bedrag per jaar', type: 'textarea', value: (g.pensions || []).map(p => `${p.name}; ${p.from || ''}; ${inAmt(p.amount)}`).join('\n') },
         { name: 'pension_note', label: 'Notitie', type: 'textarea', value: g.pension_note },
         { name: 'remind_day', label: 'Herinnering saldi bijwerken op dag van de maand (0 = uit)', inputmode: 'numeric', value: remindDay(st) }
       ],
       onSave: async v => {
-        const pensions = String(v.pensions || '').split('\n').map(l => l.split(';').map(x => x.trim())).filter(x => x[0]).map(([name, from, amount]) => ({ name, from: from || '', amount: toAmount(amount) || 0 }));
         const rd = Math.max(0, Math.min(28, Math.round(toAmount(v.remind_day) ?? 17)));
-        return saveSettings({ remind_day: rd, goal: { ...g, per_year: toAmount(v.per_year), date: v.date || null, need_nominal: toAmount(v.need_nominal), pensions, pension_note: v.pension_note || '' } });
+        return saveSettings({ remind_day: rd, goal: { ...g, per_year: toAmount(v.per_year), date: v.date || null, need_nominal: toAmount(v.need_nominal), pension_note: v.pension_note || '' } });
+      }
+    });
+  }
+
+  function editPensions(name) {
+    const st = data().settings, g = st.goal || {}, people = pensionPeople(st);
+    const mine = (g.pensions || []).filter(p => (p.person || people[0]) === name);
+    ctx.openDialog({
+      title: 'Pensioen ' + name,
+      fields: [{ name: 'list', label: 'Opgebouwde pensioenen, één per regel: naam; vanaf wanneer; bruto bedrag per jaar. Bijvoorbeeld: AOW; 67 jaar; 7868', type: 'textarea',
+        value: mine.map(p => `${p.name}; ${p.from || ''}; ${inAmt(p.amount)}`).join('\n') }],
+      onSave: async v => {
+        const rows = String(v.list || '').split('\n').map(l => l.split(';').map(x => x.trim())).filter(x => x[0]);
+        if (rows.some(r => Number.isNaN(toAmount(r[2])))) { toast('Een bedrag klopt niet, gebruik alleen cijfers'); return false; }
+        const others = (g.pensions || []).filter(p => (p.person || people[0]) !== name).map(p => ({ ...p, person: p.person || people[0] }));
+        const list = rows.map(([n, from, amount]) => ({ person: name, name: n, from: from || '', amount: toAmount(amount) || 0 }));
+        return saveSettings({ goal: { ...g, people, pensions: [...others, ...list] } });
       }
     });
   }
@@ -537,6 +570,8 @@ export function mountFinancieel(ctx) {
     if (act === 'mort') { editMort(); return; }
     if (act === 'plan') { editPlan(); return; }
     if (act === 'settings') { editGoal(); return; }
+    if (act === 'pensions') { editPensions(el.dataset.person); return; }
+    if (act === 'addpot') { editSource({ category: 'pensioen', member: 'ouders', owner_label: el.dataset.person }); return; }
     if (act === 'newtodo') { editTodo(); return; }
     const id = el.closest('[data-id]')?.dataset.id;
     if (act === 'edit') { const s = data().sources.find(x => x.id === id); if (s) editSource(s); return; }
