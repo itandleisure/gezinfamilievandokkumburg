@@ -342,3 +342,26 @@ grant select on public.dagvraag_prefs to service_role;
 alter table public.dagvraag_prefs enable row level security;
 drop policy if exists "alleen eigen gegevens" on public.dagvraag_prefs;
 create policy "alleen eigen gegevens" on public.dagvraag_prefs for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
+
+-- ---------- Bonnetjes: aankopen met foto van de bon en einddatum van de garantie (gedeeld met het gezin) ----------
+create table if not exists public.receipts (
+  id uuid primary key default gen_random_uuid(),
+  product text not null,
+  store text not null default '',
+  bought_on date not null default current_date,
+  amount numeric(10,2),
+  warranty_until date,                         -- standaard 3 jaar na aankoop (Spanje), aan te passen
+  photo_path text,                             -- pad in de opslag-bucket 'fotos', map bonnetjes/
+  note text not null default '',
+  created_by uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at timestamptz default now()
+);
+grant select, insert, update, delete on public.receipts to authenticated;
+grant select on public.receipts to service_role;
+alter table public.receipts enable row level security;
+drop policy if exists "alleen gezin" on public.receipts;
+create policy "alleen gezin" on public.receipts for all to authenticated using (true) with check (true);
+do $$ begin
+  alter publication supabase_realtime add table public.receipts;
+exception when duplicate_object then null;
+end $$;

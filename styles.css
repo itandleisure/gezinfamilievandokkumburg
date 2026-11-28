@@ -658,3 +658,22 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .kb-done h2{margin:6px 0}
 .kb-big{font-size:64px;line-height:1}
 .gp-kb{width:100%;margin:0 0 8px;color:var(--blue);display:flex;align-items:center;justify-content:center;text-decoration:none}
+
+/* Bonnetjes: foto van de bon met de einddatum van de garantie */
+.rc{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:14px;padding:6px 4px 6px 6px;margin-bottom:8px}
+.rc.soon{border-left:5px solid var(--terra)}
+.rc .rc-photo{flex:none;width:56px;height:56px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:0;overflow:hidden;cursor:pointer;display:grid;place-items:center;color:var(--mut)}
+.rc .rc-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.rc .rc-photo svg{width:26px;height:26px}
+.rc .txt{flex:1;min-width:0;text-align:left;background:none;border:0;padding:8px 2px;color:var(--ink);font:inherit;cursor:pointer}
+.rc .txt b{display:block;font-size:17px;line-height:1.3}
+.rc .txt small{display:block;color:var(--mut);font-size:14px}
+.rc .txt .note-txt{font-size:13px}
+.rc.soon .wt span{color:var(--terra);font-weight:800}
+.rc.ok .wt span{color:var(--ok);font-weight:700}
+.rc.gone .txt b{color:var(--mut)}
+.photo-view{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.92);display:grid;grid-template-rows:1fr auto;padding:env(safe-area-inset-top) 12px calc(12px + env(safe-area-inset-bottom))}
+.photo-view img{width:100%;height:100%;object-fit:contain;min-height:0}
+.photo-view .pv-bar{display:flex;gap:10px;justify-content:center;padding-top:10px}
+.photo-view .pv-bar .btn{min-width:120px}
+#dlgFields input[type=file]{min-height:44px;padding:8px 0}

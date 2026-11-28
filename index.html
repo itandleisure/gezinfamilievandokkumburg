@@ -21,7 +21,7 @@
 <section id="login" class="login" hidden>
   <div class="login-card">
     <h1>Gezin</h1>
-    <p class="mut">Menu, gewicht en sport, boodschappen, cadeaus, notities, nummers, Spaans, taken, kijken, dagvragen, kettlebell en het weer.</p>
+    <p class="mut">Menu, gewicht en sport, boodschappen, cadeaus, notities, nummers, Spaans, taken, kijken, dagvragen, kettlebell, het weer en bonnetjes.</p>
     <form id="loginForm">
       <label>E-mail<input type="email" id="loginEmail" autocomplete="username" required></label>
       <label>Wachtwoord<input type="password" id="loginPass" autocomplete="current-password" required></label>
@@ -131,6 +131,11 @@
       <div id="kettlebellRoot"></div>
     </section>
 
+    <!-- Bonnetjes: foto van de bon met de einddatum van de garantie -->
+    <section class="view" id="view-bonnetjes" hidden>
+      <div id="bonnetjesRoot"></div>
+    </section>
+
     <!-- Nummers -->
     <section class="view" id="view-nummers" hidden>
       <button class="btn primary wide" id="contactNew">Nummer toevoegen</button>
@@ -150,6 +155,7 @@
       <a class="tile" href="#dagvragen" data-v="dagvragen"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M10.2 10.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4M12 15.6v.1"/></svg><span>Dagvragen</span><small>Elke dag 3 vragen om bij je gevoel te komen</small></a>
       <a class="tile" href="#weer" data-v="weer" id="weerTile"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><path d="M8 2v1.5M2 8h1.5M3.8 3.8l1 1M12.2 3.8l-1 1"/><path d="M9 20h9a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.6-1A4 4 0 0 0 9 20z"/></svg><span>Weer</span><small>Cómpeta uit meerdere bronnen naast elkaar</small></a>
       <a class="tile" href="#kettlebell" data-v="kettlebell"><svg viewBox="0 0 24 24"><path d="M8.5 9.5a3.5 3.5 0 1 1 7 0"/><path d="M8 9.5h8l1.6 3A6 6 0 1 1 6.4 12.5z"/></svg><span>Kettlebell</span><small>Schema van 15 min met plaatjes en timer</small></a>
+      <a class="tile" href="#bonnetjes" data-v="bonnetjes"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg><span>Bonnetjes</span><small>Foto van de bon en tot wanneer de garantie loopt</small></a>
       </nav>
     </section>
   </main>
