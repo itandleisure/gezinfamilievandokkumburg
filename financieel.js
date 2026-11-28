@@ -198,7 +198,7 @@ export function mountFinancieel(ctx) {
     h += `<div class="fin-hero card"><small>Netto vermogen ${esc(name)}</small><b class="fin-big">${esc(eur(t.net))}</b></div>
       <div class="ls-sum">${kpi('Bezittingen', eur(t.assets))}${withHouse ? kpi('Hypotheek', t.debt ? '− ' + eur(t.debt) : '–', 'hot') : ''}${kpi('Direct beschikbaar', eur(t.liquid))}</div>`;
     if (cats.length) h += `<div class="fin-stack">${cats.map(c => `<span style="width:${(t.byCat[c] / t.assets * 100).toFixed(2)}%;background:${CAT_COLOR[c]}"></span>`).join('')}</div>
-      <div class="fin-legend">${cats.map(c => `<span><i style="background:${CAT_COLOR[c]}"></i>${c === 'woning' ? 'Woning' : CATS[c]} <b>${esc(eur(t.byCat[c]))}</b></span>`).join('')}</div>`;
+      <div class="fin-legend">${cats.map(c => `<span><i style="background:${CAT_COLOR[c]}"></i>${c === 'woning' ? 'Geschatte woningwaarde' : CATS[c]} <b>${esc(eur(t.byCat[c]))}</b></span>`).join('')}</div>`;
     h += `<div class="group"><h3>Verloop per maand</h3>`;
     if (hist.length >= 2) h += `<div class="card">${lineChart([{ v: hist.map(x => x.v), color: 'var(--blue)', w: 2.5, dots: hist.length < 13, area: true }], { labels: [[0, hist[0].m.slice(5) + '/' + hist[0].m.slice(2, 4)], [hist.length - 1, hist[hist.length - 1].m.slice(5) + '/' + hist[hist.length - 1].m.slice(2, 4)]] })}</div>`;
     else h += `<p class="ls-hint">De grafiek verschijnt vanaf twee vastgelegde maanden.</p>`;
@@ -291,10 +291,11 @@ export function mountFinancieel(ctx) {
     let h = header(SUBS.huis);
     if (!m.pmt && !hv) return h + `<p class="empty">Vul de woningwaarde en de hypotheek in, dan rekent de app de restschuld zelf uit.</p><button class="btn primary wide" data-act="mort">Invullen</button>`;
     h += `<div class="ls-sum">${kpi('Restschuld', eur(m.remaining), 'hot')}${m.pmt ? kpi('Maandlast', eur(m.pmt)) + kpi('Afgelost op', fmtD(m.end)) : ''}</div>`;
-    if (hv) h += `<div class="ls-sum fin-two">${kpi('Woningwaarde', eur(hv))}${kpi('Overwaarde', eur(hv - m.remaining))}</div>`;
+    if (hv) h += `<div class="ls-sum fin-two">${kpi('Geschatte woningwaarde', eur(hv))}${kpi('Geschatte overwaarde', eur(hv - m.remaining))}</div>`;
     if (m.pmt) {
       h += `<div class="gift-budget"><span>${m.k} van ${m.N} termijnen betaald · ${pct((m.paidPct * 100).toFixed(1))}% afgelost</span><div class="bar"><i style="width:${(m.paidPct * 100).toFixed(1)}%"></i></div></div>`;
       if (num(mort.override) !== null) h += `<p class="ls-hint">Berekend ${esc(eur(m.computed))}, volgens de bank ${esc(eur(mort.override))}. De app gebruikt het bedrag van de bank.</p>`;
+      if (hv) h += `<p class="ls-hint">De woningwaarde is een schatting: wat het echt opbrengt, merk je pas bij verkoop.</p>`;
       else h += `<p class="ls-hint">Restschuld berekend (annuïteit, ${pct(mort.rate_pct)}% rente, ${mort.years} jaar vanaf ${esc(fmtD(mort.start_date))}), niet van de bank.</p>`;
       const sc = m.schedule, step = sc.length > 12 ? 5 : 2, labels = sc.map((p, i) => [i, p.x]).filter(([i]) => i % step === 0);
       h += `<div class="group"><h3>Restschuld per jaar</h3><div class="card">${lineChart([{ v: sc.map(p => p.y), color: 'var(--terra)', area: true }], { labels })}</div></div>`;
@@ -306,7 +307,7 @@ export function mountFinancieel(ctx) {
     ctx.openDialog({
       title: 'Woning en hypotheek',
       fields: [
-        { name: 'house_value', label: 'Woningwaarde in euro', inputmode: 'decimal', value: inAmt(m.house_value) },
+        { name: 'house_value', label: 'Geschatte woningwaarde in euro (wat het ongeveer zou opbrengen)', inputmode: 'decimal', value: inAmt(m.house_value) },
         { name: 'principal', label: 'Hoofdsom hypotheek in euro', inputmode: 'decimal', value: inAmt(m.principal) },
         { name: 'rate_pct', label: 'Rente per jaar in %', inputmode: 'decimal', value: inAmt(m.rate_pct) },
         { name: 'start_date', label: 'Ingangsdatum', type: 'date', value: m.start_date },
