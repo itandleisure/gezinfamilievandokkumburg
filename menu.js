@@ -81,15 +81,22 @@ const nf = n => Math.round(n).toLocaleString('nl-NL');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Boodschappen uit het menu: [{name, qty, category}]
-export function menuShopping(plan) {
-  const map = new Map();
-  plan.forEach(day => COMPS.forEach(c => {
-    const o = c.opts[day[c.key]]; if (!o || SKIP.has(o[0])) return;
-    const k = o[0] + '|' + o[1];
-    const cur = map.get(k) || { name: o[0], portie: o[1], category: CATNAME[o[4] || c.cat], n: 0 };
-    cur.n += day[qk(c)] || 1; map.set(k, cur);
-  }));
-  return [...map.values()].map(x => ({ name: x.name, qty: (x.portie ? x.portie + ' ' : '') + '×' + String(x.n).replace('.', ','), category: x.category }));
+// recipeItems(id) geeft de boodschappen van een recept uit het receptenboekje (of null). Staat er op een dag een recept,
+// dan gaan de ingrediënten van dat recept (voor 4) mee in plaats van de losse onderdelen van Avondeten (alleen jouw portie).
+export function menuShopping(plan, recipeItems = () => null) {
+  const map = new Map(), recs = [];
+  plan.forEach(day => {
+    const ri = day[REC] && recipeItems(day[REC]);
+    if (ri) recs.push(...ri);
+    COMPS.forEach(c => {
+      if (ri && DKEYS.includes(c.key)) return;
+      const o = c.opts[day[c.key]]; if (!o || SKIP.has(o[0])) return;
+      const k = o[0] + '|' + o[1];
+      const cur = map.get(k) || { name: o[0], portie: o[1], category: CATNAME[o[4] || c.cat], n: 0 };
+      cur.n += day[qk(c)] || 1; map.set(k, cur);
+    });
+  });
+  return [...map.values()].map(x => ({ name: x.name, qty: (x.portie ? x.portie + ' ' : '') + '×' + String(x.n).replace('.', ','), category: x.category })).concat(recs);
 }
 
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -152,7 +159,7 @@ export function mountMenu(root, { getPlan, setPlan, toShopping, getEaten, setEat
         }</select><button class="all" type="button" data-all="${c.key}" title="Zet deze keuze en portie op alle 7 dagen">Alle 7 dagen</button></div>`).join('')
       }</div></article>`).join('')}
       ${isToday && eaten.length === SLOTS.length ? '<p class="empty">Alles gegeten voor vandaag. Goed bezig!</p>' : ''}
-      <p class="mut" style="font-size:13px">Het menu loopt altijd 7 dagen vooruit, vanaf vandaag. Zet op boodschappenlijst neemt precies die 7 dagen mee.</p>
+      <p class="mut" style="font-size:13px">Het menu loopt altijd 7 dagen vooruit, vanaf vandaag. Zet op boodschappenlijst neemt precies die 7 dagen mee. Staat er op een dag een recept, dan gaan de ingrediënten van dat recept mee (voor 4). Hetzelfde product komt op één regel, en wat er al op de lijst staat, komt er niet nog een keer op.</p>
       <div class="actions"><button class="btn primary" type="button" id="menuToShop">Zet op boodschappenlijst</button><button class="btn" type="button" id="menuReset">Standaardmenu</button>${setDefault ? '<button class="btn" type="button" id="menuSaveDef">Maak standaardmenu</button>' : ''}</div>
       ${setDefault ? '<p class="mut" style="font-size:13px">Standaardmenu zet de hele week terug naar jullie vaste menu. Maak standaardmenu slaat de week zoals hij nu staat op als dat vaste menu.</p>' : ''}`;
     if (keepVal || keepFocus) { const n = root.querySelector('#dishName'); if (n) { n.value = keepVal; if (keepFocus) n.focus({ preventScroll: true }); } }

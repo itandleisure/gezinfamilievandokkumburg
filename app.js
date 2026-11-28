@@ -2,7 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './menu.js';
 import { mountSpaans } from './spaans.js';
-import { mountRecepten, byId as recipeById } from './recepten.js';
+import { mountRecepten, byId as recipeById, recipeShopping } from './recepten.js';
 import { mountTaken, dueCount } from './taken.js';
 import { mountGezond, nudge, iso } from './gezond.js';
 import { registerSW, pushState, enablePush, disablePush, testPush } from './push.js';
@@ -244,19 +244,50 @@ function setDishes(list) {
   if (row) row.plan = list; else S.menu_plan.push({ id: DISHES_ID, plan: list });
   run(sb.from('menu_plan').upsert({ id: DISHES_ID, plan: list, updated_at: new Date().toISOString() }));
 }
+// Zelfde product = zelfde naam zonder de Spaanse naam tussen haakjes ("Kipfilet (la pechuga de pollo)" = "Kipfilet",
+// maar "Kipfilet (beleg)" blijft apart)
+const shopKey = n => String(n).toLowerCase().replace(/\s*\((el|la|los|las|un|una|unos|unas) [^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+// Hoeveelheden samenvoegen; twee keer precies hetzelfde wordt "2× ..."
+const joinQty = (...parts) => {
+  const m = new Map(); parts.filter(Boolean).forEach(q => m.set(q, (m.get(q) || 0) + 1));
+  return [...m].map(([q, n]) => (n > 1 ? n + '× ' : '') + q).join(' + ');
+};
+// Zet producten op de lijst zonder dubbele items. Dubbel binnen de nieuwe lijst: één regel, hoeveelheden samen.
+// Staat het al open op de lijst: bij een recept komt de hoeveelheid bij die regel (één keer), bij het menu blijft die regel zoals hij is.
+// Wat al in de kar ligt, telt niet mee. Geeft { added, merged } terug, of null als het misging.
+async function addShopping(items, source) {
+  const batch = new Map();
+  items.forEach(i => {
+    const k = shopKey(i.name), cur = batch.get(k);
+    if (!cur) batch.set(k, { name: i.name, parts: [i.qty], category: i.category || 'Overig' });
+    else { cur.parts.push(i.qty); if (i.name.length > cur.name.length) { cur.name = i.name; cur.category = i.category || cur.category; } }
+  });
+  batch.forEach(i => { i.qty = joinQty(...i.parts); delete i.parts; });
+  const open = new Map(S.shopping_items.filter(i => !i.checked).map(i => [shopKey(i.name), i]));
+  const fresh = [], merged = [];
+  batch.forEach((i, k) => { const ex = open.get(k); if (ex) merged.push([ex, i]); else fresh.push(i); });
+  if (fresh.length && !await run(sb.from('shopping_items').insert(fresh.map(i => ({ ...i, source }))))) return null;
+  // Hetzelfde recept nog een keer: die hoeveelheid staat er al bij, dus niet verdubbelen
+  if (source !== 'menu') for (const [ex, i] of merged) if (i.qty && !(ex.qty || '').includes(i.qty)) await run(sb.from('shopping_items').update({ qty: joinQty(ex.qty, i.qty) }).eq('id', ex.id));
+  await load('shopping_items');
+  return { added: fresh.length, merged: merged.length };
+}
+const shopMsg = (r, wat) => (r.added ? r.added + ' ' + wat + ' op de lijst gezet' : 'Niets nieuws op de lijst')
+  + (r.merged ? ', ' + r.merged + (r.merged === 1 ? ' stond' : ' stonden') + ' er al op' : '');
 // Ingrediënten uit het receptenboekje: komen erbij (source 'recept'), de rest van de lijst blijft staan
 async function recipeToShopping(items) {
-  if (!await run(sb.from('shopping_items').insert(items.map(i => ({ ...i, source: 'recept' }))))) return false;
-  await load('shopping_items');
-  toast(items.length + ' ingrediënten op de boodschappenlijst');
+  const r = await addShopping(items, 'recept'); if (!r) return false;
+  toast(shopMsg(r, 'ingrediënten'));
   return true;
 }
+// Het hele weekmenu (7 dagen vooruit). Wat het menu eerder neerzette en nog open staat, wordt vervangen,
+// zodat nog een keer tikken na een wijziging niets dubbel zet. Dagen met een recept nemen de ingrediënten van dat recept mee.
 async function menuToShopping() {
-  const items = menuShopping(getPlan());
+  const items = menuShopping(getPlan(), id => { const x = recipeById(id); return x ? recipeShopping(x) : null; });
   if (!await run(sb.from('shopping_items').delete().eq('source', 'menu').eq('checked', false))) return;
-  if (!await run(sb.from('shopping_items').insert(items.map(i => ({ ...i, source: 'menu' }))))) return;
-  await load('shopping_items');
-  toast(items.length + ' producten uit het menu op de lijst gezet');
+  S.shopping_items = S.shopping_items.filter(i => i.source !== 'menu' || i.checked);
+  const r = await addShopping(items, 'menu'); if (!r) return;
+  toast(shopMsg(r, 'producten uit het menu'));
   location.hash = 'boodschappen';
 }
 

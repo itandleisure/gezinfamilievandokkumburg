@@ -326,6 +326,10 @@ export const ES = {
   "Zwarte bonen extra": "las alubias negras (lata)"
 };
 export const byId = id => RECIPES.find(x => x.id === id);
+// Ingrediënt als regel voor de boodschappenlijst (met de Spaanse naam erachter)
+export const shopRow = (g, x) => ({ name: g[0] + (ES[g[0]] ? ' (' + ES[g[0]] + ')' : ''), qty: g[1] + ' · ' + x.n, category: g[2] });
+// Boodschappen van een heel recept: alles behalve de basisspullen die je meestal al hebt, plus de vega-extra's
+export const recipeShopping = x => x.ingr.concat(x.vingr).filter(g => !g[3]).map(g => shopRow(g, x));
 
 const DC = SLOTS.find(s => s.id === 'd').comps;
 export const recipeKcal = rc => DC.reduce((a, c) => { const o = c.opts[rc.k['d.' + c.id]] || [0, 0, 0, 0]; a.k += o[2]; a.p += o[3]; return a; }, { k: 0, p: 0 });
@@ -464,7 +468,7 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
       const picked = [...root.querySelectorAll('[data-ingr]:checked')].map(i => i.dataset.ingr[0] === 'v' ? x.vingr[+i.dataset.ingr.slice(1)] : x.ingr[+i.dataset.ingr]);
       if (!picked.length) { toast('Vink eerst iets aan'); return; }
       sh.disabled = true;
-      const ok = await addToShopping(picked.map(g => ({ name: g[0] + (ES[g[0]] ? ' (' + ES[g[0]] + ')' : ''), qty: g[1] + ' · ' + x.n, category: g[2] })));
+      const ok = await addToShopping(picked.map(g => shopRow(g, x)));
       sh.disabled = false;
       if (ok) { sh.textContent = '✓ ' + picked.length + ' op de lijst gezet'; sh.classList.add('done'); }
       return;
