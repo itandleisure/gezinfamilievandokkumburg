@@ -138,7 +138,84 @@ export const RECIPES = [
   r('halloumi-ovenschotel', 'tijd', 'Halloumi uit de oven met krieltjes en groente', 'Halloumi al horno con verduras', 40, 8751405, [13, 9, 1, 1],
     [['Halloumi', '2 blokken', Z], ['Krieltjes', '1 kg', B], ['Paprika’s', '2 stuks', G], ['Courgette', '1 stuk', G], ['Rode ui', '2 stuks', G], ['Snoeptomaatjes', '250 g', G], ['Gedroogde oregano', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1]],
     ['Verwarm de oven voor op 200 °C.', 'Halveer de krieltjes, snijd de groente in stukken en meng alles met olie, oregano en zout op een bakplaat.', 'Bak 25 minuten.', 'Leg plakken halloumi ertussen en bak nog 10 minuten tot ze goudbruin zijn.'],
-    'Halloumi is zout: strooi dus weinig zout over de groente.')
+    'Halloumi is zout: strooi dus weinig zout over de groente.'),
+  // ---------- Erbij (nov 2026): meer vega, en oven- en bakplaatgerechten ----------
+  r('pasta-pesto-broccoli', 'snel', 'Pasta met pesto, broccoli en mozzarella', 'Pasta al pesto con brócoli', 15, 6327594, [15, 0, 2, 0],
+    [['Volkorenpasta', '350 g', B], ['Broccoli', '2 stronken', G], ['Groene pesto', '1 potje (190 g)', BA], ['Mozzarella light', '2 bollen', Z], ['Snoeptomaatjes', '250 g', G], ['Geraspte Parmezaan', '30 g', Z]],
+    ['Kook de pasta. Doe de laatste 4 minuten de broccoliroosjes erbij in dezelfde pan.', 'Giet af en schep 3 el pesto erdoor. Meer hoeft niet.', 'Halveer de tomaatjes en scheur de mozzarella erover.', 'Parmezaan apart op tafel.'],
+    'Pesto is vet: 3 eetlepels voor de hele pan is genoeg. Broccoli in hetzelfde water scheelt een pan afwassen.'),
+  r('chili-sin-carne', 'tijd', 'Chili sin carne met rijst', 'Chili sin carne', 35, 38551579, [14, 9, 3, 1],
+    [['Rijst', '280 g droog', B], ['Kidneybonen (blik)', '2 blikken', BA], ['Zwarte bonen (blik)', '1 blik', BA], ['Mais (blik)', '1 klein blik', BA], ['Ui', '1 stuk', G], ['Paprika’s', '2 stuks', G], ['Gepelde tomaten (blik)', '2 blikken', BA], ['Taco- of fajitakruiden', '1 zakje', BA], ['Griekse yoghurt 0%', '150 g', Z], ['Geraspte kaas', '75 g', Z], ['Olijfolie', '1 el', BA, 1]],
+    ['Kook de rijst.', 'Bak ui en paprika in blokjes 5 minuten in de olie.', 'Roer de kruiden erdoor en doe de tomaten, de uitgelekte bonen en de mais erbij. Laat 15 minuten pruttelen.', 'Serveer met de rijst, een schep yoghurt en wat kaas.'],
+    'Bonen geven eiwit en vezels: je zit lang vol. Maak gerust een dubbele portie, chili kan prima de vriezer in.'),
+  r('curry-kikkererwten', 'snel', 'Kikkererwtencurry met spinazie en rijst', 'Curry de garbanzos con espinacas', 25, 674574, [9, 4, 3, 6],
+    [['Rijst', '280 g droog', B], ['Kikkererwten (pot)', '2 potten', BA], ['Verse spinazie', '300 g', G], ['Ui', '1 stuk', G], ['Knoflook', '2 teentjes', G], ['Kerriepoeder', '2 tl', BA, 1], ['Kokosmelk light', '1 blik (400 ml)', BA], ['Gepelde tomaten (blik)', '1 blik', BA], ['Olijfolie', '½ el', BA, 1]],
+    ['Kook de rijst.', 'Fruit ui en knoflook 3 minuten in de olie en bak de kerrie 1 minuut mee.', 'Doe tomaten, kokosmelk en de uitgelekte kikkererwten erbij en laat 10 minuten pruttelen.', 'Roer de spinazie erdoor tot hij geslonken is.'],
+    'Light kokosmelk scheelt de helft van de calorieën en je proeft het verschil nauwelijks.'),
+  r('lasagne-vega', 'zaterdag', 'Lasagne met vega gehakt en groente', 'Lasaña vegetal', 60, 5864346, [5, 4, 2, 2],
+    [['Lasagnebladen', '250 g', B], ['Vega gehakt', '2 pakken (400 g)', V], ['Courgette', '1 stuk', G], ['Verse spinazie', '300 g', G], ['Ui', '1 stuk', G], ['Tomate frito of passata', '2 pakken (800 g)', BA], ['Kookroom light', '200 ml', Z], ['Geraspte kaas', '100 g', Z], ['Italiaanse kruiden', '1 tl', BA, 1], ['Olijfolie', '½ el', BA, 1]],
+    ['Verwarm de oven voor op 190 °C.', 'Bak ui, blokjes courgette en het vega gehakt 6 minuten. Roer de tomatensaus en de kruiden erdoor.', 'Maak laagjes in een ovenschaal: saus, lasagnebladen, spinazie, saus. Herhaal en eindig met saus.', 'Giet de kookroom over de bovenste laag en strooi de kaas erover.', 'Zet de schaal 35 minuten in de oven.'],
+    'Maak hem ’s middags klaar, dan hoef je ’s avonds alleen de oven aan te zetten. Een stuk over is je lunch van morgen.'),
+  r('wraps-falafel', 'snel', 'Wraps met falafel, hummus en salade', 'Wraps de falafel', 15, 6275189, [18, 8, 6, 7],
+    [['Tortilla-wraps', '8 stuks', B], ['Falafel (koeling of diepvries)', '2 pakken', O], ['Hummus', '1 bakje (200 g)', O], ['Sla en tomaat', 'voor 4', G], ['Komkommer', '1 stuk', G], ['Griekse yoghurt 0%', '150 g', Z], ['Feta', '100 g', Z]],
+    ['Warm de falafel 10 tot 12 minuten op in de airfryer of oven.', 'Snijd sla, tomaat en komkommer.', 'Roer een snufje zout door de yoghurt: dat is de saus.', 'Zet alles op tafel, iedereen vult zelf zijn wrap.'],
+    'Jouw portie: 2 wraps met 5 balletjes en veel sla. Yoghurt in plaats van knoflooksaus uit een fles.'),
+  r('arroz-cubana', 'snel', 'Rijst met tomatensaus en gebakken ei', 'Arroz a la cubana', 20, 8688803, [11, 11, 3, 2],
+    [['Rijst', '280 g droog', B], ['Eieren', '8 stuks', V], ['Tomate frito', '1 pak (400 g)', BA], ['Sla, tomaat en komkommer', 'voor 4', G], ['Olijfolie', '1 el', BA, 1]],
+    ['Kook de rijst.', 'Warm de tomate frito op in een pannetje.', 'Bak de eieren in een beetje olie.', 'Schep de rijst in een bergje op het bord, de saus ernaast en het ei erop. Salade erbij.'],
+    'Een Spaanse klassieker die elk kind hier kent. In Spanje ligt er vaak een gebakken banaan naast: probeer het eens.'),
+  r('pisto-ei', 'tijd', 'Pisto met gebakken ei en brood', 'Pisto con huevo', 35, 7439978, [11, 9, 8, 1],
+    [['Courgette', '2 stuks', G], ['Paprika’s', '2 stuks', G], ['Ui', '1 stuk', G], ['Gepelde tomaten (blik)', '2 blikken', BA], ['Eieren', '8 stuks', V], ['Stokbrood (barra)', '1 stuk', B], ['Olijfolie', '1 el', BA, 1]],
+    ['Snijd ui, paprika en courgette in blokjes.', 'Bak ui en paprika 8 minuten zacht in de olie en doe de courgette erbij voor nog 5 minuten.', 'Doe de tomaten erbij en laat 15 minuten zachtjes inkoken.', 'Bak de eieren en leg ze op de pisto. Brood erbij.'],
+    'Pisto is de Spaanse ratatouille. Maak een dubbele portie: de volgende dag lekker over pasta of op brood.'),
+  r('veggieburgers', 'zaterdag', 'Veggieburgers met ovenpartjes', 'Hamburguesas vegetales con patatas', 35, 13916440, [17, 11, 7, 1],
+    [['Veggieburger', '4 stuks', V], ['Volkoren hamburgerbroodjes', '4 stuks', B], ['Aardappelen (voor partjes)', '1 kg', B], ['Sla, tomaat en rode ui', 'voor 4', G], ['Plakjes kaas 30+', '4 plakjes', Z], ['Augurk en ketchup', 'naar smaak', BA, 1], ['Olijfolie', '1 el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Snijd de aardappelen in partjes, meng met olie, paprikapoeder en zout en bak ze 30 minuten.', 'Bak de burgers de laatste 10 minuten in een pan.', 'Warm de broodjes kort op in de oven. Iedereen belegt zelf.'],
+    'Jouw portie: één burger op een broodje met een handje partjes en veel sla.'),
+  r('rijst-groente-ei', 'snel', 'Gebakken rijst met groente en ei', 'Arroz salteado con verduras', 20, 16365845, [11, 6, 3, 1],
+    [['Rijst (liefst van gisteren)', '280 g droog', B], ['Eieren', '6 stuks', V], ['Wokgroente (diepvries of vers)', '600 g', G], ['Doperwten en worteltjes (diepvries)', '300 g', G], ['Lente-uitjes', '1 bosje', G], ['Sojasaus', '2 el', BA], ['Olijfolie', '1 el', BA, 1]],
+    ['Kook de rijst, of gebruik rijst van gisteren.', 'Klop de eieren los, bak er roerei van en zet het apart.', 'Bak de groente 5 minuten op hoog vuur in de wok.', 'Doe de rijst erbij en bak 3 minuten mee. Roer sojasaus, ei en lente-ui erdoor.'],
+    'De vega broer van de arroz tres delicias. Veel groente en weinig olie: zo blijft het licht.'),
+  r('pasta-feta-oven', 'snel', 'Pasta met feta en tomaatjes uit de oven', 'Pasta con feta al horno', 30, 10456299, [16, 4, 2, 1],
+    [['Volkorenpasta', '350 g', B], ['Feta', '1 blok (200 g)', Z], ['Snoeptomaatjes', '500 g', G], ['Verse spinazie', '200 g', G], ['Knoflook', '2 teentjes', G], ['Gedroogde oregano', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Doe de tomaatjes en de knoflook in een ovenschaal, leg de feta in het midden en sprenkel olie en oregano erover. 25 minuten in de oven.', 'Kook intussen de pasta.', 'Prak feta en tomaatjes tot een saus en schep de spinazie en de pasta erdoor.'],
+    'Snijden hoeft bijna niet: de tomaatjes en de feta gaan heel de oven in.'),
+  r('puree-spinazie-ei', 'tijd', 'Aardappelpuree met spinazie en gebakken ei', 'Puré de patatas con espinacas y huevo', 30, 30635680, [11, 4, 0, 1],
+    [['Aardappelen', '1 kg', B], ['Verse spinazie', '600 g', G], ['Eieren', '8 stuks', V], ['Melk (halfvol)', '150 ml', Z], ['Geraspte kaas', '50 g', Z], ['Nootmuskaat', 'snufje', BA, 1], ['Olijfolie', '½ el', BA, 1]],
+    ['Schil de aardappelen en kook ze in 20 minuten gaar.', 'Laat de spinazie in een grote pan slinken.', 'Stamp de aardappelen met de warme melk en wat nootmuskaat. Roer de spinazie erdoor of geef hem apart.', 'Bak de eieren en strooi de kaas over de puree.'],
+    'Hollandse stamppot in een Spaanse keuken. Puree met melk in plaats van boter scheelt flink.'),
+  r('huevos-rotos', 'zondag', 'Huevos rotos: patat uit de oven met ei en paprika', 'Huevos rotos', 35, 22420, [11, 9, 4, 1],
+    [['Diepvriespatat', '1 kg', B], ['Eieren', '8 stuks', V], ['Paprika’s (rood en groen)', '2 stuks', G], ['Ui', '1 stuk', G], ['Sla, tomaat en komkommer', 'voor 4', G], ['Olijfolie', '1 el', BA, 1]],
+    ['Bak de patat 20 tot 25 minuten in de oven of airfryer op 200 °C.', 'Bak intussen reepjes paprika en ui 8 minuten zacht in de olie.', 'Bak de eieren met een zachte dooier.', 'Leg de patat op een schaal, de paprika erover en de eieren erop. Aan tafel prik je de dooiers door de patat.'],
+    'Zondag patat, maar dan Andalusisch. Uit de oven in plaats van de frituur scheelt ongeveer 125 kcal per portie.'),
+  r('gnocchi-bakplaat', 'snel', 'Gnocchi van de bakplaat met tomaatjes, paprika en mozzarella', 'Ñoquis al horno con verduras', 30, 6659620, [15, 9, 10, 1],
+    [['Gnocchi', '2 pakken (800 g)', B], ['Snoeptomaatjes', '250 g', G], ['Paprika’s', '2 stuks', G], ['Rode ui', '1 stuk', G], ['Mozzarella light', '2 bollen', Z], ['Gedroogde oregano', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1]],
+    ['Verwarm de oven voor op 210 °C.', 'Leg de gnocchi (ongekookt), de tomaatjes en de paprika en ui in stukken op een bakplaat. Olie, oregano en zout erover en goed omscheppen.', 'Bak 20 minuten en schep halverwege om.', 'Scheur de mozzarella erover en zet de plaat nog 5 minuten terug.'],
+    'Gnocchi hoef je niet eerst te koken: in de oven worden ze krokant. Jouw portie: een kwart van de plaat.'),
+  r('bakplaat-kip', 'tijd', 'Bakplaat met kippendijen, krieltjes en groente', 'Bandeja de pollo con patatas', 55, 3171130, [0, 9, 1, 1],
+    [['Kippendijen zonder vel', '800 g', V], ['Krieltjes', '1 kg', B], ['Paprika’s', '2 stuks', G], ['Courgette', '1 stuk', G], ['Rode ui', '2 stuks', G], ['Citroen', '1 stuk', G], ['Knoflook', '4 teentjes', G], ['Rozemarijn of tijm (gedroogd)', '1 tl', BA, 1], ['Olijfolie', '1½ el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Halveer de krieltjes, snijd de groente in grove stukken en de citroen in partjes. Meng alles op de bakplaat met olie, kruiden, peper, zout en de gekneusde knoflook.', 'Leg de kippendijen ertussen.', 'Zet de plaat 40 minuten in de oven en schep na 20 minuten om. Klaar als de kip goudbruin en gaar is.'],
+    'Een kwartier snijden en dan 40 minuten vrij: tijd voor een wandeling of de kettlebell.'),
+  r('bakplaat-worstjes', 'tijd', 'Bakplaat met kipworstjes, aardappel en broccoli', 'Salchichas al horno con patatas', 45, 19503826, [19, 0, 0, 1],
+    [['Kipworstjes (salchichas de pollo)', '8 stuks (500 g)', V], ['Aardappelen', '1 kg', B], ['Broccoli', '2 stronken', G], ['Rode ui', '2 stuks', G], ['Gerookt paprikapoeder', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1], ['Mosterd', 'naar smaak', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Snijd de aardappelen in blokjes, meng met olie, pimentón en zout op de bakplaat en bak 15 minuten.', 'Leg de worstjes, de broccoliroosjes en de ui in partjes erbij en bak nog 20 minuten.', 'Mosterd erbij op tafel.'],
+    'Kipworstjes hebben ongeveer de helft van het vet van gewone worst. Jouw portie: 2 worstjes.'),
+  r('bakplaat-vis', 'tijd', 'Bakplaat met witvis, krieltjes, tomaat en courgette', 'Merluza al horno con verduras', 40, 15186039, [4, 9, 1, 1],
+    [['Merluza- of kabeljauwfilet', '700 g', V], ['Krieltjes', '1 kg', B], ['Courgette', '1 stuk', G], ['Snoeptomaatjes', '250 g', G], ['Rode ui', '1 stuk', G], ['Citroen', '1 stuk', G], ['Olijven', '1 handje', O], ['Gedroogde oregano', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Halveer de krieltjes, snijd de ui in partjes en bak ze met de olie 15 minuten op de bakplaat.', 'Doe de courgette in plakken en de tomaatjes erbij.', 'Leg de vis erop met plakjes citroen, oregano en olijven en bak nog 12 tot 15 minuten.'],
+    'De vis gaat er pas het laatste kwartier op, dan blijft hij sappig.'),
+  r('bakplaat-bloemkool', 'tijd', 'Bakplaat met bloemkool, kikkererwten, aardappel en feta', 'Coliflor al horno con garbanzos', 45, 6543754, [9, 1, 0, 1],
+    [['Bloemkool', '1 stuk', G], ['Kikkererwten (pot)', '2 potten', BA], ['Aardappelen', '750 g', B], ['Rode ui', '2 stuks', G], ['Feta', '1 blok (200 g)', Z], ['Griekse yoghurt 0%', '150 g', Z], ['Gerookt paprikapoeder en komijn', '1 tl van elk', BA, 1], ['Olijfolie', '1½ el', BA, 1]],
+    ['Verwarm de oven voor op 210 °C.', 'Snijd de aardappelen in blokjes, de bloemkool in roosjes en de ui in partjes. Meng alles met de uitgelekte kikkererwten, olie en kruiden op de bakplaat.', 'Bak 35 minuten en schep halverwege om.', 'Brokkel de laatste 10 minuten de feta erover. Roer een snufje zout door de yoghurt als saus.'],
+    'Kikkererwten worden krokant als je ze eerst goed droogdept met keukenpapier.'),
+  r('ovenschotel-broccoli', 'tijd', 'Ovenschotel met aardappel, broccoli, ei en kaas', 'Gratinado de patatas y brócoli', 55, 33042510, [11, 0, 0, 1],
+    [['Aardappelen (vastkokend)', '1 kg', B], ['Broccoli', '2 stronken', G], ['Eieren', '6 stuks', V], ['Kookroom light', '200 ml', Z], ['Geraspte kaas', '100 g', Z], ['Nootmuskaat', 'snufje', BA, 1], ['Olijfolie', '½ el', BA, 1]],
+    ['Verwarm de oven voor op 190 °C.', 'Snijd de aardappelen in dunne plakjes en kook ze 5 minuten voor. Doe de broccoliroosjes de laatste 2 minuten erbij.', 'Klop de eieren los met de kookroom, nootmuskaat en zout.', 'Leg aardappel en broccoli in een ingevette ovenschaal, giet het eimengsel erover en strooi de kaas erop.', 'Bak 35 tot 40 minuten tot de bovenkant goudbruin is.'],
+    'Het geheim is de plakjes kort voorkoken: dan is alles tegelijk gaar.'),
+  r('gehaktballen-oven', 'tijd', 'Gehaktballetjes uit de oven met aardappel en worteltjes', 'Albóndigas al horno con patatas', 50, 5837092, [2, 3, 0, 1],
+    [['Mager rundergehakt', '500 g', V], ['Ei', '1 stuk', V], ['Paneermeel', '3 el', BA, 1], ['Aardappelen', '1 kg', B], ['Wortel', '6 stuks', G], ['Rode ui', '1 stuk', G], ['Rozemarijn of tijm (gedroogd)', '1 tl', BA, 1], ['Olijfolie', '1 el', BA, 1]],
+    ['Verwarm de oven voor op 200 °C.', 'Snijd de aardappelen in blokjes, de wortel in staafjes en de ui in partjes. Meng ze met olie, kruiden en zout op de bakplaat en bak 15 minuten.', 'Meng intussen gehakt, ei, paneermeel en zout en draai er zo’n 20 balletjes van.', 'Leg de balletjes op de plaat en bak nog 20 minuten.'],
+    'Balletjes uit de oven in plaats van uit de pan: geen gespetter en geen extra olie.')
 ];
 // Vega-variant per recept: de partner van Frans eet geen vlees en vis, wel eieren en zuivel.
 // [uitleg, extra ingrediënten]. Lege uitleg = het recept is al vegetarisch.
@@ -164,7 +241,14 @@ const VEGA = {
   'wraps-oven': ['Maak 2 wraps met vega gehakt of alleen bonen en leg ze aan één kant van de schaal. Steek er een prikker in, dan weet je welke het zijn.', [['Vega gehakt', '1 pak (200 g)', V]]],
   'borrelplank': ['Maak één hoek van de plank vega: kaas, hummus, gekookte eitjes, olijven en tortilla de patatas. Leg de ham aan de andere kant.', [['Eieren (gekookt)', '4 stuks', V], ['Tortilla de patatas (koeling)', '1 stuk', V]]],
   'pizza-avond': ['Kies voor je partner een Margherita, Funghi of Quattro Formaggi: die zijn zonder vlees.', []],
-  'vega-bolognese': ['', []], 'ovenpasta': ['', []], 'tortilla-patatas': ['', []], 'shakshuka': ['', []], 'lentejas': ['', []], 'quesadillas': ['', []], 'halloumi-ovenschotel': ['', []]
+  'vega-bolognese': ['', []], 'ovenpasta': ['', []], 'tortilla-patatas': ['', []], 'shakshuka': ['', []], 'lentejas': ['', []], 'quesadillas': ['', []], 'halloumi-ovenschotel': ['', []],
+  'pasta-pesto-broccoli': ['', []], 'chili-sin-carne': ['', []], 'curry-kikkererwten': ['', []], 'lasagne-vega': ['', []], 'wraps-falafel': ['', []], 'arroz-cubana': ['', []],
+  'pisto-ei': ['', []], 'veggieburgers': ['', []], 'rijst-groente-ei': ['', []], 'pasta-feta-oven': ['', []], 'puree-spinazie-ei': ['', []], 'huevos-rotos': ['', []],
+  'gnocchi-bakplaat': ['', []], 'bakplaat-bloemkool': ['', []], 'ovenschotel-broccoli': ['', []],
+  'bakplaat-kip': ['Leg op een hoek van de plaat een blok feta en een pot kikkererwten, zonder kip. De feta gaat er pas de laatste 15 minuten op.', [['Feta', '1 blok', Z], ['Kikkererwten (pot)', '1 pot', BA]]],
+  'bakplaat-worstjes': ['Leg vegetarische worstjes op een eigen hoek van de plaat. Die hebben meestal maar 10 minuten nodig.', [['Vegetarische worstjes', '1 pak', V]]],
+  'bakplaat-vis': ['Leg plakken halloumi op een hoek van de plaat in plaats van vis, op hetzelfde moment.', [['Halloumi', '1 blok', Z]]],
+  'gehaktballen-oven': ['Leg vegetarische balletjes op een eigen hoek van de plaat, het laatste kwartier.', [['Vegetarische balletjes', '1 pak', V]]]
 };
 
 // Zo serveer je het voor de kinderen: zij eten het liefst pasta of rijst los, zonder saus erdoor, en alles naast elkaar op het bord.
@@ -196,9 +280,34 @@ const KIDS = {
   'shakshuka': 'Bak voor hen een gewoon gebakken eitje met brood en wat komkommer.',
   'lentejas': 'Kook voor hen pasta of rijst naturel met een gekookt ei of een stukje kaas erbij.',
   'quesadillas': 'Maak hun quesadilla met alleen kaas (en eventueel mais).',
-  'halloumi-ovenschotel': 'Krieltjes en stukjes halloumi los op hun bord, met de groente die ze lusten.'
+  'halloumi-ovenschotel': 'Krieltjes en stukjes halloumi los op hun bord, met de groente die ze lusten.',
+  'pasta-pesto-broccoli': 'Schep hun pasta en broccoli af voordat de pesto erdoor gaat. Mozzarella en tomaatjes los ernaast.',
+  'chili-sin-carne': 'Witte rijst naturel met wat mais, bonen en kaas los ernaast. Chili in een kommetje voor wie durft.',
+  'curry-kikkererwten': 'Witte rijst naturel met een gekookt ei of wat kaas en komkommer ernaast. Curry in een kommetje voor wie wil.',
+  'lasagne-vega': 'Lasagne lusten de meeste kinderen. Liever los? Kook een handje pasta apart en geef saus en kaas ernaast.',
+  'wraps-falafel': 'Zelf vullen: falafel, komkommer en kaas. Saus alleen als ze willen.',
+  'arroz-cubana': 'Hoeft bijna niets aan te veranderen: rijst, ei en saus liggen al los naast elkaar.',
+  'pisto-ei': 'Gebakken ei met brood en een paar stukjes groente los op het bord, zonder saus.',
+  'veggieburgers': 'Laat ze zelf hun burger beleggen. Partjes met een beetje ketchup.',
+  'rijst-groente-ei': 'Witte rijst naturel met roerei en doperwten los ernaast, zonder sojasaus.',
+  'pasta-feta-oven': 'Schep hun pasta af voordat de saus erdoor gaat, met een paar tomaatjes en een blokje feta ernaast.',
+  'puree-spinazie-ei': 'Puree, spinazie en ei los naast elkaar op het bord, met een beetje kaas over hun puree.',
+  'huevos-rotos': 'Patat met een gebakken ei los ernaast en een beetje ketchup.',
+  'gnocchi-bakplaat': 'Gnocchi en mozzarella los op hun bord, met de tomaatjes en paprika die ze lusten.',
+  'bakplaat-kip': 'Kip, krieltjes en groente los op het bord. Leg hun stukken aan de kant van de plaat zonder citroen en knoflook.',
+  'bakplaat-worstjes': 'Worstje, aardappelblokjes en broccoli los: kinderen vinden dit meestal meteen lekker.',
+  'bakplaat-vis': 'Vis zonder graten, krieltjes en tomaatjes los. Of leg een paar vissticks mee op de plaat.',
+  'bakplaat-bloemkool': 'Aardappel, bloemkool en een beetje feta los op het bord. Laat de kruiden weg op hun hoek van de plaat.',
+  'ovenschotel-broccoli': 'Schep voor hen een stuk van de rand: veel aardappel en kaas, broccoli ernaast.',
+  'gehaktballen-oven': 'Balletjes draaien is leuk om samen te doen. Op het bord alles los, met een beetje ketchup.'
 };
-RECIPES.forEach(x => { const v = VEGA[x.id] || ['', []]; x.vega = v[0]; x.vingr = v[1]; x.kids = KIDS[x.id] || ''; });
+// Oven en bakplaat: [minuten snijden, minuten in de oven]. Daarna heb je je handen vrij.
+const OVEN = {
+  'pollo-al-horno': [15, 40], 'dorada-horno': [15, 35], 'halloumi-ovenschotel': [10, 35], 'ovenpasta': [20, 15], 'wraps-oven': [20, 15],
+  'lasagne-vega': [25, 35], 'veggieburgers': [10, 30], 'pasta-feta-oven': [5, 25], 'huevos-rotos': [10, 25], 'gnocchi-bakplaat': [5, 25],
+  'bakplaat-kip': [15, 40], 'bakplaat-worstjes': [10, 35], 'bakplaat-vis': [10, 30], 'bakplaat-bloemkool': [10, 35], 'ovenschotel-broccoli': [15, 40], 'gehaktballen-oven': [15, 35]
+};
+RECIPES.forEach(x => { const v = VEGA[x.id] || ['', []]; x.vega = v[0]; x.vingr = v[1]; x.kids = KIDS[x.id] || ''; x.oven = OVEN[x.id] || null; });
 // Spaanse namen van de ingrediënten, met lidwoord (handig in de supermarkt en om Spaans te oefenen). Sleutel = de Nederlandse naam precies zoals in het recept.
 export const ES = {
   "Aardappel": "la patata",
@@ -323,7 +432,19 @@ export const ES = {
   "Witte wijn of bouillon": "el vino blanco o el caldo",
   "Wortel": "las zanahorias",
   "Zwarte bonen (blik)": "las alubias negras (lata)",
-  "Zwarte bonen extra": "las alubias negras (lata)"
+  "Zwarte bonen extra": "las alubias negras (lata)",
+  "Groene pesto": "el pesto verde",
+  "Lasagnebladen": "las láminas de lasaña",
+  "Falafel (koeling of diepvries)": "el falafel",
+  "Wokgroente (diepvries of vers)": "las verduras para saltear",
+  "Melk (halfvol)": "la leche semidesnatada",
+  "Nootmuskaat": "la nuez moscada",
+  "Gnocchi": "los ñoquis",
+  "Kippendijen zonder vel": "los contramuslos de pollo sin piel",
+  "Kipworstjes (salchichas de pollo)": "las salchichas de pollo",
+  "Mosterd": "la mostaza",
+  "Vegetarische worstjes": "las salchichas vegetales",
+  "Bloemkool": "la coliflor"
 };
 export const byId = id => RECIPES.find(x => x.id === id);
 // Ingrediënt als regel voor de boodschappenlijst (met de Spaanse naam erachter)
@@ -343,7 +464,7 @@ const FALLBACK = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://
 
 // Filters: per groep één keuze, groepen tellen samen op (bijv. Vega + Pasta + Binnen 25 min).
 // Vis/vlees en pasta/rijst/aardappel volgen uit de onderdelen van Avondeten (posities in menu.js).
-const VIS = [4], AARDAPPEL = [0, 1, 4, 5], BROOD = [6, 7, 8, 9];
+const VIS = [4], AARDAPPEL = [0, 1, 4, 5, 10], BROOD = [6, 7, 8, 9];
 export const FILTERS = [
   { g: 'tijd', id: 'kort', n: '⏱ Binnen 25 min', ok: x => x.min <= 25 },
   { g: 'hoofd', id: 'vega', n: '🌱 Vega', ok: x => !x.vega },
@@ -352,7 +473,8 @@ export const FILTERS = [
   { g: 'basis', id: 'pasta', n: '🍝 Pasta', ok: x => x.k['d.koolh'] === 2 },
   { g: 'basis', id: 'rijst', n: '🍚 Rijst', ok: x => x.k['d.koolh'] === 3 },
   { g: 'basis', id: 'aardappel', n: '🥔 Aardappel', ok: x => AARDAPPEL.includes(x.k['d.koolh']) || /aardappel|krieltjes|patat|ovenpart/i.test(x.n) },
-  { g: 'basis', id: 'brood', n: '🌮 Brood & wraps', ok: x => BROOD.includes(x.k['d.koolh']) }
+  { g: 'basis', id: 'brood', n: '🌮 Brood & wraps', ok: x => BROOD.includes(x.k['d.koolh']) },
+  { g: 'oven', id: 'oven', n: '🔥 Oven / bakplaat', ok: x => !!x.oven }
 ];
 
 export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, addToShopping, toast }) {
@@ -399,7 +521,7 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
     ${items.length ? '' : `<p class="rb-empty">Geen recept dat hierbij past. Probeer <button class="btn link" type="button" data-soort="alle">Alles</button> of <button class="btn link" type="button" data-clearfil>wis de filters</button>.</p>`}
     <div class="rb-grid">${items.map(x => { const t = recipeKcal(x); return `<button class="rb-card" type="button" data-open="${x.id}">
       <img src="${foto(x.foto, 400)}" alt="" loading="lazy">
-      <span class="rb-txt"><b>${esc(x.n)}</b>${x.vega ? '' : '<em class="rb-veg">🌱 vegetarisch</em>'}<i>${esc(x.es)}</i><small>⏱ ${x.min} min · ${nf(t.k)} kcal · ${nf(t.p)} g eiwit</small></span></button>`; }).join('')}</div>
+      <span class="rb-txt"><b>${esc(x.n)}</b>${x.vega ? '' : '<em class="rb-veg">🌱 vegetarisch</em>'}<i>${esc(x.es)}</i><small>⏱ ${x.min} min${x.oven ? ' · 🔥 oven' : ''} · ${nf(t.k)} kcal · ${nf(t.p)} g eiwit</small></span></button>`; }).join('')}</div>
     <p class="mut rb-credit">Foto’s: <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>, gratis te gebruiken. De gerechten zelf hoeven er natuurlijk niet precies zo uit te zien.</p>`;
   }
 
@@ -414,7 +536,7 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
       <img class="rb-hero" src="${foto(x.foto, 900)}" alt="${esc(x.n)}">
       <h2>${esc(x.n)}</h2>
       <p class="rb-es">${esc(x.es)}</p>
-      <p class="rb-meta"><span>⏱ ${x.min} min</span>${ss.map(q => `<span>${esc(q.n)} · ${esc(q.sub)}</span>`).join('')}<span>Voor 4 personen</span></p>
+      <p class="rb-meta"><span>⏱ ${x.min} min</span>${x.oven ? `<span>🔪 ${x.oven[0]} min snijden · 🔥 ${x.oven[1]} min oven</span>` : ''}${ss.map(q => `<span>${esc(q.n)} · ${esc(q.sub)}</span>`).join('')}<span>Voor 4 personen</span></p>
       <div class="rb-kcal"><b>${nf(t.k)} kcal</b> · ${nf(t.p)} g eiwit <small>jouw portie</small></div>
       <p class="rb-tip">💡 ${esc(x.tip)}</p>
       <p class="rb-kids">🧒 <b>Voor de kinderen:</b> ${esc(x.kids)}</p>
