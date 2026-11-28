@@ -254,7 +254,10 @@ function locate() {
 function loadCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; } }
 function saveCache(d) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(d)); } catch {} }
 
-// ctx: { root, esc, onSummary(text) } — onSummary zet een kort zinnetje op de tegel onder Meer
+// Regenseintje: per persoon aan/uit en het uur in `weer_prefs`; de melding zelf stuurt gezond-push (`runRegen()`).
+export const RAIN_HOURS = [6, 7, 8, 9, 10];
+
+// ctx: { root, esc, sb, run, load, getPrefs, isMissing, userId, onSummary(text) } — onSummary zet een kort zinnetje op de tegel onder Meer
 export function mountWeer(ctx) {
   const { root, esc } = ctx;
   // homeData = Cómpeta (bewaard in localStorage), hereData = waar je nu bent (alleen in het geheugen)
@@ -377,6 +380,24 @@ export function mountWeer(ctx) {
     ${locMsg ? `<p class="wx-locmsg">${esc(locMsg)}</p>` : ''}`;
   }
 
+  function rainCard() {
+    if (!ctx.getPrefs || ctx.isMissing?.()) return '';
+    const p = ctx.getPrefs(), on = !!p?.rain_push, hour = p?.at_hour ?? 7;
+    return `<div class="card dv-set wx-rain">
+      <label class="dv-row"><span><b>☔ Regenseintje voor Cómpeta</b><small>'s Ochtends een melding als het die dag gaat regenen, met de tijden erbij. Alleen op je eigen telefoon.</small></span>
+        <input type="checkbox" class="dv-switch" data-set="rain" ${on ? 'checked' : ''} aria-label="Regenseintje"></label>
+      <label class="dv-row"><span><b>Hoe laat?</b><small>Spaanse tijd</small></span>
+        <select data-set="hour" ${on ? '' : 'disabled'}>${RAIN_HOURS.map(h => `<option value="${h}" ${h === hour ? 'selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('')}</select></label>
+      <small class="mut">Meldingen moeten aan staan op je telefoon (knop onderaan Gezond).</small>
+    </div>`;
+  }
+  async function saveRain(change) {
+    const p = ctx.getPrefs() || {};
+    const row = { owner: ctx.userId(), rain_push: p.rain_push ?? false, at_hour: p.at_hour ?? 7, ...change, updated_at: new Date().toISOString() };
+    await ctx.run(ctx.sb.from('weer_prefs').upsert(row), row.rain_push ? `Regenseintje staat aan om ${String(row.at_hour).padStart(2, '0')}:00` : 'Regenseintje staat uit');
+    await ctx.load('weer_prefs'); render();
+  }
+
   function render() {
     const data = cur();
     if (!data) {
@@ -396,7 +417,8 @@ export function mountWeer(ctx) {
       <p class="mut wx-tip">Tik op een dag om alle bronnen naast elkaar te zien. De grote getallen zijn het gemiddelde.</p>
       <div class="wx-days">${days.map(dayCard).join('')}</div>
       <p class="mut wx-foot">${ok.length} bronnen: ${ok.map(s => esc(s.naam)).join(', ')}.${missing.length ? ` Niet bereikbaar: ${missing.map(s => esc(s.naam)).join(', ')}.` : ''} Bijgewerkt om ${at}. Weerdata van Open-Meteo.com (CC BY 4.0) en MET Norway.</p>
-      <button class="btn wide" data-act="refresh" ${busy ? 'disabled' : ''}>${busy ? 'Bezig met ophalen…' : 'Ververs het weer'}</button>`;
+      <button class="btn wide" data-act="refresh" ${busy ? 'disabled' : ''}>${busy ? 'Bezig met ophalen…' : 'Ververs het weer'}</button>
+      ${rainCard()}`;
   }
 
   root.addEventListener('click', e => {
@@ -410,6 +432,11 @@ export function mountWeer(ctx) {
     else if (b.dataset.day) { open = open === b.dataset.day ? null : b.dataset.day; render(); }
   });
 
+  root.addEventListener('change', e => {
+    const el = e.target.closest('[data-set]'); if (!el) return;
+    if (el.dataset.set === 'rain') saveRain({ rain_push: el.checked });
+    if (el.dataset.set === 'hour') saveRain({ at_hour: Number(el.value) });
+  });
   root.addEventListener('submit', e => {
     if (!e.target.matches('.wx-search')) return;
     e.preventDefault();

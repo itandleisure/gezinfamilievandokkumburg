@@ -11,6 +11,8 @@
 // Dagvragen: op het gekozen uur (standaard 21:00) de 3 vragen van de dag, alleen voor wie het aanzet in dagvraag_prefs.
 //   De vragen komen uit dagvragen.json op de site. Opent /#dagvragen.
 // Vaste lasten: vanaf 10:00 een seintje remind_days vóór een afschrijving uit expenses (IBI, verzekering...). Naar iedereen, opent /#lasten.
+// Regen: op het gekozen uur (standaard 07:00) een seintje als het die dag in Cómpeta gaat regenen, met de tijdvakken erbij.
+//   Alleen voor wie het aanzet in weer_prefs. Bronnen: Open-Meteo per model, net als weer.js. Opent /#weer.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -302,6 +304,83 @@ async function runLasten(subs: Sub[], owners: string[], day: string, hour: numbe
   return out;
 }
 
+// ---------- Regenseintje voor Cómpeta ----------
+// Per uur van vandaag (vanaf nu tot 23:00) tellen hoeveel modellen ≥ 0,2 mm geven. Meer dan de helft = regen, minstens één = mogelijk een bui.
+// Opeenvolgende uren worden tijdvakken ("11:00–14:00"). In push_log als kind 'regen', dus één keer per dag.
+const RAIN_MODELS = ['ecmwf_ifs025', 'icon_seamless', 'gfs_seamless', 'meteofrance_seamless', 'ukmo_seamless', ''];
+const COMPETA = { lat: 36.8333, lon: -3.9726 };
+type RainHour = { h: number; wet: number; n: number; mm: number; prob: number | null };
+async function rainToday(day: string, fromHour: number): Promise<RainHour[]> {
+  const res = await Promise.allSettled(RAIN_MODELS.map(async m => {
+    const q = new URLSearchParams({ latitude: String(COMPETA.lat), longitude: String(COMPETA.lon), hourly: 'precipitation,precipitation_probability', timezone: 'Europe/Madrid', start_date: day, end_date: day });
+    if (m) q.set('models', m);
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?' + q);
+    if (!r.ok) throw new Error(m + ' ' + r.status);
+    return (await r.json()).hourly as { time: string[]; precipitation: (number | null)[]; precipitation_probability?: (number | null)[] };
+  }));
+  const hours: RainHour[] = [];
+  for (let h = fromHour; h <= 23; h++) {
+    let wet = 0, n = 0, mm = 0, prob: number | null = null;
+    for (const r of res) {
+      if (r.status !== 'fulfilled') continue;
+      const i = r.value.time.indexOf(`${day}T${String(h).padStart(2, '0')}:00`);
+      const v = i < 0 ? null : r.value.precipitation[i];
+      if (v == null) continue;
+      n++; mm += v; if (v >= 0.2) wet++;
+      const p = r.value.precipitation_probability?.[i];
+      if (p != null) prob = Math.max(prob ?? 0, p);
+    }
+    if (n) hours.push({ h, wet, n, mm: mm / n, prob });
+  }
+  return hours;
+}
+function blocks(hs: number[]) {
+  const out: string[] = [];
+  for (let i = 0; i < hs.length; i++) {
+    let j = i; while (j + 1 < hs.length && hs[j + 1] === hs[j] + 1) j++;
+    out.push(`${String(hs[i]).padStart(2, '0')}:00–${String(Math.min(hs[j] + 1, 24)).padStart(2, '0')}:00`);
+    i = j;
+  }
+  return out.length > 1 ? out.slice(0, -1).join(', ') + ' en ' + out.at(-1) : out[0];
+}
+function rainMsg(hours: RainHour[]) {
+  if (!hours.length) return null;
+  const n = Math.max(...hours.map(x => x.n));
+  const sure = hours.filter(x => x.wet * 2 > x.n), maybe = hours.filter(x => x.wet > 0);
+  const probMax = Math.max(0, ...hours.map(x => x.prob ?? 0));
+  const total = Math.round(hours.reduce((s, x) => s + x.mm, 0) * 10) / 10;
+  const mm = total >= 0.5 ? `, samen ca. ${String(total).replace('.', ',')} mm` : '';
+  const kans = probMax ? ` Regenkans tot ${probMax}%.` : '';
+  if (sure.length) {
+    const most = Math.max(...sure.map(x => x.wet));
+    return { title: '☔ Regen in Cómpeta vandaag', body: `Regen verwacht: ${blocks(sure.map(x => x.h))}${mm} (${most} van ${n} bronnen).${kans} Neem een paraplu mee.`, url: '/#weer' };
+  }
+  if (maybe.length >= 2 || probMax >= 40) {
+    const most = Math.max(...maybe.map(x => x.wet));
+    return { title: '🌦️ Misschien een bui in Cómpeta', body: `Bui mogelijk: ${blocks(maybe.map(x => x.h))} (${most} van ${n} bronnen, de rest houdt het droog).${kans}`, url: '/#weer' };
+  }
+  return null;
+}
+async function runRegen(subs: Sub[], day: string, hour: number) {
+  const { data: prefs, error } = await db.from('weer_prefs').select('owner, at_hour').eq('rain_push', true);
+  if (error || !prefs?.length) return {};   // tabel nog niet aangemaakt, of niemand heeft het aan
+  const due = prefs.filter(p => hour >= p.at_hour && hour < p.at_hour + 2 && subs.some(s => s.owner === p.owner));
+  if (!due.length) return {};
+  const { data: done } = await db.from('push_log').select('owner').eq('day', day).eq('kind', 'regen').in('owner', due.map(p => p.owner));
+  const todo = due.filter(p => !(done || []).some(d => d.owner === p.owner));
+  if (!todo.length) return {};
+  const msg = rainMsg(await rainToday(day, hour));
+  const out: Record<string, string> = {};
+  for (const p of todo) {
+    const { error: dup } = await db.from('push_log').insert({ owner: p.owner, day, kind: 'regen' });
+    if (dup) continue; // vandaag al gekeken
+    if (!msg) { out[p.owner] = 'droog'; continue; } // droog: geen melding, en vandaag niet nog eens kijken
+    for (const s of subs.filter(s => s.owner === p.owner)) await send(s, 'regen', msg);
+    out[p.owner] = 'regen';
+  }
+  return out;
+}
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
@@ -342,7 +421,9 @@ async function run() {
   try { dagvraag = await runDagvraag((subs || []) as Sub[], day, hour); } catch (e) { console.error('dagvragen', e); }
   let lasten = {};
   try { lasten = await runLasten((subs || []) as Sub[], owners, day, hour); } catch (e) { console.error('lasten', e); }
-  return { day, hour, sent: out, kijk, dagvraag, lasten };
+  let regen = {};
+  try { regen = await runRegen((subs || []) as Sub[], day, hour); } catch (e) { console.error('regen', e); }
+  return { day, hour, sent: out, kijk, dagvraag, lasten, regen };
 }
 
 Deno.serve(async req => {

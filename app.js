@@ -53,7 +53,7 @@ let tasksMissing = false;
 const HEALTH = ['weight_log', 'sport_log', 'health_settings'], healthMissing = {};
 let healthDayMissing = false;
 let watchMissing = false;
-let dvMissing = false;
+let dvMissing = false, weerMissing = false;
 let jobsMissing = false;
 let receiptsMissing = false;
 let lastenMissing = false;
@@ -63,8 +63,8 @@ function taskBadge() {
   const n = dueCount(S.tasks);
   for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], receipts: [], expenses: [], house_jobs: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date', house_jobs: 'created_at' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], weer_prefs: [], receipts: [], expenses: [], house_jobs: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', weer_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date', house_jobs: 'created_at' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
@@ -78,13 +78,15 @@ async function load(t) {
   if (t === 'watch_items') watchMissing = !!error;
   // Dagvragen: zonder tabel werken de vragen gewoon, alleen de melding-instelling niet
   if (t === 'dagvraag_prefs') dvMissing = !!error;
+  // Weer: zonder tabel werkt het weer gewoon, alleen het regenseintje niet
+  if (t === 'weer_prefs') weerMissing = !!error;
   // Bonnetjes: idem, tot de tabel in Supabase staat
   if (t === 'receipts') receiptsMissing = !!error;
   // Vaste lasten: idem, tot de tabel expenses in Supabase staat
   if (t === 'expenses') lastenMissing = !!error;
   // Klussen: idem, tot de tabel house_jobs bestaat
   if (t === 'house_jobs') jobsMissing = !!error;
-  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'receipts' && t !== 'expenses' && t !== 'house_jobs' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
+  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'weer_prefs' && t !== 'receipts' && t !== 'expenses' && t !== 'house_jobs' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -174,7 +176,7 @@ async function start() {
   dagvragen = mountDagvragen({ root: $('#dagvragenRoot'), sb, esc, run, toast, load, getPrefs: () => S.dagvraag_prefs.find(r => r.owner === userId), isMissing: () => dvMissing, userId: () => userId });
   bonnetjes = mountBonnetjes({ root: $('#bonnetjesRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.receipts, isMissing: () => receiptsMissing });
   klussen = mountKlussen({ root: $('#klussenRoot'), sb, esc, run, toast, openDialog, load, getJobs: () => S.house_jobs, getContacts: () => S.contacts, isMissing: () => jobsMissing });
-  weer = mountWeer({ root: $('#weerRoot'), esc, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
+  weer = mountWeer({ root: $('#weerRoot'), esc, sb, run, load, getPrefs: () => S.weer_prefs.find(r => r.owner === userId), isMissing: () => weerMissing, userId: () => userId, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
   kettlebell = mountKettlebell({ root: $('#kettlebellRoot'), esc, toast, today: () => iso(new Date()),
     hasKracht: day => S.sport_log.some(r => r.owner === userId && r.day === day && r.kind === 'kracht'), markKracht: day => toggleSport(day, 'kracht', true) });
   lasten = mountLasten({ root: $('#lastenRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.expenses, isMissing: () => lastenMissing });

@@ -723,3 +723,4 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .wx-found .btn{display:grid;justify-items:start;text-align:left;padding:8px 14px}
 .wx-found .btn small{color:var(--mut);font-weight:500;font-size:13px}
 .wx-found .btn.link{justify-self:center}
+.wx-rain{margin-top:4px}

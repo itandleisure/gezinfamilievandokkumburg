@@ -432,3 +432,16 @@ drop policy if exists "fotos: gezin wijzigen" on storage.objects;
 create policy "fotos: gezin wijzigen" on storage.objects for update to authenticated using (bucket_id = 'fotos') with check (bucket_id = 'fotos');
 drop policy if exists "fotos: gezin verwijderen" on storage.objects;
 create policy "fotos: gezin verwijderen" on storage.objects for delete to authenticated using (bucket_id = 'fotos');
+
+-- ---------- Weer: regenseintje voor Cómpeta (per persoon aan/uit en het uur) ----------
+create table if not exists public.weer_prefs (
+  owner uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  rain_push boolean not null default false,
+  at_hour smallint not null default 7 check (at_hour between 0 and 23),   -- uur in Spaanse tijd
+  updated_at timestamptz default now()
+);
+grant select, insert, update, delete on public.weer_prefs to authenticated;
+grant select on public.weer_prefs to service_role;
+alter table public.weer_prefs enable row level security;
+drop policy if exists "alleen eigen gegevens" on public.weer_prefs;
+create policy "alleen eigen gegevens" on public.weer_prefs for all to authenticated using (owner = (select auth.uid())) with check (owner = (select auth.uid()));
