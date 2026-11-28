@@ -292,10 +292,10 @@ export function mountFinancieel(ctx) {
     if (!m.pmt && !hv) return h + `<p class="empty">Vul de woningwaarde en de hypotheek in, dan rekent de app de restschuld zelf uit.</p><button class="btn primary wide" data-act="mort">Invullen</button>`;
     h += `<div class="ls-sum">${kpi('Restschuld', eur(m.remaining), 'hot')}${m.pmt ? kpi('Maandlast', eur(m.pmt)) + kpi('Afgelost op', fmtD(m.end)) : ''}</div>`;
     if (hv) h += `<div class="ls-sum fin-two">${kpi('Geschatte woningwaarde', eur(hv))}${kpi('Geschatte overwaarde', eur(hv - m.remaining))}</div>`;
+    if (hv) h += `<p class="ls-hint">De woningwaarde is een schatting: wat het echt opbrengt, merk je pas bij verkoop.</p>`;
     if (m.pmt) {
       h += `<div class="gift-budget"><span>${m.k} van ${m.N} termijnen betaald · ${pct((m.paidPct * 100).toFixed(1))}% afgelost</span><div class="bar"><i style="width:${(m.paidPct * 100).toFixed(1)}%"></i></div></div>`;
       if (num(mort.override) !== null) h += `<p class="ls-hint">Berekend ${esc(eur(m.computed))}, volgens de bank ${esc(eur(mort.override))}. De app gebruikt het bedrag van de bank.</p>`;
-      if (hv) h += `<p class="ls-hint">De woningwaarde is een schatting: wat het echt opbrengt, merk je pas bij verkoop.</p>`;
       else h += `<p class="ls-hint">Restschuld berekend (annuïteit, ${pct(mort.rate_pct)}% rente, ${mort.years} jaar vanaf ${esc(fmtD(mort.start_date))}), niet van de bank.</p>`;
       const sc = m.schedule, step = sc.length > 12 ? 5 : 2, labels = sc.map((p, i) => [i, p.x]).filter(([i]) => i % step === 0);
       h += `<div class="group"><h3>Restschuld per jaar</h3><div class="card">${lineChart([{ v: sc.map(p => p.y), color: 'var(--terra)', area: true }], { labels })}</div></div>`;
