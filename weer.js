@@ -414,8 +414,8 @@ export function mountWeer(ctx) {
     return `<div class="card dv-set wx-rain">
       <label class="dv-row"><span><b>🧴 Seintje om in te smeren</b><small>Een melding als de UV-index in Cómpeta die dag ${uvMin} of hoger wordt, een uur voordat het zover is.</small></span>
         <input type="checkbox" class="dv-switch" data-set="uv" ${uvOn ? 'checked' : ''} aria-label="Seintje om in te smeren"></label>
-      <label class="dv-row"><span><b>Vanaf welke UV?</b><small>3 = matig, 6 = hoog</small></span>
-        <select data-set="uvmin" ${uvOn ? '' : 'disabled'}>${[3, 5, 6, 8].map(u => `<option value="${u}" ${u === uvMin ? 'selected' : ''}>UV ${u}</option>`).join('')}</select></label>
+      <label class="dv-row"><span><b>Vanaf welke UV?</b><small>1–2 laag, 3–5 matig, 6–7 hoog, 8–10 zeer hoog, 11+ extreem</small></span>
+        <select data-set="uvmin" ${uvOn ? '' : 'disabled'}>${Array.from({ length: 11 }, (_, i) => i + 1).map(u => `<option value="${u}" ${u === uvMin ? 'selected' : ''}>UV ${u}${u === 11 ? '+' : ''} (${uvNaam(u)})</option>`).join('')}</select></label>
       <label class="dv-row"><span><b>☔ Regenseintje voor Cómpeta</b><small>'s Ochtends een melding als het die dag gaat regenen, met de tijden erbij. Alleen op je eigen telefoon.</small></span>
         <input type="checkbox" class="dv-switch" data-set="rain" ${on ? 'checked' : ''} aria-label="Regenseintje"></label>
       <label class="dv-row"><span><b>Hoe laat?</b><small>Spaanse tijd</small></span>
