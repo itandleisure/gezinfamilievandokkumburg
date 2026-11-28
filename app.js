@@ -6,6 +6,7 @@ import { mountRecepten, byId as recipeById, recipeShopping } from './recepten.js
 import { mountTaken, dueCount } from './taken.js';
 import { mountKijken } from './kijken.js';
 import { mountDagvragen } from './dagvragen.js';
+import { mountWeer } from './weer.js';
 import { mountGezond, nudge, iso } from './gezond.js';
 import { registerSW, pushState, enablePush, disablePush, testPush } from './push.js';
 
@@ -122,7 +123,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', meer: 'Meer' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', meer: 'Meer' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
 const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
@@ -142,12 +143,12 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken, gezond, recepten, kijken, dagvragen;
+let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes,
@@ -158,6 +159,7 @@ async function start() {
     getMembers: () => S.family_members, me: () => userId });
   kijken = mountKijken({ root: $('#kijkenRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.watch_items.filter(r => r.owner === userId), getPrefs: () => S.watch_prefs.find(r => r.owner === userId), isMissing: () => watchMissing, userId: () => userId });
   dagvragen = mountDagvragen({ root: $('#dagvragenRoot'), sb, esc, run, toast, load, getPrefs: () => S.dagvraag_prefs.find(r => r.owner === userId), isMissing: () => dvMissing, userId: () => userId });
+  weer = mountWeer({ root: $('#weerRoot'), esc, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
   gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, saveDay, setMinutes, openDialog,
     push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: () => testPush('test'), week: () => testPush('week') } });
   registerSW();
