@@ -714,3 +714,12 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .kl-photo{border:0;border-radius:16px;padding:12px;max-width:min(96vw,720px);background:var(--card)}
 .kl-photo::backdrop{background:rgb(0 0 0/.7)}
 .kl-photo img{display:block;max-width:100%;max-height:75vh;margin:0 auto 12px;border-radius:10px}
+.wx-place{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.wx-place .chip{min-height:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wx-place .chip[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+.wx-locmsg{margin:-4px 0 12px;padding:10px 12px;border-radius:12px;border-left:5px solid var(--terra);background:var(--card);font-size:14px}
+.wx-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}
+.wx-found{display:grid;gap:6px;margin:-4px 0 12px}
+.wx-found .btn{display:grid;justify-items:start;text-align:left;padding:8px 14px}
+.wx-found .btn small{color:var(--mut);font-weight:500;font-size:13px}
+.wx-found .btn.link{justify-self:center}

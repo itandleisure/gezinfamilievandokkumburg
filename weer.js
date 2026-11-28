@@ -3,10 +3,13 @@
 //  - Open-Meteo, één aanvraag per weermodel (ECMWF, ICON, GFS, Météo-France/AROME, UK Met Office en de "mix"), zodat een model dat
 //    uitvalt de rest niet meesleept;
 //  - MET Norway (de bron achter Yr), via locationforecast/complete, omgerekend naar dagwaarden.
+// Knop "Mijn locatie": haalt na toestemming het weer op waar je nu bent (navigator.geolocation, alleen terwijl de app open is);
+// de plaatsnaam komt van de gratis reverse-geocoding van BigDataCloud (zonder sleutel).
+// Zoekveld: elke plaats intypen, via de gratis geocoding van Open-Meteo (`searchPlaces()`). Bij elke start staat de app weer op Cómpeta.
 // Een hint voor wandelen in de bergen (Cómpeta) en hardlopen op het strand (Torrox Costa) staat bij vandaag en morgen.
 // Alles wordt 30 minuten bewaard in localStorage, zodat de app niet bij elke tik opnieuw ophaalt.
 const TZ = 'Europe/Madrid';
-const PLACE = { naam: 'Cómpeta', lat: 36.8333, lon: -3.9726 };
+export const HOME = { naam: 'Cómpeta', lat: 36.8333, lon: -3.9726, home: true };
 const BEACH = { naam: 'Torrox Costa', lat: 36.7286, lon: -3.9538 };
 const CACHE_KEY = 'weer-cache-v1', CACHE_MIN = 30, DAYS = 7;
 
@@ -155,11 +158,11 @@ export function parseMet(j, nowDate = new Date()) {
   return { now, days: out };
 }
 
-export async function fetchAll() {
+export async function fetchAll(place = HOME) {
   const jobs = [
-    ...MODELS.map(m => getJson(omUrl(PLACE, m.model)).then(parseOpenMeteo)),
-    getJson(`https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${PLACE.lat.toFixed(4)}&lon=${PLACE.lon.toFixed(4)}`).then(j => parseMet(j)),
-    getJson(omUrl(BEACH, '', false)).then(parseOpenMeteo),
+    ...MODELS.map(m => getJson(omUrl(place, m.model)).then(parseOpenMeteo)),
+    getJson(`https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${place.lat.toFixed(4)}&lon=${place.lon.toFixed(4)}`).then(j => parseMet(j)),
+    place.home ? getJson(omUrl(BEACH, '', false)).then(parseOpenMeteo) : Promise.reject(new Error('geen strand')),
   ];
   const res = await Promise.allSettled(jobs);
   const sources = [...MODELS, MET].map((s, i) => ({ id: s.id, naam: s.naam, uit: s.uit, ok: res[i].status === 'fulfilled' && (res[i].value.now || Object.keys(res[i].value.days).length > 0), ...(res[i].status === 'fulfilled' ? res[i].value : { now: null, days: {} }) }));
@@ -196,18 +199,18 @@ export function agree(st, small = 2, mid = 4) {
 }
 
 // ---------- Hints: wandelen in de bergen, hardlopen op het strand ----------
-export function hints(day, beach) {
+export function hints(day, beach, home = true) {
   const out = [];
   if (day) {
     const t = day.tmax?.avg, wind = day.wind?.avg ?? 0, gust = day.gust?.avg ?? 0, snow = day.snow?.max ?? 0, wetShare = day.wetN ? day.wet / day.wetN : 0;
     let why = null;
     if (snow > 0.2) why = 'kans op sneeuw in de bergen';
     else if (wetShare > 0.5) why = 'de meeste bronnen geven regen';
-    else if (gust >= 55 || wind >= 35) why = 'harde wind op de bergkam';
+    else if (gust >= 55 || wind >= 35) why = home ? 'harde wind op de bergkam' : 'harde wind';
     else if (t != null && t >= 30) why = 'te warm, ga hooguit heel vroeg';
     else if (t != null && t < 6) why = 'koud, kleed je goed aan';
     const ok = !why || why.startsWith('koud');
-    out.push({ ok, wat: 'Wandelen in de bergen', why: why || (wetShare > 0 ? 'meestal droog, neem een regenjas mee' : 'droog en rustig weer') });
+    out.push({ ok, wat: home ? 'Wandelen in de bergen' : 'Wandelen', why: why || (wetShare > 0 ? 'meestal droog, neem een regenjas mee' : 'droog en rustig weer') });
   }
   if (beach) {
     const t = beach.tmax, wind = beach.wind ?? 0, prob = beach.prob ?? 0, mm = beach.mm ?? 0;
@@ -231,25 +234,77 @@ function dayName(key, i) {
   const s = d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+// Plaatsnaam bij een locatie (gratis, zonder sleutel); lukt het niet, dan gewoon "Jouw locatie"
+async function placeName(lat, lon) {
+  try {
+    const j = await getJson(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=nl`, 6000);
+    return j.city || j.locality || j.principalSubdivision || 'Jouw locatie';
+  } catch { return 'Jouw locatie'; }
+}
+export async function searchPlaces(q) {
+  const j = await getJson('https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({ name: q, count: 6, language: 'nl', format: 'json' }), 8000);
+  return (j.results || []).map(r => ({ naam: r.name, waar: [r.admin1, r.country].filter(Boolean).join(', '), lat: r.latitude, lon: r.longitude, home: false }));
+}
+function locate() {
+  return new Promise((ok, no) => {
+    if (!navigator.geolocation) return no(new Error('geen'));
+    navigator.geolocation.getCurrentPosition(p => ok(p.coords), no, { enableHighAccuracy: false, timeout: 15000, maximumAge: 10 * 6e4 });
+  });
+}
 function loadCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; } }
 function saveCache(d) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(d)); } catch {} }
 
 // ctx: { root, esc, onSummary(text) } — onSummary zet een kort zinnetje op de tegel onder Meer
 export function mountWeer(ctx) {
   const { root, esc } = ctx;
-  let data = loadCache(), busy = false, failed = false, open = null;
+  // homeData = Cómpeta (bewaard in localStorage), hereData = waar je nu bent (alleen in het geheugen)
+  let homeData = loadCache(), hereData = null, place = HOME, busy = false, failed = false, open = null, locMsg = '', locating = false, found = null, query = '';
+  const cur = () => place.home ? homeData : hereData;
 
   async function refresh(force = false) {
     if (busy) return;
+    const data = cur();
     if (!force && data && Date.now() - data.at < CACHE_MIN * 6e4) { summary(); return; }
     busy = true; render();
+    const p = place;
     try {
-      const d = await fetchAll();
-      if (d.sources.some(s => s.ok)) { data = d; saveCache(d); failed = false; } else failed = true;
+      const d = await fetchAll(p);
+      if (d.sources.some(s => s.ok)) { if (p.home) { homeData = d; saveCache(d); } else hereData = d; failed = false; } else failed = true;
     } catch { failed = true; }
     busy = false; summary(); render();
   }
+  async function useLocation() {
+    if (busy) return;
+    busy = true; locating = true; locMsg = ''; render();
+    try {
+      const c = await locate();
+      const lat = Math.round(c.latitude * 1e4) / 1e4, lon = Math.round(c.longitude * 1e4) / 1e4;
+      place = { naam: await placeName(lat, lon), lat, lon, home: false };
+      hereData = null; open = null;
+    } catch (e) {
+      locMsg = e && e.code === 1
+        ? 'De app mag je locatie niet zien. Zet het aan op de iPhone via Instellingen > Privacy en beveiliging > Locatievoorzieningen > Safari-websites > "Bij gebruik van app", en probeer het opnieuw.'
+        : 'Je locatie kon niet worden bepaald. Probeer het zo nog eens, liefst buiten of met wifi aan.';
+      busy = false; locating = false; render(); return;
+    }
+    busy = false; locating = false; refresh(true);
+  }
+  async function search(q) {
+    query = q.trim();
+    if (query.length < 2) return;
+    found = 'busy'; locMsg = ''; render();
+    try { found = await searchPlaces(query); } catch { found = 'fout'; }
+    render();
+  }
+  function choose(i) {
+    const r = Array.isArray(found) && found[i];
+    if (!r) return;
+    place = r; hereData = null; open = null; found = null; locMsg = '';
+    refresh(true);
+  }
+  function goHome() { place = HOME; locMsg = ''; open = null; render(); refresh(); }
   function summary() {
+    const data = homeData; // de tegel toont altijd Cómpeta
     const now = data && combineNow(data.sources), d0 = data && combineDay(data.sources, today());
     if (!now && !d0) return;
     ctx.onSummary?.(`Nu ${r0(now?.temp?.avg)}° · regen ${d0?.prob ? range(d0.prob, '%') : `bij ${d0?.wet ?? 0} van ${d0?.wetN ?? 0}`}`);
@@ -268,7 +323,7 @@ export function mountWeer(ctx) {
     const snow = (now.snow?.max ?? 0) > 0 || (d0?.snow?.max ?? 0) > 0.1;
     return `<div class="card wx-now">
       <div class="wx-now-top"><span class="wx-big-ic" aria-hidden="true">${ic}</span>
-        <div><div class="wx-big">${r0(now.temp.avg)}°</div><div class="wx-txt">${esc(txt)} in ${esc(PLACE.naam)}</div></div></div>
+        <div><div class="wx-big">${r0(now.temp.avg)}°</div><div class="wx-txt">${esc(txt)} in ${esc(place.naam)}</div></div></div>
       <div class="wx-facts">
         <div><small>Voelt als</small><b>${r0(now.feel?.avg)}°</b><i>${range(now.feel, '°')}</i></div>
         <div><small>Bronnen</small><b>${range(now.temp, '°')}</b><i class="wx-ag ${ag ? ag[0] : ''}">${ag ? esc(ag[0]) : ''}</i></div>
@@ -281,7 +336,7 @@ export function mountWeer(ctx) {
   }
 
   function hintBlock(day, beach, label) {
-    const hs = hints(day, beach);
+    const hs = hints(day, beach, place.home);
     if (!hs.length) return '';
     return `<div class="wx-hints"><small>${esc(label)}</small>${hs.map(h => `<div class="wx-hint ${h.ok ? 'ok' : 'no'}"><b>${h.ok ? '✓' : '✗'} ${esc(h.wat)}</b><span>${esc(h.why)}</span></div>`).join('')}</div>`;
   }
@@ -307,9 +362,25 @@ export function mountWeer(ctx) {
     </div>`;
   }
 
+  function placeBar() {
+    return `<div class="wx-place" role="group" aria-label="Plaats">
+      <button class="chip" data-act="home" aria-pressed="${place.home}">🏠 Cómpeta</button>
+      <button class="chip" data-act="here" aria-pressed="${!place.home}">📍 ${locating ? 'Locatie zoeken…' : place.home ? 'Mijn locatie' : esc(place.naam)}</button>
+    </div>
+    <form class="wx-search" role="search">
+      <input type="search" name="q" placeholder="Zoek een plaats, bijv. Nerja" value="${esc(query)}" autocomplete="off" enterkeyhint="search" aria-label="Zoek een plaats">
+      <button class="btn" type="submit">Zoek</button>
+    </form>
+    ${found === 'busy' ? '<p class="mut wx-found">Zoeken…</p>' : found === 'fout' ? '<p class="wx-locmsg">Zoeken lukte niet. Probeer het zo nog eens.</p>'
+      : Array.isArray(found) ? (found.length ? `<div class="wx-found">${found.map((r, i) => `<button class="btn" data-pick="${i}"><b>${esc(r.naam)}</b><small>${esc(r.waar)}</small></button>`).join('')}<button class="btn link" data-act="closefound">Sluiten</button></div>`
+      : `<p class="mut wx-found">Geen plaats gevonden met "${esc(query)}".</p>`) : ''}
+    ${locMsg ? `<p class="wx-locmsg">${esc(locMsg)}</p>` : ''}`;
+  }
+
   function render() {
+    const data = cur();
     if (!data) {
-      root.innerHTML = failed ? '<p class="empty">Het weer kon niet worden opgehaald. Controleer je internet en probeer het opnieuw.</p><button class="btn wide" data-act="refresh">Opnieuw proberen</button>' : '<p class="empty">Het weer wordt opgehaald uit meerdere bronnen…</p>';
+      root.innerHTML = placeBar() + (failed ? '<p class="empty">Het weer kon niet worden opgehaald. Controleer je internet en probeer het opnieuw.</p><button class="btn wide" data-act="refresh">Opnieuw proberen</button>' : `<p class="empty">Het weer wordt opgehaald uit meerdere bronnen…</p>`);
       return;
     }
     const now = combineNow(data.sources);
@@ -317,7 +388,7 @@ export function mountWeer(ctx) {
     const days = keys.map(k => combineDay(data.sources, k)).filter(Boolean);
     const ok = data.sources.filter(s => s.ok), missing = data.sources.filter(s => !s.ok);
     const at = new Date(data.at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
-    root.innerHTML = `
+    root.innerHTML = `${placeBar()}
       ${now ? nowCard(now, days[0]?.key === today() ? days[0] : null) : ''}
       ${days[0] ? hintBlock(days[0], data.beach?.[days[0].key], 'Vandaag goed om…') : ''}
       ${days[1] ? hintBlock(days[1], data.beach?.[days[1].key], 'Morgen goed om…') : ''}
@@ -329,10 +400,20 @@ export function mountWeer(ctx) {
   }
 
   root.addEventListener('click', e => {
-    const b = e.target.closest('[data-day],[data-act]');
+    const b = e.target.closest('[data-day],[data-pick],[data-act]');
     if (!b) return;
     if (b.dataset.act === 'refresh') refresh(true);
+    else if (b.dataset.act === 'here') useLocation();
+    else if (b.dataset.pick != null) choose(Number(b.dataset.pick));
+    else if (b.dataset.act === 'closefound') { found = null; render(); }
+    else if (b.dataset.act === 'home') { if (!place.home) goHome(); }
     else if (b.dataset.day) { open = open === b.dataset.day ? null : b.dataset.day; render(); }
+  });
+
+  root.addEventListener('submit', e => {
+    if (!e.target.matches('.wx-search')) return;
+    e.preventDefault();
+    const q = e.target.q.value; e.target.q.blur(); search(q);
   });
 
   refresh();
