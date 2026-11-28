@@ -139,7 +139,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weersvoorspelling', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
 const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
