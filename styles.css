@@ -592,7 +592,7 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .kb-to{font-size:26px;font-weight:800;color:var(--terra)}
 .kb-head{border-bottom:4px solid var(--terra);margin-bottom:12px}
 .kb-kicker{margin:0 0 10px;font-weight:700;color:var(--terra);font-size:14px}
-.kb-days{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kb-days{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .kb-day{min-height:56px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer;display:grid;place-items:center;line-height:1.15;padding:6px}
 .kb-day b{font-size:20px}.kb-day small{font-size:12px;color:var(--mut)}
 .kb-day[aria-selected=true]{background:var(--blue);border-color:var(--blue);color:var(--bg)}
@@ -741,3 +741,8 @@ dialog h2{margin:0 0 14px;font-size:22px}
 @keyframes zkflash{0%,60%{box-shadow:0 0 0 3px var(--terra);background-color:color-mix(in srgb,var(--terra) 14%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 .zk-flash{animation:zkflash 2.4s ease-out;border-radius:12px}
 .wx-uv{font-size:14px;font-weight:700;color:var(--terra)}
+.kb-core{margin:0 0 10px}
+.kb-lighth{margin:14px 0 6px;font-size:15px}
+.kb-light{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.kb-lt{min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px}
+.kb-lt.on{background:var(--blue);border-color:var(--blue);color:var(--bg)}

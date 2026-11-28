@@ -30,9 +30,11 @@ function pose(p) {
 function figure(p, label) {
   const q = pose(p), all = Object.values(q);
   const minX = Math.min(...all.map(v => v.x)) - 9, maxX = Math.max(...all.map(v => v.x)) + 9;
-  const lows = ['A', 'T', 'A2', 'T2', 'K2', p.rot ? 'H' : null, p.rot ? 'S' : null, p.rot ? 'C' : null].filter(k => k && q[k]).map(k => q[k].y + (k === 'C' ? L.head : 0));
+  const lows = (p.ground || ['A', 'T', 'A2', 'T2', 'K2', p.rot ? 'H' : null, p.rot ? 'S' : null, p.rot ? 'C' : null]).filter(k => k && q[k]).map(k => q[k].y + (k === 'C' ? L.head : 0));
   const bellLow = q.B && p.bell.floor ? q.B.y + 9 : -1e9;
   const dy = 129 - Math.max(...lows, bellLow), dx = 60 - (minX + maxX) / 2;
+  // Te breed (liggende houdingen met gestrekte arm en been): verder uitzoomen, vloer blijft onderaan
+  const w = Math.max(120, maxX - minX + 4), vh = 136 * w / 120, vb = `${(60 - w / 2).toFixed(1)} ${(136 - vh).toFixed(1)} ${w.toFixed(1)} ${vh.toFixed(1)}`;
       let props = '';
   if (p.bench && q.W2) { const x = q.W2.x + dx, y = q.W2.y + dy + 2; props = `<rect class="kb-prop" x="${(x - 12).toFixed(1)}" y="${y.toFixed(1)}" width="26" height="${(130 - y).toFixed(1)}" rx="3"/>`; }
   let bell = '';
@@ -46,9 +48,9 @@ function figure(p, label) {
   const seg = (a, b, w, cls = 'kb-limb') => q[a] && q[b] ? `<line class="${cls}" x1="${(q[a].x + dx).toFixed(1)}" y1="${(q[a].y + dy).toFixed(1)}" x2="${(q[b].x + dx).toFixed(1)}" y2="${(q[b].y + dy).toFixed(1)}" stroke-width="${w}"/>` : '';
   const C = { x: q.C.x + dx, y: q.C.y + dy };
   const spin = p.spin ? `<path class="kb-arrow" d="M${(C.x - 15).toFixed(1)} ${(C.y + 4).toFixed(1)} A15 11 0 1 1 ${(C.x + 13).toFixed(1)} ${(C.y + 8).toFixed(1)}" marker-end="url(#kbHead)"/>` : '';
-  return `<figure class="kb-fig"><svg viewBox="0 0 120 136" role="img" aria-label="${label}">
+  return `<figure class="kb-fig"><svg viewBox="${vb}" role="img" aria-label="${label}">
     <defs><marker id="kbHead" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path class="kb-head-arr" d="M0 0L10 5L0 10z"/></marker></defs>
-    <line class="kb-floor" x1="2" y1="131" x2="118" y2="131"/>${props}
+    <line class="kb-floor" x1="${(62 - w / 2).toFixed(1)}" y1="131" x2="${(58 + w / 2).toFixed(1)}" y2="131"/>${props}
     <g class="kb-far">${seg('H', 'K2', 9)}${seg('K2', 'A2', 7)}${seg('A2', 'T2', 5)}${seg('S', 'E2', 7)}${seg('E2', 'W2', 6)}</g>
     <g class="kb-body">${seg('A', 'T', 5)}${seg('A', 'K', 7)}${seg('K', 'H', 9.5)}${seg('H', 'S', 13)}${seg('S', 'N', 6)}<circle cx="${C.x.toFixed(1)}" cy="${C.y.toFixed(1)}" r="${L.head}"/></g>
     ${bell}<g class="kb-body kb-arm">${seg('S', 'E', 7)}${seg('E', 'W', 6)}</g>${spin}</svg><figcaption>${label}</figcaption></figure>`;
@@ -59,7 +61,7 @@ function figure(p, label) {
 const stand = { s: 0, t: 0, b: 0 };
 const goblet = { u: 25, f: 130, bell: { a: 0, d: 9 } };
 export const EX = {
-  halo: { n: 'Halo', side: false, sec: 2.5,
+  halo: { n: 'Halo', side: false, sec: 2.5, light: true,
     doel: 'Warmt je schouders op en maakt je bovenrug los. Licht en rustig.',
     a: { ...stand, u: 30, f: 120, bell: { a: 180, d: 10 }, spin: true }, b: { ...stand, u: 150, f: 125, bell: { a: -100, d: 9 }, spin: true },
     la: 'Bel voor je kin', lb: 'Bel achter je hoofd',
@@ -100,11 +102,36 @@ export const EX = {
     la: 'Rechtop staan', lb: 'Stap naar achteren',
     cues: ['Bel aan de hoorns tegen je borst. Rechtop.', 'Zet één grote stap naar achteren en zak recht naar beneden.', 'Achterste knie bijna op de grond, voorste knie boven je enkel.', 'Duw je terug via de hiel van je voorste been. Eerst alle herhalingen met één been, dan het andere.'],
     fout: 'Wiebelen? Houd je met één hand vast aan een stoel en houd de bel in de andere hand naast je lichaam.' },
-  press: { n: 'Press', side: true, sec: 2.5,
-    doel: 'Schouders en armen. Zwaar met 20 kg: daarom pas vanaf week 3 en alleen als het netjes gaat.',
+  press: { n: 'Press', side: true, sec: 2.5, light: true,
+    doel: 'Schouders en armen. Zwaar met 20 kg: daarom pas vanaf week 3, of eerder met een lichtere bel.',
     a: { ...stand, u: 12, f: 150, bell: { a: 25, d: 8 } }, b: { ...stand, u: 168, f: 0, bell: { a: -15, d: 10 } },
     la: 'Bel op je schouder', lb: 'Arm gestrekt omhoog',
-    cues: ['De bel ligt in je hand op de buitenkant van je onderarm, tegen je borst (de "rack").', 'Billen en buik aanspannen, zodat je niet hol trekt.', 'Duw de bel recht omhoog tot je arm gestrekt naast je oor is.', 'Rustig terug naar je schouder. Gaat het niet netjes? Doe dan de floor press, dat is net zo goed.'] }
+    cues: ['De bel ligt in je hand op de buitenkant van je onderarm, tegen je borst (de "rack").', 'Billen en buik aanspannen, zodat je niet hol trekt.', 'Duw de bel recht omhoog tot je arm gestrekt naast je oor is.', 'Rustig terug naar je schouder. Gaat het niet netjes? Doe dan de floor press, dat is net zo goed.'] },
+  // Buik en rug, zonder bel. hold = seconden vasthouden in plaats van herhalingen
+  plank: { n: 'Plank', side: false, hold: true,
+    doel: 'De basis voor een sterke buik: je hele romp werkt om je lijf recht te houden. Beschermt je rug bij tillen en padel.',
+    a: { s: 26, t: 0, b: 0, rot: 64, u: 0, f: 90, ground: ['A', 'K', 'E', 'W'] }, b: { s: 0, t: 0, b: 0, rot: 76, u: 0, f: 90, ground: ['T', 'E', 'W'] },
+    la: 'Makkelijker: op je knieën', lb: 'Plank op je tenen',
+    cues: ['Ellebogen onder je schouders, onderarmen op de grond.', 'Lijf recht als een plank, van hoofd tot hielen. Billen niet omhoog en niet laten hangen.', 'Buik en billen aanspannen, rustig doorademen.', 'Lukt het niet de hele tijd? Ga even op je knieën en dan weer door.'],
+    fout: 'Een holle rug. Voel je het in je onderrug, span dan je billen harder aan of ga op je knieën.' },
+  zijplank: { n: 'Zijplank', side: true, hold: true,
+    doel: 'De zijkant van je buik. Helpt bij draaien en stoppen, zoals bij padel.',
+    a: { s: 32, t: 0, b: 0, rot: 58, u: 0, f: 90, ground: ['A', 'K', 'E', 'W'], u2: 178 }, b: { s: 0, t: 0, b: 0, rot: 72, u: 0, f: 90, ground: ['T', 'E', 'W'], u2: 178 },
+    la: 'Makkelijker: knieën op de grond', lb: 'Zijplank op je voeten',
+    cues: ['Lig op je zij, elleboog onder je schouder.', 'Duw je heup omhoog tot je lijf een rechte lijn is.', 'Andere hand op je heup of recht omhoog.', 'Eerst de ene kant, dan de andere. Te zwaar? Laat je knieën op de grond.'] },
+  deadbug: { n: 'Dead bug', side: true, sec: 3,
+    doel: 'Diepe buikspieren, zonder je rug te belasten. Ideaal na een dag op kantoor.',
+    a: { s: 0, t: -90, b: 0, rot: -90, u: 180, f: 0, leg2: { a: 180, b: 90 }, u2: 180 },
+    b: { s: 0, t: 0, b: 0, rot: -90, u: -105, f: 0, leg2: { a: 180, b: 90 }, u2: 180 },
+    la: 'Armen omhoog, knieën in de lucht', lb: 'Arm en tegenovergesteld been strekken',
+    cues: ['Lig op je rug, armen recht omhoog, knieën boven je heupen in een hoek van 90 graden.', 'Druk je onderrug tegen de grond. Die blijft daar de hele tijd.', 'Strek langzaam één arm naar achteren en het andere been naar voren, net boven de grond.', 'Terug naar het midden en wissel. Langzaam is beter dan snel.'],
+    fout: 'Je onderrug komt los van de grond. Strek dan je been minder ver.' },
+  birddog: { n: 'Bird dog', side: true, sec: 4,
+    doel: 'Onderrug, billen en balans. Goed tegen rugpijn van het zitten.',
+    a: { s: 0, t: -90, b: 0, rot: 90, u: 0, f: 0, ground: ['A', 'T', 'K', 'W'] },
+    b: { s: 0, t: -90, b: 0, rot: 90, u: 95, f: 0, ground: ['A', 'T', 'K', 'W2'], u2: 0, leg2: { a: -90, b: -90, toe: 0 } },
+    la: 'Op handen en knieën', lb: 'Arm naar voren, been naar achteren',
+    cues: ['Op handen en knieën: handen onder je schouders, knieën onder je heupen.', 'Strek één arm naar voren en het andere been naar achteren, tot ze in één lijn met je rug zijn.', 'Houd 2 tellen vast. Je rug blijft stil, alsof er een glas water op staat.', 'Terug en wissel van kant.'] }
 };
 
 // ---------- Opbouw ----------
@@ -115,38 +142,57 @@ export const STAGES = [
   { n: 'Week 5–6', k: 'Meer', rounds: 3, rest: [20, 40], tip: 'Meer herhalingen en iets kortere rust. De laatste herhaling is zwaar, maar nog netjes.' },
   { n: 'Week 7+', k: 'Sterker', rounds: 3, rest: [15, 30], tip: 'Zak bij elke herhaling in 3 tellen. Gaat alles makkelijk? Dan is een bel van 24 kg voor deadlift, swing en squat de volgende stap.' }
 ];
-const REPS = { halo: [5, 5, 5, 5], deadlift: [8, 10, 12, 12], swing: [10, 12, 15, 15], goblet: [6, 8, 10, 10], row: [6, 8, 10, 10], floorpress: [6, 8, 10, 10], lunge: [4, 6, 6, 8], press: [3, 4, 5, 6] };
+const REPS = { halo: [5, 5, 5, 5], deadlift: [8, 10, 12, 12], swing: [10, 12, 15, 15], goblet: [6, 8, 10, 10], row: [6, 8, 10, 10], floorpress: [6, 8, 10, 10], lunge: [4, 6, 6, 8], press: [3, 4, 5, 6],
+  plank: [20, 30, 40, 45], zijplank: [15, 20, 25, 30], deadbug: [5, 6, 8, 10], birddog: [4, 5, 6, 8] };   // bij hold: seconden
+// Lichte bel: met een press-gewicht van 16 kg of minder mag de press er al vanaf week 1 in. Halo en press gaan met de lichte bel.
+export const LIGHT = [0, 8, 10, 12, 14, 16];
+const CORE_ROUNDS = [2, 2, 3, 3], CORE_REST = 20;
 const BLOCK_REST = 45;    // tussen twee blokken
 const WARM = 120;         // opwarmen
 
 export const DAYS = [
-  { k: 'A', n: 'Dag A · Basiskracht', when: 'Dinsdag', blocks: () => [['deadlift', 'row'], ['goblet', 'floorpress']],
+  { k: 'A', n: 'Dag A · Basiskracht', when: 'Dinsdag', blocks: () => [['deadlift', 'row'], ['goblet', 'floorpress']], core: ['plank', 'deadbug'],
     x: 'Tillen, trekken, zitten en drukken: je hele lijf in vier oefeningen.' },
-  { k: 'B', n: 'Dag B · Swing en benen', when: 'Vrijdag', blocks: st => [['swing', st ? 'press' : 'floorpress'], ['lunge', 'row']],
+  { k: 'B', n: 'Dag B · Swing en benen', when: 'Vrijdag', blocks: (st, light) => [['swing', st || light ? 'press' : 'floorpress'], ['lunge', 'row']], core: ['zijplank', 'birddog'],
     x: 'Swings voor je hartslag, lunges voor padel en de bergen.' },
-  { k: 'C', n: 'Dag C · Kort en pittig', when: 'Zaterdag, of als je weinig tijd hebt', emom: ['swing', 'goblet', 'row', 'floorpress'],
-    x: 'Elke minuut een nieuwe oefening. Wat over is van de minuut is rust. Optioneel.' }
+  { k: 'C', n: 'Dag C · Kort en pittig', when: 'Zaterdag, of als je weinig tijd hebt', emom: ['swing', 'goblet', 'row', 'floorpress'], core: ['plank', 'zijplank'],
+    x: 'Elke minuut een nieuwe oefening. Wat over is van de minuut is rust. Optioneel.' },
+  { k: 'D', n: 'Dag D · Buik en rug', when: 'Extra', core: ['plank', 'deadbug', 'zijplank', 'birddog'], coreOnly: true,
+    x: 'Zonder bel, op een matje. Goed op een rustige dag of na het wandelen. Telt ook als kracht.' }
 ];
 
-// De stappen van een training, in volgorde
-export function steps(day, st) {
+// De stappen van een training, in volgorde. o = { core: buikblok erbij, light: kg van de lichte bel (0 = geen) }
+export function steps(day, st, o = {}) {
   const S = STAGES[st], out = [{ kind: 'warm', secs: WARM }];
   if (day.emom) {
     for (let r = 0; r < S.rounds; r++) day.emom.forEach(k => out.push({ kind: 'emom', ex: k, reps: REPS[k][st], round: r + 1, rounds: S.rounds, secs: 60 }));
-    return out;
-  }
-  const blocks = day.blocks(st);
-  blocks.forEach((bl, bi) => {
-    for (let r = 0; r < S.rounds; r++) bl.forEach((k, i) => {
-      const lastInBlock = r === S.rounds - 1 && i === bl.length - 1;
-      out.push({ kind: 'set', ex: k, reps: REPS[k][st], round: r + 1, rounds: S.rounds, block: bi, rest: lastInBlock ? (bi === blocks.length - 1 ? 0 : BLOCK_REST) : S.rest[i ? 1 : 0] });
+  } else if (day.blocks) {
+    const blocks = day.blocks(st, o.light);
+    blocks.forEach((bl, bi) => {
+      for (let r = 0; r < S.rounds; r++) bl.forEach((k, i) => {
+        const lastInBlock = r === S.rounds - 1 && i === bl.length - 1;
+        out.push({ kind: 'set', ex: k, reps: REPS[k][st], round: r + 1, rounds: S.rounds, block: bi, rest: lastInBlock ? (bi === blocks.length - 1 ? 0 : BLOCK_REST) : S.rest[i ? 1 : 0] });
+      });
     });
-  });
+  }
+  if ((o.core || day.coreOnly) && day.core) {
+    const last = out[out.length - 1]; if (last.kind === 'set') last.rest = 30;
+    const rounds = CORE_ROUNDS[st] + (day.coreOnly ? 1 : 0), core = [];
+    for (let r = 0; r < rounds; r++) day.core.forEach(k => {
+      const e = EX[k], base = { ex: k, reps: REPS[k][st], round: r + 1, rounds, core: true };
+      if (e.hold && e.side) { core.push({ ...base, kind: 'hold', secs: base.reps, sideName: 'links', rest: 5 }); core.push({ ...base, kind: 'hold', secs: base.reps, sideName: 'rechts', rest: CORE_REST }); }
+      else core.push({ ...base, kind: e.hold ? 'hold' : 'set', secs: base.reps, rest: CORE_REST });
+    });
+    core[core.length - 1].rest = 0;
+    if (out[out.length - 1].kind === 'emom') core[0].pre = true;
+    out.push(...core);
+  }
   return out;
 }
-// Geschatte duur in minuten (ca. 3 sec per herhaling, 10 sec wisselen van kant)
-export function minutes(day, st) {
-  const t = steps(day, st).reduce((s, x) => s + (x.kind === 'set' ? x.reps * EX[x.ex].sec * (EX[x.ex].side ? 2 : 1) + (EX[x.ex].side ? 10 : 0) + x.rest : x.secs), 0);
+// Geschatte duur in minuten (sec per herhaling, 10 sec wisselen van kant)
+export function minutes(day, st, o) {
+  const t = steps(day, st, o).reduce((s, x) => s + (x.kind === 'set' ? x.reps * EX[x.ex].sec * (EX[x.ex].side ? 2 : 1) + (EX[x.ex].side ? 10 : 0) + x.rest
+    : x.kind === 'hold' ? x.secs + 5 + x.rest : x.secs), 0);
   return Math.round(t / 60);
 }
 
@@ -178,7 +224,10 @@ export function mountKettlebell(ctx) {
   let st = loadLS(), runState = null, tick = null, finished = null;
   if (st.stage == null) { st.stage = 0; st.since = ctx.today(); saveLS(st); }
 
-  const exLine = (k, reps) => { const e = EX[k]; return `${reps}×${e.side ? (k === 'lunge' ? ' per been' : ' per arm') : ''}`; };
+  const exLine = (k, reps) => { const e = EX[k];
+    if (e.hold) return `${reps} sec${e.side ? ' per kant' : ''}`;
+    return `${reps}×${e.side ? (k === 'lunge' ? ' per been' : e.core || k === 'deadbug' || k === 'birddog' ? ' per kant' : ' per arm') : ''}${e.light && st.light ? ` · ${st.light} kg` : ''}`; };
+  const opts = () => ({ core: st.core !== false, light: st.light || 0 });
   const pics = k => `<div class="kb-pics">${figure(EX[k].a, esc(EX[k].la))}<span class="kb-to" aria-hidden="true">→</span>${figure(EX[k].b, esc(EX[k].lb))}</div>`;
   const exCard = (k, extra = '') => { const e = EX[k];
     return `<details class="kb-ex" data-ex="${k}"><summary><span class="kb-thumb">${figure(e.b, '')}</span><span><b>${esc(e.n)}</b>${extra ? `<small>${extra}</small>` : ''}</span></summary>
@@ -192,18 +241,22 @@ export function mountKettlebell(ctx) {
     if (runState) return renderRun();
     if (finished) return renderDone();
     const S = STAGES[st.stage], weeks = Math.floor((new Date(ctx.today() + 'T12:00') - new Date((st.since || ctx.today()) + 'T12:00')) / 6048e5);
-    const pick = st.day || nextDay(), day = DAYS.find(d => d.k === pick), done = ctx.hasKracht(ctx.today());
-    const list = day.emom
+    const pick = st.day || nextDay(), day = DAYS.find(d => d.k === pick) || DAYS[0], done = ctx.hasKracht(ctx.today()), o = opts();
+    const cr = CORE_ROUNDS[st.stage] + (day.coreOnly ? 1 : 0);
+    const coreList = day.core && (o.core || day.coreOnly) ? `<p class="kb-blockh">${day.coreOnly ? '' : 'Tot slot: '}buik en rug · ${cr} rondes, ${CORE_REST} sec rust</p>
+      ${day.core.map(k => exCard(k, `${cr}× ${exLine(k, REPS[k][st.stage])}`)).join('')}` : '';
+    const list = (day.emom
       ? `<p class="kb-blockh">${STAGES[st.stage].rounds}× rond, elke minuut een oefening</p>${day.emom.map((k, i) => exCard(k, `Minuut ${i + 1}: ${exLine(k, REPS[k][st.stage])}`)).join('')}`
-      : day.blocks(st.stage).map((bl, bi) => `<p class="kb-blockh">Blok ${bi + 1} · ${S.rounds} rondes, om en om${bi ? '' : ''}</p>
-          ${bl.map((k, i) => exCard(k, `${String.fromCharCode(65 + bi)}${i + 1} · ${S.rounds} sets van ${exLine(k, REPS[k][st.stage])} · dan ${S.rest[i ? 1 : 0]} sec rust`)).join('')}`).join('');
+      : day.blocks ? day.blocks(st.stage, o.light).map((bl, bi) => `<p class="kb-blockh">Blok ${bi + 1} · ${S.rounds} rondes, om en om</p>
+          ${bl.map((k, i) => exCard(k, `${String.fromCharCode(65 + bi)}${i + 1} · ${S.rounds} sets van ${exLine(k, REPS[k][st.stage])} · dan ${S.rest[i ? 1 : 0]} sec rust`)).join('')}`).join('') : '') + coreList;
     const last = (st.log || []).slice(-1)[0];
     root.innerHTML = `
       <div class="card kb-head">
-        <p class="kb-kicker">🏋️ Kettlebell 20 kg · ca. 15 minuten</p>
+        <p class="kb-kicker">🏋️ Kettlebell 20 kg${st.light ? ` en ${st.light} kg` : ''} · ca. 15 minuten</p>
         <div class="kb-days" role="tablist">${DAYS.map(d => `<button role="tab" class="kb-day" aria-selected="${d.k === pick}" data-day="${d.k}"><b>${d.k}</b><small>${esc(d.when.split(',')[0])}</small></button>`).join('')}</div>
         <h2 class="kb-title">${esc(day.n)}</h2>
-        <p class="mut kb-x">${esc(day.x)} Ongeveer ${minutes(day, st.stage)} minuten.</p>
+        <p class="mut kb-x">${esc(day.x)} Ongeveer ${minutes(day, st.stage, o)} minuten.</p>
+        ${day.coreOnly ? '' : `<label class="check kb-core"><input type="checkbox" data-act="core" ${o.core ? 'checked' : ''}> Buik en rug erachteraan (ca. ${minutes(day, st.stage, { ...o, core: true }) - minutes(day, st.stage, { ...o, core: false })} min)</label>`}
         <button class="btn primary kb-start" data-act="start">▶ Start training</button>
         ${done ? '<p class="kb-ok">✓ Kracht staat vandaag al afgevinkt in Gezond.</p>' : last ? `<p class="mut kb-last">Laatst: dag ${esc(last.d)} op ${new Date(last.t + 'T12:00').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}.</p>` : ''}
       </div>
@@ -212,11 +265,13 @@ export function mountKettlebell(ctx) {
         <h3 class="gz-h3">📈 Opbouw</h3>
         <div class="kb-stages">${STAGES.map((s, i) => `<button class="kb-st${i === st.stage ? ' on' : ''}${i < st.stage ? ' past' : ''}" data-stage="${i}" aria-pressed="${i === st.stage}"><b>${esc(s.n)}</b><small>${esc(s.k)}</small></button>`).join('')}</div>
         <p class="kb-tip">${esc(S.tip)}</p>
+        <p class="kb-lighth"><b>Lichtere bel?</b> Voor de halo en de press.</p>
+        <div class="kb-light">${LIGHT.map(kg => `<button class="kb-lt${(st.light || 0) === kg ? ' on' : ''}" data-light="${kg}" aria-pressed="${(st.light || 0) === kg}">${kg ? kg + ' kg' : 'Geen'}</button>`).join('')}</div>
         ${weeks >= 2 && st.stage < STAGES.length - 1 ? `<button class="btn kb-up" data-stage="${st.stage + 1}">Al ${weeks} weken bezig. Door naar ${esc(STAGES[st.stage + 1].n)}?</button>` : ''}
       </div>
 
       <div class="kb-list">
-        <div class="kb-warm card"><b>Eerst 2 minuten opwarmen</b><span class="mut">5 halo's linksom en rechtsom, 10 squats zonder gewicht, 10 keer rustig voorover buigen met rechte rug.</span></div>
+        ${day.coreOnly ? '<div class="kb-warm card"><b>Eerst 2 minuten opwarmen</b><span class="mut">Op handen en knieën je rug rond en hol maken (10×), 10 squats, armen zwaaien.</span></div>' : `<div class="kb-warm card"><b>Eerst 2 minuten opwarmen</b><span class="mut">5 halo's linksom en rechtsom, 10 squats zonder gewicht, 10 keer rustig voorover buigen met rechte rug.</span></div>`}
         ${list}
         <p class="mut kb-hint">Tik op een oefening voor het plaatje en de techniek.</p>
       </div>
@@ -227,6 +282,7 @@ export function mountKettlebell(ctx) {
         <p><b>Waarom om en om?</b> Je doet steeds een oefening voor de benen en dan een voor de armen of rug. Terwijl de een werkt, rust de ander. Zo heeft elke spier toch 1,5 tot 2 minuten rust, terwijl jij maar 30 tot 60 seconden stilstaat. Zo past alles in 15 minuten en blijft je hartslag omhoog. 20 seconden rust tussen dezelfde oefening is te kort voor kracht: dan zak je snel in.</p>
         <p><b>Hoe zwaar?</b> Stop elke set als je er nog 2 of 3 had gekund. Niet tot je echt niet meer kunt. Gaan alle sets makkelijk? Dan door naar de volgende stap van de opbouw.</p>
         <p><b>Hoe vaak?</b> 2 keer per week is genoeg, 3 is mooi meegenomen. Zet er een dag tussen: bijvoorbeeld dinsdag dag A en vrijdag dag B. Maandag en woensdag is padel.</p>
+        <p><b>En de buikspieren?</b> Plank, zijplank, dead bug en bird dog maken je romp sterk zonder je rug te belasten. Je romp is de verbinding tussen benen en armen: bij elke swing, deadlift en padelslag. Sit-ups zijn niet nodig. En let op: buikspieren trainen haalt geen buikvet weg, dat doet het afvallen. Wel zie je ze straks beter.</p>
         <p><b>Veilig:</b> spierpijn de dag erna is normaal. Scherpe pijn in je rug, knie of schouder niet: stop dan met die oefening.</p>
       </details>
 
@@ -237,7 +293,7 @@ export function mountKettlebell(ctx) {
   function start() {
     unlockAudio(); wake(true);
     const day = DAYS.find(d => d.k === (st.day || nextDay()));
-    runState = { day, list: steps(day, st.stage), i: 0, phase: 'go', end: 0, pausedLeft: null };
+    runState = { day, list: steps(day, st.stage, opts()), i: 0, phase: 'go', end: 0, pausedLeft: null };
     begin(0);
   }
   function begin(i) {
@@ -245,6 +301,7 @@ export function mountKettlebell(ctx) {
     if (i >= r.list.length) return finish();
     const s = r.list[i];
     if (s.kind === 'warm' || s.kind === 'emom') { r.phase = 'timed'; r.end = Date.now() + s.secs * 1000; }
+    else if (s.kind === 'hold' && r.list[i - 1]?.kind === 'hold' && r.list[i - 1].ex === s.ex && r.list[i - 1].sideName === 'links') { r.phase = 'hold'; r.end = Date.now() + s.secs * 1000; }
     else r.phase = 'go';
     renderRun(); loop();
   }
@@ -261,11 +318,11 @@ export function mountKettlebell(ctx) {
       const el = root.querySelector('#kbClock'); if (el) el.textContent = fmt(Math.max(0, left));
       const ring = root.querySelector('#kbRing'); if (ring) ring.style.strokeDashoffset = String(ringOff(left));
       if (left === 3 && !r.warned) { r.warned = true; beep(1); }
-      if (left <= 0) { r.warned = false; beep(2); if (r.phase === 'rest') begin(r.i + 1); else begin(r.i + 1); }
+      if (left <= 0) { r.warned = false; beep(2); if (r.phase === 'hold') rest(r.list[r.i].rest); else begin(r.i + 1); }
     }, 250);
   }
   const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  const total = () => { const r = runState, s = r.list[r.i]; return r.phase === 'rest' ? s.rest : s.secs; };
+  const total = () => { const r = runState, s = r.list[r.i]; return r.phase === 'rest' ? (s.rest || 1) : s.secs; };
   const ringOff = left => 302 * (1 - Math.max(0, left) / (total() || 1));
   function stop(save) { clearInterval(tick); wake(false); runState = null; if (!save) render(); }
   function finish() {
@@ -293,18 +350,28 @@ export function mountKettlebell(ctx) {
     const clock = (label, secs) => `<div class="kb-clock"><svg viewBox="0 0 110 110"><circle class="kb-ringbg" cx="55" cy="55" r="48"/><circle id="kbRing" class="kb-ring" cx="55" cy="55" r="48" style="stroke-dashoffset:${ringOff(Math.ceil((r.end - Date.now()) / 1000))}"/></svg>
       <div><b id="kbClock">${fmt(Math.max(0, r.pausedLeft ?? Math.ceil((r.end - Date.now()) / 1000)))}</b><small>${label}</small></div></div>
       <div class="kb-ctrl"><button class="btn" data-act="minus">−15 s</button><button class="btn" data-act="pause">${r.pausedLeft != null ? '▶ Verder' : '⏸ Pauze'}</button><button class="btn" data-act="plus">+15 s</button></div>`;
-    const nextTxt = x => !x ? 'Daarna ben je klaar!' : x.kind === 'warm' ? '' : `Hierna: <b>${esc(EX[x.ex].n)}</b>, ${exLine(x.ex, x.reps)}`;
+    const nextTxt = x => !x ? 'Daarna ben je klaar!' : x.kind === 'warm' ? '' : `Hierna: <b>${esc(EX[x.ex].n)}</b>${x.sideName ? ' ' + x.sideName : ''}, ${x.sideName ? x.secs + ' sec' : exLine(x.ex, x.reps)}`;
     let body;
     if (s.kind === 'warm') {
       body = `<h2 class="kb-now">Opwarmen</h2><ul class="kb-warmlist"><li>5 halo's linksom en 5 rechtsom</li><li>10 squats zonder gewicht</li><li>10 keer voorover buigen met rechte rug</li><li>Schouders en armen losschudden</li></ul>
         ${pics('halo')}${clock('opwarmen', s.secs)}<p class="kb-next">${nextTxt(next)}</p><button class="btn primary kb-big-btn" data-act="skip">Klaar, beginnen</button>`;
     } else if (r.phase === 'rest') {
+      if (s.rest === 5 && s.sideName === 'links') { body = `<h2 class="kb-now kb-resting">Wissel van kant</h2>${clock('nu de rechterkant', 5)}${pics(s.ex)}<button class="btn primary kb-big-btn" data-act="skip">Klaar, rechts beginnen</button>`; root.innerHTML = `<div class="kb-run">${top}${bar}${body}</div>`; return; }
       body = `<h2 class="kb-now kb-resting">Rust</h2>${clock('rust', s.rest)}
         <p class="kb-next">${nextTxt(next)}</p>${next && next.kind !== 'warm' ? pics(next.ex) : ''}
         <button class="btn primary kb-big-btn" data-act="skip">Rust overslaan</button>`;
+    } else if (s.kind === 'hold') {
+      const e = EX[s.ex];
+      body = `<p class="kb-setinfo">Buik en rug · ronde ${s.round} van ${s.rounds}</p>
+        <h2 class="kb-now">${esc(e.n)}${s.sideName ? ` · ${s.sideName}` : ''}</h2><p class="kb-reps">${s.secs} sec</p>
+        ${pics(s.ex)}
+        ${r.phase === 'hold' ? `${clock('vasthouden', s.secs)}<button class="btn primary kb-big-btn" data-act="holddone">Eerder stoppen</button>`
+          : `<button class="btn primary kb-big-btn kb-go" data-act="hold">▶ Start ${s.secs} seconden</button>`}
+        <p class="kb-next">${nextTxt(next)}</p>
+        <details class="kb-cues-run"><summary>Techniek</summary><ol class="kb-cues">${e.cues.map(c => `<li>${esc(c)}</li>`).join('')}</ol>${e.fout ? `<p class="kb-fout"><b>Let op:</b> ${esc(e.fout)}</p>` : ''}</details>`;
     } else {
       const e = EX[s.ex];
-      body = `<p class="kb-setinfo">${s.kind === 'emom' ? `Ronde ${s.round} van ${s.rounds} · elke minuut` : `Set ${s.round} van ${s.rounds}`}</p>
+      body = `<p class="kb-setinfo">${s.kind === 'emom' ? `Ronde ${s.round} van ${s.rounds} · elke minuut` : s.core ? `Buik en rug · ronde ${s.round} van ${s.rounds}` : `Set ${s.round} van ${s.rounds}`}</p>
         <h2 class="kb-now">${esc(e.n)}</h2><p class="kb-reps">${exLine(s.ex, s.reps)}</p>
         ${pics(s.ex)}
         ${s.kind === 'emom' ? `${clock('deze minuut', 60)}<p class="kb-next">${nextTxt(next)}</p><button class="btn primary kb-big-btn" data-act="skip">Volgende minuut nu</button>`
@@ -315,8 +382,9 @@ export function mountKettlebell(ctx) {
   }
 
   root.addEventListener('click', e => {
-    const t = e.target.closest('[data-act],[data-day],[data-stage]'); if (!t) return;
+    const t = e.target.closest('[data-act],[data-day],[data-stage],[data-light]'); if (!t || t.dataset.act === 'core') return;
     if (t.dataset.day) { st.day = t.dataset.day; saveLS(st); render(); return; }
+    if (t.dataset.light != null) { st.light = Number(t.dataset.light); saveLS(st); render(); ctx.toast(st.light ? `Halo en press met ${st.light} kg` : 'Alles met 20 kg'); return; }
     if (t.dataset.stage) { st.stage = Number(t.dataset.stage); st.since = ctx.today(); saveLS(st); render(); ctx.toast(`Opbouw: ${STAGES[st.stage].n}`); return; }
     const a = t.dataset.act, r = runState;
     if (a === 'start') { start(); window.scrollTo(0, 0); }
@@ -324,6 +392,8 @@ export function mountKettlebell(ctx) {
     else if (a === 'stop') { stop(); window.scrollTo(0, 0); }
     else if (!r) return;
     else if (a === 'setdone') { unlockAudio(); rest(r.list[r.i].rest); window.scrollTo(0, 0); }
+    else if (a === 'hold') { unlockAudio(); r.phase = 'hold'; r.end = Date.now() + r.list[r.i].secs * 1000; r.pausedLeft = null; renderRun(); loop(); }
+    else if (a === 'holddone') { rest(r.list[r.i].rest); window.scrollTo(0, 0); }
     else if (a === 'skip') { begin(r.i + 1); window.scrollTo(0, 0); }
     else if (a === 'pause') {
       if (r.pausedLeft != null) { r.end = Date.now() + r.pausedLeft * 1000; r.pausedLeft = null; } else r.pausedLeft = Math.max(0, Math.ceil((r.end - Date.now()) / 1000));
@@ -335,6 +405,7 @@ export function mountKettlebell(ctx) {
       const el = root.querySelector('#kbClock'); if (el) el.textContent = fmt(left);
     }
   });
+  root.addEventListener('change', e => { if (e.target.dataset.act === 'core') { st.core = e.target.checked; saveLS(st); render(); } });
   // Telefoon even weggelegd: de timer loopt op de klok, dus bij terugkomen klopt hij meteen weer
   document.addEventListener('visibilitychange', () => { if (runState && document.visibilityState === 'visible') { if (runState.phase !== 'go') wake(true); } });
 
