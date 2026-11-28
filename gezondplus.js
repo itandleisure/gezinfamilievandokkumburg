@@ -150,6 +150,7 @@ export function extrasHtml({ day, today, dow, info, days, sport, settings, minKg
       ${trainHead}
       ${todayT ? card(todayT, openTrain !== false) : ''}
       ${todayT || padel ? `<button class="btn ${krachtOn ? 'done' : 'primary'} gp-did" data-did="1">${krachtOn ? 'Gedaan ✓' : 'Gedaan! Vink kracht af'}</button>` : '<p class="gp-sub">Zondag is rustdag. Een wandeling in de bergen of een rondje over het strand is genoeg.</p>'}
+      <a class="btn gp-kb" href="#kettlebell">🏋️ Kettlebell-schema met plaatjes en timer</a>
       <details class="gp-more"><summary>${todayT ? 'Andere sessies' : 'Alle sessies'}</summary>${others.map(t => card(t, false)).join('')}</details>
     </div>
 
