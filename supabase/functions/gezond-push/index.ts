@@ -3,6 +3,7 @@
 // - ?action=test : stuurt een testmelding naar één abonnement (body: {endpoint})
 // - ?action=run  : door pg_cron elke 10 minuten aangeroepen; stuurt per persoon hooguit één keer per dag per soort melding
 // - ?action=week : (test) stuurt het weekoverzicht nu naar één abonnement (body: {endpoint})
+// Taken: elke dag vanaf 09:00 één melding per persoon als er taken over tijd zijn (eigen taken plus taken van samen).
 // Op zondag tussen 19:00 en 21:00 gaat het weekoverzicht: gewicht, bewegen en water van de week, met een complimentje of tip.
 // Geen geheimen in de code: de service-role-sleutel zet Supabase zelf in de omgeving van de functie.
 import webpush from 'npm:web-push@3.6.7';
@@ -37,10 +38,10 @@ function madrid(now = new Date()) {
 }
 
 type Sub = { endpoint: string; owner: string; p256dh: string; auth: string };
-async function send(sub: Sub, kind: string, msg?: { title: string; body: string }) {
+async function send(sub: Sub, kind: string, msg?: { title: string; body: string; url?: string }) {
   try {
     await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify({ ...(msg || MSG[kind]), url: '/#gezond', tag: kind }), { TTL: 4 * 3600, urgency: 'normal' });
+      JSON.stringify({ url: '/#gezond', ...(msg || MSG[kind]), tag: kind }), { TTL: 4 * 3600, urgency: 'normal' });
     return true;
   } catch (e) {
     const code = (e as { statusCode?: number }).statusCode;
@@ -90,6 +91,31 @@ async function weekMsg(owner: string, day: string, dow: number) {
   return { title: 'Jouw week 📊', body: parts.join(' ') + ' ' + tip };
 }
 
+// ---------- Taken over tijd ----------
+type Task = { title: string; next_due: string; assignee: string | null };
+function lateMsg(list: Task[], day: string) {
+  const late = [...list].sort((a, b) => (a.next_due < b.next_due ? -1 : 1));
+  const days = (t: Task) => Math.round((Date.parse(day) - Date.parse(t.next_due)) / 864e5);
+  const one = (t: Task) => `${t.title} (${days(t) === 1 ? 'sinds gisteren' : days(t) + ' dagen te laat'})`;
+  const body = late.length === 1 ? `${one(late[0])}. Tik om af te vinken.`
+    : `${late.slice(0, 3).map(one).join(', ')}${late.length > 3 ? ` en nog ${late.length - 3}` : ''}.`;
+  return { title: late.length === 1 ? 'Er is een taak over tijd' : `${late.length} taken over tijd`, body, url: '/#taken' };
+}
+async function runTasks(subs: Sub[], owners: string[], day: string, hour: number, out: Record<string, string>) {
+  if (hour < 9 || hour >= 21) return;
+  const { data: tasks, error } = await db.from('tasks').select('title, next_due, assignee').lt('next_due', day);
+  if (error || !tasks?.length) return;   // kolom assignee nog niet aangemaakt, of niets over tijd
+  for (const owner of owners) {
+    const mine = (tasks as Task[]).filter(t => !t.assignee || t.assignee === owner);
+    if (!mine.length) continue;
+    const { error: dup } = await db.from('push_log').insert({ owner, day, kind: 'taken' });
+    if (dup) continue; // vandaag al gestuurd
+    const msg = lateMsg(mine, day);
+    for (const s of subs.filter(s => s.owner === owner)) await send(s, 'taken', msg);
+    out[owner] = out[owner] ? out[owner] + '+taken' : 'taken';
+  }
+}
+
 async function run() {
   await keys();
   const { day, hour, dow } = madrid();
@@ -115,6 +141,7 @@ async function run() {
     for (const s of (subs as Sub[]).filter(s => s.owner === owner)) await send(s, kind, msg);
     out[owner] = kind;
   }
+  await runTasks((subs || []) as Sub[], owners, day, hour, out);
   return { day, hour, sent: out };
 }
 

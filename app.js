@@ -51,8 +51,8 @@ function taskBadge() {
   const n = dueCount(S.tasks);
   for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], weight_log: [], sport_log: [], health_settings: [], health_day: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
@@ -62,7 +62,7 @@ async function load(t) {
   if (HEALTH.includes(t)) healthMissing[t] = !!error;
   // Water en snacks (health_day): ontbreekt de tabel nog, dan blijft de rest van Gezond gewoon werken
   if (t === 'health_day') healthDayMissing = !!error;
-  if (error) { if (t !== 'tasks' && t !== 'health_day' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
+  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -146,7 +146,8 @@ async function start() {
     recipeName: id => (recipeById(id) || {}).n || '', openRecipe: (id, day) => { recepten.show(id, day); location.hash = 'recepten'; } });
   recepten = mountRecepten($('#receptenRoot'), { getPlan, setPlan, getDishes, setDishes, addToShopping: recipeToShopping, toast });
   spaans = mountSpaans($('#spaansRoot'));
-  taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge });
+  taken = mountTaken({ root: $('#takenRoot'), getTasks: () => S.tasks, isMissing: () => tasksMissing, esc, sb, load, run, toast, openDialog, onChange: taskBadge,
+    getMembers: () => S.family_members, me: () => userId });
   gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, saveDay, setMinutes, openDialog,
     push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: () => testPush('test'), week: () => testPush('week') } });
   registerSW();

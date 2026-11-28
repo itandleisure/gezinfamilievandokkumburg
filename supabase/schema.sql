@@ -268,3 +268,22 @@ grant select on public.health_settings, public.health_day to service_role;
 
 -- Nummers: groep Nood heet voortaan Spoed (staat bovenaan met grote belknoppen)
 update public.contacts set category = 'Spoed' where category = 'Nood';
+
+-- Taken: wie doet het? (assignee = account van Frans of partner; leeg = samen)
+-- family_members geeft elk account een naam voor in de app. Beide mogen beide namen aanpassen.
+create table if not exists public.family_members (
+  owner uuid primary key references auth.users(id) on delete cascade,
+  name text not null check (length(name) between 1 and 30),
+  updated_at timestamptz default now()
+);
+grant select, insert, update, delete on public.family_members to authenticated;
+alter table public.family_members enable row level security;
+drop policy if exists "alleen gezin" on public.family_members;
+create policy "alleen gezin" on public.family_members for all to authenticated using (true) with check (true);
+do $$ begin
+  alter publication supabase_realtime add table public.family_members;
+exception when duplicate_object then null;
+end $$;
+alter table public.tasks add column if not exists assignee uuid references auth.users(id) on delete set null;
+-- Melding "taak over tijd": de functie gezond-push leest taken en namen
+grant select on public.tasks, public.family_members to service_role;

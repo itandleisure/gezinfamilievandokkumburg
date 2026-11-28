@@ -474,3 +474,12 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .rb-clear{min-height:0;font-size:14px;text-decoration:underline}
 .rb-empty{padding:14px;border-radius:12px;background:var(--card);font-size:15px}
 .rb-empty .btn.link{min-height:0;text-decoration:underline}
+
+/* Taken: wie doet het */
+.task-who{margin-top:12px}
+.task-who .chip{min-height:44px}
+.task-who .chip.on{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+.task-who .chip.ghost{border-style:dashed;color:var(--mut);font-weight:500}
+.task .who{display:inline-block;vertical-align:2px;margin-left:6px;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700;background:light-dark(#e3ecf7,#1f3352);color:var(--blue)}
+.task .who.me{background:light-dark(#f8e3dc,#4a2418);color:var(--terra)}
+.task .who.samen{background:var(--bg);color:var(--mut);border:1px solid var(--line)}
