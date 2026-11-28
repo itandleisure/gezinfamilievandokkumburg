@@ -448,3 +448,78 @@ create policy "alleen eigen gegevens" on public.weer_prefs for all to authentica
 -- Weer: seintje om in te smeren bij hoge UV (per persoon aan/uit en vanaf welke UV-index)
 alter table public.weer_prefs add column if not exists uv_push boolean not null default false;
 alter table public.weer_prefs add column if not exists uv_min smallint not null default 6 check (uv_min between 1 and 11);
+
+-- ---------- Financieel (tegel onder Meer, financieel.js) ----------
+-- Vermogen van het gezin. Gedeeld met iedereen die een account heeft, alleen na inloggen (RLS "alleen gezin").
+-- De repo is openbaar: hier staat alleen de opbouw. De gegevens zelf komen uit een apart .sql-bestand dat Frans zelf plakt.
+create table if not exists public.fin_sources (
+  id text primary key default gen_random_uuid()::text,
+  name text not null check (length(name) between 1 and 80),
+  institution text not null default '',
+  category text not null default 'sparen' check (category in ('pensioen', 'kind', 'beleggen', 'sparen', 'lopend')),
+  member text not null default 'ouders',          -- sleutel uit fin_settings.data.members, bijv. 'ouders'
+  owner_label text not null default '',            -- op naam van, vrije tekst
+  balance numeric(12,2),
+  as_of date,
+  unlock_date date,                                -- vrij opneembaar vanaf (leeg = nu al)
+  birth_date date,                                 -- alleen bij rekening kind: vrij op de 18e verjaardag
+  monthly_contribution numeric(10,2) not null default 0,
+  next_contribution numeric(10,2),                 -- geplande nieuwe maandinleg ...
+  next_contribution_from text check (next_contribution_from is null or next_contribution_from ~ '^\d{4}-\d{2}$'),   -- ... vanaf JJJJ-MM
+  yearly_contribution numeric(10,2) not null default 0,   -- inleg elke januari
+  expected_return_pct numeric(5,2),                -- leeg = 4%
+  payout_rate_pct numeric(5,2),                    -- pensioen: rente bij uitkering, leeg = 2,5%
+  include_in_projection boolean not null default true,
+  note text not null default '',
+  position smallint not null default 0,
+  created_at timestamptz default now()
+);
+create table if not exists public.fin_mortgage (
+  id smallint primary key default 1 check (id = 1),
+  house_value numeric(12,2),
+  principal numeric(12,2),
+  rate_pct numeric(5,3),
+  start_date date,
+  years smallint default 20,
+  override numeric(12,2),                          -- restschuld volgens de bank; leeg = zelf berekenen
+  as_of date
+);
+create table if not exists public.fin_snapshots (
+  month text primary key check (month ~ '^\d{4}-\d{2}$'),
+  assets numeric(12,2) not null,
+  debt numeric(12,2) not null default 0,
+  net numeric(12,2) not null,
+  by_cat jsonb not null default '{}',
+  by_member jsonb not null default '{}',
+  saved_at date not null default current_date
+);
+create table if not exists public.fin_settings (
+  id smallint primary key default 1 check (id = 1),
+  data jsonb not null default '{}'                 -- members, plan (maandverdeling), goal (pensioendoel), remind_day
+);
+create table if not exists public.fin_todos (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (length(title) between 1 and 120),
+  note text not null default '',
+  done boolean not null default false,
+  done_at timestamptz,
+  remind_on date,                                  -- seintje op die dag (gezond-push, runFin)
+  position smallint not null default 0,
+  created_at timestamptz default now()
+);
+do $$
+declare t text;
+begin
+  foreach t in array array['fin_sources','fin_mortgage','fin_snapshots','fin_settings','fin_todos'] loop
+    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+    execute format('revoke all on public.%I from anon', t);
+    execute format('grant select on public.%I to service_role', t);
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists "alleen gezin" on public.%I', t);
+    execute format('create policy "alleen gezin" on public.%I for all to authenticated using (true) with check (true)', t);
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;

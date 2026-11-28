@@ -11,6 +11,8 @@
 // Dagvragen: op het gekozen uur (standaard 21:00) de 3 vragen van de dag, alleen voor wie het aanzet in dagvraag_prefs.
 //   De vragen komen uit dagvragen.json op de site. Opent /#dagvragen.
 // Vaste lasten: vanaf 10:00 een seintje remind_days vóór een afschrijving uit expenses (IBI, verzekering...). Naar iedereen, opent /#lasten.
+// Financieel: op de herinnerdag (fin_settings.data.remind_day, standaard de 17e) vanaf 10:00 "saldi bijwerken", zolang de maand
+//   nog niet is vastgelegd in fin_snapshots; plus een seintje op de dag van fin_todos.remind_on. Naar iedereen, opent /#financieel.
 // Regen: op het gekozen uur (standaard 07:00) een seintje als het die dag in Cómpeta gaat regenen, met de tijdvakken erbij.
 //   Alleen voor wie het aanzet in weer_prefs. Bronnen: Open-Meteo per model, net als weer.js. Opent /#weer.
 // UV: voor wie uv_push aan heeft in weer_prefs een seintje "tijd om in te smeren", een uur voordat de UV-index in Cómpeta
@@ -306,6 +308,30 @@ async function runLasten(subs: Sub[], owners: string[], day: string, hour: numbe
   return out;
 }
 
+// ---------- Financieel: saldi bijwerken en herinneringen ----------
+// Geen bedragen in de melding: die kan op een vergrendeld scherm staan.
+async function runFin(subs: Sub[], owners: string[], day: string, hour: number) {
+  if (hour < 10 || hour >= 21 || !owners.length) return {};
+  const { data: st, error } = await db.from('fin_settings').select('data').eq('id', 1).maybeSingle();
+  if (error) return {};   // tabellen nog niet aangemaakt
+  const out: Record<string, string> = {};
+  const msgs: { kind: string; msg: { title: string; body: string; url: string } }[] = [];
+  const rd = Number((st?.data as { remind_day?: number } | null)?.remind_day ?? 17);
+  if (rd > 0 && Number(day.slice(8, 10)) === rd) {
+    const { data: snap } = await db.from('fin_snapshots').select('month').eq('month', day.slice(0, 7)).maybeSingle();
+    if (!snap) msgs.push({ kind: 'fin-saldi', msg: { title: '💶 Saldi bijwerken', body: 'Het is de ' + rd + 'e: vul de saldi in en leg de maand vast in Financieel.', url: '/#financieel' } });
+  }
+  const { data: todos } = await db.from('fin_todos').select('id, title').eq('done', false).eq('remind_on', day);
+  for (const t of (todos || []) as { id: string; title: string }[]) msgs.push({ kind: 'fin:' + t.id, msg: { title: '🔔 Financieel', body: t.title, url: '/#financieel' } });
+  for (const { kind, msg } of msgs) for (const owner of owners) {
+    const { error: dup } = await db.from('push_log').insert({ owner, day, kind });
+    if (dup) continue;   // vandaag al gestuurd
+    for (const s of subs.filter(s => s.owner === owner)) await send(s, kind, msg);
+    out[owner] = out[owner] ? out[owner] + '+' + kind : kind;
+  }
+  return out;
+}
+
 // ---------- Regenseintje voor Cómpeta ----------
 // Per uur van vandaag (vanaf nu tot 23:00) tellen hoeveel modellen ≥ 0,2 mm geven. Meer dan de helft = regen, minstens één = mogelijk een bui.
 // Opeenvolgende uren worden tijdvakken ("11:00–14:00"). In push_log als kind 'regen', dus één keer per dag.
@@ -477,11 +503,13 @@ async function run() {
   try { dagvraag = await runDagvraag((subs || []) as Sub[], day, hour); } catch (e) { console.error('dagvragen', e); }
   let lasten = {};
   try { lasten = await runLasten((subs || []) as Sub[], owners, day, hour); } catch (e) { console.error('lasten', e); }
+  let fin = {};
+  try { fin = await runFin((subs || []) as Sub[], owners, day, hour); } catch (e) { console.error('financieel', e); }
   let regen = {};
   try { regen = await runRegen((subs || []) as Sub[], day, hour); } catch (e) { console.error('regen', e); }
   let uv = {};
   try { uv = await runUV((subs || []) as Sub[], day, hour); } catch (e) { console.error('uv', e); }
-  return { day, hour, sent: out, kijk, dagvraag, lasten, regen, uv };
+  return { day, hour, sent: out, kijk, dagvraag, lasten, fin, regen, uv };
 }
 
 Deno.serve(async req => {

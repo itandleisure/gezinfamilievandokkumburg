@@ -8,6 +8,7 @@ import { mountTaken, dueCount } from './taken.js';
 import { mountKijken } from './kijken.js';
 import { mountDagvragen } from './dagvragen.js';
 import { mountLasten } from './lasten.js';
+import { mountFinancieel } from './financieel.js';
 import { mountWeer } from './weer.js';
 import { mountKlussen } from './klussen.js';
 import { mountBonnetjes } from './bonnetjes.js';
@@ -58,14 +59,17 @@ let dvMissing = false, weerMissing = false;
 let jobsMissing = false;
 let receiptsMissing = false;
 let lastenMissing = false;
+// Financieel: tabellen fin_*; ontbreekt fin_sources, dan een rustige melding
+const FIN = ['fin_sources', 'fin_mortgage', 'fin_snapshots', 'fin_settings', 'fin_todos'];
+let finMissing = false;
 // Terracotta getal bij Taken: zoveel taken zijn aan de beurt of te laat
 function taskBadge() {
   // Taken staat onder Meer: het getal staat op de knop Meer én op de tegel Taken
   const n = dueCount(S.tasks);
   for (const b of [$('#taskBadge'), $('#taskBadgeTile')]) if (b) { b.textContent = n; b.hidden = !n; }
 }
-const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], weer_prefs: [], receipts: [], expenses: [], house_jobs: [] };
-const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', weer_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date', house_jobs: 'created_at' };
+const S = { shopping_items: [], catalog_items: [], menu_plan: [], notes: [], contacts: [], gift_lists: [], gift_items: [], tasks: [], family_members: [], weight_log: [], sport_log: [], health_settings: [], health_day: [], watch_items: [], watch_prefs: [], dagvraag_prefs: [], weer_prefs: [], receipts: [], expenses: [], house_jobs: [], fin_sources: [], fin_mortgage: [], fin_snapshots: [], fin_settings: [], fin_todos: [] };
+const ORDER = { shopping_items: 'created_at', catalog_items: 'name', menu_plan: 'id', notes: 'updated_at', contacts: 'name', gift_lists: 'created_at', gift_items: 'created_at', tasks: 'next_due', family_members: 'name', weight_log: 'day', sport_log: 'day', health_settings: 'owner', health_day: 'day', watch_items: 'created_at', watch_prefs: 'owner', dagvraag_prefs: 'owner', weer_prefs: 'owner', receipts: 'warranty_until', expenses: 'next_date', house_jobs: 'created_at', fin_sources: 'position', fin_mortgage: 'id', fin_snapshots: 'month', fin_settings: 'id', fin_todos: 'created_at' };
 
 async function load(t) {
   const { data, error } = await sb.from(t).select('*').order(ORDER[t], { ascending: t !== 'notes' });
@@ -87,7 +91,8 @@ async function load(t) {
   if (t === 'expenses') lastenMissing = !!error;
   // Klussen: idem, tot de tabel house_jobs bestaat
   if (t === 'house_jobs') jobsMissing = !!error;
-  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'weer_prefs' && t !== 'receipts' && t !== 'expenses' && t !== 'house_jobs' && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
+  if (t === 'fin_sources') finMissing = !!error;
+  if (error) { if (t !== 'tasks' && t !== 'family_members' && t !== 'health_day' && !t.startsWith('watch_') && t !== 'dagvraag_prefs' && t !== 'weer_prefs' && t !== 'receipts' && t !== 'expenses' && t !== 'house_jobs' && !FIN.includes(t) && !HEALTH.includes(t)) toast('Laden mislukt: ' + error.message); return; }
   S[t] = data || [];
   if (t === 'tasks') taskBadge();
 }
@@ -139,12 +144,16 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weersvoorspelling', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
-// Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
-const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weersvoorspelling', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', financieel: 'Financieel', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
+// Onderdelen die onder de knop Meer staan (de tegels in #view-meer, of een subtegel van Financieel zoals Vaste lasten); dan licht Meer op in de tabbalk
+const inMeer = v => v === 'lasten' || !!document.querySelector(`#view-meer a[data-v="${v}"]`);
+let lastView = '';
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
 function route() {
   const v = current();
+  // Financieel opent vanuit een ander scherm altijd op het startscherm met de subtegels
+  if (v === 'financieel' && lastView !== 'financieel' && financieel) financieel.reset();
+  lastView = v;
   for (const k in VIEWS) $('#view-' + k).hidden = k !== v;
   const tab = inMeer(v) ? 'meer' : v;
   document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.v === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -162,12 +171,12 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), klussen: () => klussen.render(), zoeken: () => zoeken.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), financieel: () => financieel.render(), klussen: () => klussen.render(), zoeken: () => zoeken.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten, klussen, zoeken;
+let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten, financieel, klussen, zoeken;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes,
@@ -186,6 +195,8 @@ async function start() {
   zoeken = mountZoeken({ root: $('#zoekenRoot'), esc, open: openItem,
     data: () => ({ notes: S.notes, contacts: S.contacts, shopping_items: S.shopping_items, recipes: RECIPES, gift_lists: S.gift_lists, gift_items: S.gift_items,
       house_jobs: S.house_jobs, receipts: S.receipts, expenses: S.expenses }) });
+  financieel = mountFinancieel({ root: $('#financieelRoot'), sb, esc, run, toast, openDialog, load, isMissing: () => finMissing,
+    get: () => ({ sources: S.fin_sources, mortgage: S.fin_mortgage, snapshots: S.fin_snapshots, settings: S.fin_settings, todos: S.fin_todos }) });
   lasten = mountLasten({ root: $('#lastenRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.expenses, isMissing: () => lastenMissing });
   gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, saveDay, setMinutes, openDialog,
     push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: () => testPush('test'), week: () => testPush('week') } });

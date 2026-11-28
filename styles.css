@@ -746,3 +746,63 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .kb-light{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .kb-lt{min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px}
 .kb-lt.on{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+
+/* Financieel: vermogen met subtegels (financieel.js) */
+.fin-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.fin-head h2{margin:0;font-size:20px}
+.fin-hero{display:grid;gap:2px;margin-bottom:12px;border-bottom:4px solid var(--blue)}
+.fin-hero small{font-size:14px;color:var(--mut)}
+.fin-hero.ok{border-bottom-color:var(--ok)}
+.fin-hero.bad{border-bottom-color:var(--terra)}
+.fin-big{font-size:34px;line-height:1.15;color:var(--blue);font-variant-numeric:tabular-nums}
+.fin-hero .up,small.up,.fin-amt.up{color:var(--ok)}
+small.down,.fin-amt.down{color:var(--terra)}
+.fin-due{display:block;width:100%;border:0;text-align:left;font:inherit;font-weight:800;margin-bottom:12px;cursor:pointer}
+.fin-tiles .tile{border:0;border-bottom:4px solid var(--blue);font:inherit;text-align:left;cursor:pointer;width:100%}
+.fin-tiles .tile .warn{color:var(--terra)}
+.fin-ic{font-size:26px;line-height:1}
+.fin-update{margin-top:14px}
+.fin-chips{flex-wrap:wrap;overflow:visible;margin:4px 0 12px;display:flex;gap:8px}
+.fin-chips .chip{min-height:44px}
+.fin-chips .chip.on{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+.fin-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fin-stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line);margin:12px 0 4px}
+.fin-stack span{display:block;height:100%}
+.fin-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut);margin:6px 0}
+.fin-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.fin-legend b{color:var(--ink);font-weight:700}
+.fin-chart{width:100%;height:auto;display:block}
+.fin-chart text{fill:var(--mut);font-size:10px;font-family:inherit}
+.fin-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.fin-row:last-child{border-bottom:0}
+.fin-name{flex:1}
+.fin-name b{display:block;font-size:16px}
+.fin-name small{display:block;color:var(--mut);font-size:13px}
+.fin-amt{flex:none;font-weight:800;color:var(--blue);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-amt small{display:block;font-size:12px;font-weight:700}
+.fin-total .fin-name{font-weight:800}
+.fin-pill{display:inline-block;padding:0 8px;border-radius:10px;font-size:12px;font-weight:700;background:var(--okbg);color:var(--ok)}
+.fin-pill.debt{background:transparent;border:1px solid var(--terra);color:var(--terra)}
+.fin-h3{display:flex;justify-content:space-between;gap:8px}
+.fin-src.stale{border-left:5px solid var(--terra)}
+.fin-src.stale .due{color:var(--terra);font-weight:800}
+.fin-card{margin-bottom:10px}
+.fin-card>b{display:block;font-size:17px}
+.fin-card>small{display:block;font-size:13px;margin-bottom:6px}
+.fin-table{overflow-x:auto;margin-top:8px}
+.fin-table table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.fin-table th{font-size:12px;color:var(--mut);text-align:right;font-weight:700;padding:6px 4px;border-bottom:1px solid var(--line)}
+.fin-table th:first-child,.fin-table td:first-child{text-align:left}
+.fin-table td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right}
+.fin-table td small{display:block}
+.fin-kids{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}
+.fin-kids div{background:var(--bg);border-radius:12px;padding:8px}
+.fin-kids small{display:block;color:var(--mut);font-size:12px}
+.fin-kids b{color:var(--blue)}
+.fin-in{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:8px 10px;margin-bottom:8px}
+.fin-in span{flex:1}
+.fin-in b{display:block;font-size:15px}
+.fin-in small{display:block;color:var(--mut);font-size:12px}
+.fin-in input{flex:none;width:130px;min-height:44px;font-size:17px;text-align:right}
+.fin-in.stale{border-left:5px solid var(--terra)}
+.fin-date{display:block;margin:12px 0}
