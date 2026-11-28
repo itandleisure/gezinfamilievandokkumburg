@@ -297,7 +297,8 @@ async function runLasten(subs: Sub[], owners: string[], day: string, hour: numbe
     const d = nextExpense(e, day), left = Math.round((Date.parse(d) - Date.parse(day)) / 864e5);
     if (left < 0 || left > e.remind_days) continue;
     const when = left === 0 ? 'vandaag' : left === 1 ? 'morgen' : new Date(d + 'T12:00:00Z').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-    const msg = { title: `💶 ${e.title}`, body: `${euro(e.amount)} gaat er ${left > 1 ? 'op ' : ''}${when} af.${e.note ? ' ' + e.note : ''}`, url: '/#lasten' };
+    // Geen bedrag en geen notitie in de melding: die kan op een vergrendeld scherm staan (net als bij Financieel)
+    const msg = { title: `💶 ${e.title}`, body: `Gaat er ${left > 1 ? 'op ' : ''}${when} af. Tik voor het bedrag.`, url: '/#lasten' };
     for (const owner of owners) {
       const { error: dup } = await db.from('push_log').insert({ owner, day: d, kind: 'last:' + e.id });
       if (dup) continue; // voor deze afschrijving al gestuurd
