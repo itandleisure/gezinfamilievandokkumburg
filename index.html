@@ -40,9 +40,14 @@
 <div id="app" hidden>
   <header class="top">
     <h1 id="viewTitle">Weekmenu</h1>
-    <button class="icon-btn" id="logout" aria-label="Uitloggen" title="Uitloggen">
-      <svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>
-    </button>
+    <div class="top-btns">
+      <button class="icon-btn" id="searchBtn" aria-label="Zoeken in de hele app" title="Zoeken">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      </button>
+      <button class="icon-btn" id="logout" aria-label="Uitloggen" title="Uitloggen">
+        <svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>
+      </button>
+    </div>
   </header>
   <div class="nudge" id="nudge" role="status" hidden>
     <button class="nudge-go" id="nudgeGo"><span id="nudgeText"></span><b>Invullen</b></button>
@@ -144,6 +149,11 @@
     <!-- Vaste lasten: IBI, IVTM, verzekeringen en abonnementen, met totalen en tijdlijn -->
     <section class="view" id="view-lasten" hidden>
       <div id="lastenRoot"></div>
+    </section>
+
+    <!-- Zoeken: één zoekveld voor de hele app (knop met het vergrootglas bovenin) -->
+    <section class="view" id="view-zoeken" hidden>
+      <div id="zoekenRoot"></div>
     </section>
 
     <!-- Nummers -->

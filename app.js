@@ -2,7 +2,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { mountMenu, cleanPlan, freshPlan, menuShopping, cleanDishes } from './menu.js';
 import { mountSpaans } from './spaans.js';
-import { mountRecepten, byId as recipeById, recipeShopping } from './recepten.js';
+import { mountRecepten, byId as recipeById, recipeShopping, RECIPES } from './recepten.js';
+import { mountZoeken } from './zoeken.js';
 import { mountTaken, dueCount } from './taken.js';
 import { mountKijken } from './kijken.js';
 import { mountDagvragen } from './dagvragen.js';
@@ -138,7 +139,7 @@ sb.auth.onAuthStateChange((event, session) => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 
 // ---------- Navigatie ----------
-const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', klussen: 'Klussen in huis', meer: 'Meer' };
+const VIEWS = { menu: 'Weekmenu', gezond: 'Gewicht en sport', boodschappen: 'Boodschappen', cadeaus: 'Cadeaus', notities: 'Notities', nummers: 'Belangrijke nummers', spaans: 'Spaans oefenen', recepten: 'Receptenboekje', taken: 'Terugkerende taken', kijken: 'Kijken', dagvragen: 'Dagvragen', weer: 'Weer in Cómpeta', kettlebell: 'Kettlebell', bonnetjes: 'Bonnetjes en garantie', lasten: 'Vaste lasten', klussen: 'Klussen in huis', meer: 'Meer', zoeken: 'Zoeken' };
 // Onderdelen die onder de knop Meer staan (de tegels in #view-meer); dan licht Meer op in de tabbalk
 const inMeer = v => !!document.querySelector(`#view-meer a[data-v="${v}"]`);
 const current = () => (location.hash.slice(1) in VIEWS ? location.hash.slice(1) : 'menu');
@@ -149,6 +150,9 @@ function route() {
   document.querySelectorAll('.tabs a').forEach(a => { if (a.dataset.v === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   $('#viewTitle').textContent = VIEWS[v];
   render(v); showNudge(); window.scrollTo(0, 0);
+  if (v === 'zoeken') zoeken.focus();
+  // Vanuit Zoeken: na het wisselen van scherm het gezochte item openen of aanwijzen
+  if (revealNext && revealNext.view === v) { const r = revealNext; revealNext = null; reveal(r); }
 }
 window.addEventListener('hashchange', route);
 
@@ -158,12 +162,12 @@ function render(v = current()) {
   const list = $('#view-' + v);
   const a = document.activeElement;
   if (a && list.contains(a) && a.closest('.list') && /INPUT|TEXTAREA/.test(a.tagName)) { pending = true; return; }
-  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), klussen: () => klussen.render(), meer: () => {} })[v]();
+  ({ boodschappen: renderShop, menu: () => menu.render(), gezond: () => gezond.render(), cadeaus: renderGifts, notities: renderNotes, nummers: renderContacts, spaans: () => spaans.render(), recepten: () => recepten.render(), taken: () => taken.render(), kijken: () => kijken.render(), dagvragen: () => dagvragen.render(), weer: () => weer.render(), kettlebell: () => kettlebell.render(), bonnetjes: () => bonnetjes.render(), lasten: () => lasten.render(), klussen: () => klussen.render(), zoeken: () => zoeken.render(), meer: () => {} })[v]();
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pending) { pending = false; render(); } }, 50));
 
 // ---------- Start ----------
-let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten, klussen;
+let menu, spaans, taken, gezond, recepten, kijken, dagvragen, weer, kettlebell, bonnetjes, lasten, klussen, zoeken;
 async function start() {
   fillShopForm();
   menu = mountMenu($('#menuRoot'), { getPlan, setPlan, toShopping: menuToShopping, getEaten, setEaten, getDefault, setDefault, getDishes, setDishes,
@@ -179,6 +183,9 @@ async function start() {
   weer = mountWeer({ root: $('#weerRoot'), esc, sb, run, load, getPrefs: () => S.weer_prefs.find(r => r.owner === userId), isMissing: () => weerMissing, userId: () => userId, onSummary: t => { const s = $('#weerTile small'); if (s) s.textContent = t; } });
   kettlebell = mountKettlebell({ root: $('#kettlebellRoot'), esc, toast, today: () => iso(new Date()),
     hasKracht: day => S.sport_log.some(r => r.owner === userId && r.day === day && r.kind === 'kracht'), markKracht: day => toggleSport(day, 'kracht', true) });
+  zoeken = mountZoeken({ root: $('#zoekenRoot'), esc, open: openItem,
+    data: () => ({ notes: S.notes, contacts: S.contacts, shopping_items: S.shopping_items, recipes: RECIPES, gift_lists: S.gift_lists, gift_items: S.gift_items,
+      house_jobs: S.house_jobs, receipts: S.receipts, expenses: S.expenses }) });
   lasten = mountLasten({ root: $('#lastenRoot'), sb, esc, run, toast, openDialog, load, getItems: () => S.expenses, isMissing: () => lastenMissing });
   gezond = mountGezond($('#gezondRoot'), { get: healthData, saveWeight, deleteWeight, toggleSport, saveSettings, saveDay, setMinutes, openDialog,
     push: { state: pushState, enable: () => enablePush(sb, userId), disable: () => disablePush(sb), test: () => testPush('test'), week: () => testPush('week') } });
@@ -197,6 +204,35 @@ async function start() {
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible') { await Promise.all(Object.keys(S).map(load)); fillShopPick(); render(); showNudge(); }
   });
+}
+
+// ---------- Zoeken door de hele app ----------
+// Tik op een resultaat: naar het juiste scherm, filters daar uit, en dan het item openen (notitie, klus, bon, vaste last, recept)
+// of in beeld schuiven met een korte gloed (nummer om te bellen, regel op de lijst, cadeau).
+let revealNext = null;
+$('#searchBtn').addEventListener('click', () => { if (current() === 'zoeken') zoeken.focus(); else location.hash = 'zoeken'; });
+function openItem(view, item, q) {
+  if (view === 'recepten' && item) recepten.show(item.id);
+  revealNext = { view, item, q };
+  location.hash = view;
+}
+const OPEN_DIALOG = ['notities', 'klussen', 'bonnetjes', 'lasten'];
+function reveal({ view, item, q }) {
+  const sec = $('#view-' + view);
+  // Zoekveld van dat scherm: leeg bij één item (zodat het zichtbaar is), gevuld bij "Nog x in …"
+  sec.querySelectorAll('input[type=search]').forEach(i => { i.value = item ? '' : q.trim(); i.dispatchEvent(new Event('input', { bubbles: true })); });
+  if (!item) return;
+  // Klussen: plek-filter op Overal
+  const overal = sec.querySelector('[data-act=place][data-place=""]'); if (overal && !overal.classList.contains('on')) overal.click();
+  if (view === 'recepten') return;
+  const id = CSS.escape(item.id);
+  const el = view === 'cadeaus' ? sec.querySelector(item._list ? `.gift[data-id="${id}"]` : `[data-item="${id}"]`) : sec.querySelector(`[data-id="${id}"]`);
+  if (!el) { toast('Niet gevonden, misschien net verwijderd'); return; }
+  const det = el.closest('details'); if (det) det.open = true;
+  el.scrollIntoView({ block: 'center' });
+  el.classList.remove('zk-flash'); void el.offsetWidth; el.classList.add('zk-flash');
+  setTimeout(() => el.classList.remove('zk-flash'), 2600);
+  if (OPEN_DIALOG.includes(view)) { const b = el.querySelector('[data-act=edit],[data-act=open]'); if (b) b.click(); }
 }
 
 // ---------- Gezond (gewicht en sport, alleen eigen gegevens) ----------

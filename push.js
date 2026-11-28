@@ -6,7 +6,18 @@ const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 export const supported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
-export function registerSW() { if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); }
+// De service worker zorgt ook dat de app altijd de nieuwste versie laadt (zie sw.js).
+// updateViaCache 'none': sw.js zelf nooit uit de browsercache. Bij terugkomen in de app wordt op een nieuwe versie gecontroleerd.
+// Neemt een nieuwe service worker het over terwijl er al een was, dan één keer herladen zodat alles vers is.
+export function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  const had = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+}
 
 // 'unsupported-ios' | 'unsupported' | 'denied' | 'on' | 'off'
 export async function pushState() {
