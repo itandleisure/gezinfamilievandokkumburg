@@ -426,3 +426,20 @@ dialog h2{margin:0 0 14px;font-size:22px}
 .gp-sl.on.s3{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
 .gp-sl.on.s2{border-color:var(--blue);color:var(--blue)}
 .gp-sl.on.s1{border-color:var(--terra);color:var(--terra)}
+/* Receptenboekje: filters en "Wat eten we vandaag?" */
+.rb-dice{width:100%;min-height:52px;margin-bottom:12px;font-size:17px;background:var(--terra);border-color:var(--terra);color:#fff}
+.rb-pick{display:grid;gap:10px;margin-bottom:14px;padding:12px;border-radius:16px;background:var(--card);border:2px solid var(--terra)}
+.rb-pick img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;display:block;background:var(--line)}
+.rb-pick-txt{display:grid;gap:2px;line-height:1.25}
+.rb-pick-txt b{font-size:19px}
+.rb-pick-txt i{color:var(--blue);font-size:14px}
+.rb-pick-txt small{color:var(--mut);font-size:13px}
+.rb-pick-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rb-pick-btns .primary{grid-column:1/-1}
+.rb-pick-btns .primary[disabled]{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.rb-filter{flex-wrap:wrap;overflow:visible}
+.rb-filter .chip{min-height:44px;font-size:14px}
+.rb-filter .chip[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+.rb-clear{min-height:0;font-size:14px;text-decoration:underline}
+.rb-empty{padding:14px;border-radius:12px;background:var(--card);font-size:15px}
+.rb-empty .btn.link{min-height:0;text-decoration:underline}

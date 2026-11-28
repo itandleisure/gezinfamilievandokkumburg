@@ -337,16 +337,62 @@ const soortVan = d => (SOORTEN.find(s => s.dagen.includes(d)) || SOORTEN[0]).id;
 // Als een foto niet laadt: een tegeltje in azulejo-blauw met een bord
 const FALLBACK = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90"><rect width="120" height="90" fill="#1d4e89"/><circle cx="60" cy="45" r="28" fill="#fff"/><circle cx="60" cy="45" r="18" fill="none" stroke="#c4502b" stroke-width="3"/></svg>');
 
+// Filters: per groep één keuze, groepen tellen samen op (bijv. Vega + Pasta + Binnen 25 min).
+// Vis/vlees en pasta/rijst/aardappel volgen uit de onderdelen van Avondeten (posities in menu.js).
+const VIS = [4], AARDAPPEL = [0, 1, 4, 5], BROOD = [6, 7, 8, 9];
+export const FILTERS = [
+  { g: 'tijd', id: 'kort', n: '⏱ Binnen 25 min', ok: x => x.min <= 25 },
+  { g: 'hoofd', id: 'vega', n: '🌱 Vega', ok: x => !x.vega },
+  { g: 'hoofd', id: 'vlees', n: '🍗 Vlees', ok: x => !!x.vega && !VIS.includes(x.k['d.eiwit']) },
+  { g: 'hoofd', id: 'vis', n: '🐟 Vis', ok: x => !!x.vega && VIS.includes(x.k['d.eiwit']) },
+  { g: 'basis', id: 'pasta', n: '🍝 Pasta', ok: x => x.k['d.koolh'] === 2 },
+  { g: 'basis', id: 'rijst', n: '🍚 Rijst', ok: x => x.k['d.koolh'] === 3 },
+  { g: 'basis', id: 'aardappel', n: '🥔 Aardappel', ok: x => AARDAPPEL.includes(x.k['d.koolh']) || /aardappel|krieltjes|patat|ovenpart/i.test(x.n) },
+  { g: 'basis', id: 'brood', n: '🌮 Brood & wraps', ok: x => BROOD.includes(x.k['d.koolh']) }
+];
+
 export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, addToShopping, toast }) {
-  let soort = soortVan(todayIdx()), open = null;
+  let soort = soortVan(todayIdx()), open = null, pick = null;
+  const fil = {}; // groep -> filter-id
+
+  function shown() {
+    const fs = Object.values(fil).map(id => FILTERS.find(f => f.id === id));
+    return (soort === 'alle' ? RECIPES : RECIPES.filter(x => [].concat(x.soort).includes(soort))).filter(x => fs.every(f => f.ok(x)));
+  }
+  // Wat eten we vandaag? Kiest uit wat er nu getoond wordt, liefst iets wat deze week nog niet op het menu staat.
+  function choose() {
+    let pool = shown(); if (!pool.length) pool = RECIPES;
+    const planned = new Set(getPlan().map(p => p[REC]).filter(Boolean));
+    let fresh = pool.filter(x => x.id !== pick && !planned.has(x.id));
+    if (!fresh.length) fresh = pool.filter(x => x.id !== pick);
+    if (!fresh.length) fresh = pool;
+    pick = fresh[Math.floor(Math.random() * fresh.length)].id;
+  }
+  function pickCard() {
+    const x = pick && byId(pick); if (!x) return '';
+    const t = recipeKcal(x), on = getPlan()[todayIdx()][REC] === x.id;
+    return `<div class="rb-pick" aria-live="polite">
+      <img src="${foto(x.foto, 600)}" alt="">
+      <div class="rb-pick-txt"><small>Vandaag eten we…</small><b>${esc(x.n)}</b><i>${esc(x.es)}</i><small>⏱ ${x.min} min · ${nf(t.k)} kcal${x.vega ? '' : ' · 🌱 vegetarisch'}</small></div>
+      <div class="rb-pick-btns">
+        <button class="btn primary" type="button" data-pickday${on ? ' disabled' : ''}>${on ? '✓ Staat op vandaag' : 'Zet op vandaag'}</button>
+        <button class="btn" type="button" data-open="${x.id}">Bekijk recept</button>
+        <button class="btn" type="button" data-pick>🎲 Nog eens</button>
+      </div></div>`;
+  }
 
   function list() {
-    const items = soort === 'alle' ? RECIPES : soort === 'vega' ? RECIPES.filter(x => !x.vega) : RECIPES.filter(x => [].concat(x.soort).includes(soort));
+    const items = shown();
     const s = SOORTEN.find(x => x.id === soort);
-    return `<div class="chips rb-chips" role="tablist" aria-label="Soort avond">${
+    const anyF = Object.keys(fil).length;
+    return `<button class="btn rb-dice" type="button" data-pick>🎲 Wat eten we vandaag?</button>
+    ${pickCard()}
+    <div class="chips rb-chips" role="tablist" aria-label="Soort avond">${
       SOORTEN.map(x => `<button class="chip" role="tab" data-soort="${x.id}" aria-selected="${x.id === soort}">${x.n}</button>`).join('')
-    }<button class="chip" role="tab" data-soort="vega" aria-selected="${soort === 'vega'}">🌱 Vega</button><button class="chip" role="tab" data-soort="alle" aria-selected="${soort === 'alle'}">Alles</button></div>
-    <p class="mut rb-sub">${s ? `${esc(s.n)}: ${esc(s.sub)}.` : soort === 'vega' ? 'Helemaal vegetarisch: geschikt voor jullie allebei.' : 'Alle recepten.'} Tik op een recept voor ingrediënten en bereiding. Calorieën gelden voor jouw portie.</p>
+    }<button class="chip" role="tab" data-soort="alle" aria-selected="${soort === 'alle'}">Alles</button></div>
+    <div class="chips rb-filter" aria-label="Filters">${FILTERS.map(f => `<button class="chip" type="button" data-fil="${f.id}" aria-pressed="${fil[f.g] === f.id}">${f.n}</button>`).join('')}</div>
+    <p class="mut rb-sub">${s ? `${esc(s.n)}: ${esc(s.sub)}.` : 'Alle recepten.'} ${items.length} ${items.length === 1 ? 'recept' : 'recepten'}${anyF ? ' met deze filters · <button class="btn link rb-clear" type="button" data-clearfil>filters wissen</button>' : ''}. Tik op een recept voor ingrediënten en bereiding. Calorieën gelden voor jouw portie.</p>
+    ${items.length ? '' : `<p class="rb-empty">Geen recept dat hierbij past. Probeer <button class="btn link" type="button" data-soort="alle">Alles</button> of <button class="btn link" type="button" data-clearfil>wis de filters</button>.</p>`}
     <div class="rb-grid">${items.map(x => { const t = recipeKcal(x); return `<button class="rb-card" type="button" data-open="${x.id}">
       <img src="${foto(x.foto, 400)}" alt="" loading="lazy">
       <span class="rb-txt"><b>${esc(x.n)}</b>${x.vega ? '' : '<em class="rb-veg">🌱 vegetarisch</em>'}<i>${esc(x.es)}</i><small>⏱ ${x.min} min · ${nf(t.k)} kcal · ${nf(t.p)} g eiwit</small></span></button>`; }).join('')}</div>
@@ -382,6 +428,12 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
     </article>`;
   }
 
+  function putOnDay(x, d) {
+    const plan = getPlan().map(p => ({ ...p }));
+    Object.entries(x.k).forEach(([key, v]) => { plan[d][key] = v; delete plan[d][key + '#q']; });
+    plan[d][REC] = x.id; setPlan(plan); toast(x.n + ' staat op ' + DAYS[d].toLowerCase());
+  }
+
   function render() {
     const x = open && byId(open);
     root.innerHTML = x ? detail(x) : list();
@@ -391,16 +443,21 @@ export function mountRecepten(root, { getPlan, setPlan, getDishes, setDishes, ad
   root.addEventListener('click', async e => {
     const so = e.target.closest('[data-soort]');
     if (so) { soort = so.dataset.soort; render(); return; }
+    const fi = e.target.closest('[data-fil]');
+    if (fi) { const f = FILTERS.find(q => q.id === fi.dataset.fil); if (fil[f.g] === f.id) delete fil[f.g]; else fil[f.g] = f.id; render(); return; }
+    if (e.target.closest('[data-clearfil]')) { Object.keys(fil).forEach(k => delete fil[k]); render(); return; }
+    if (e.target.closest('[data-pick]')) { choose(); render(); root.querySelector('.rb-pick')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
+    const pd = e.target.closest('[data-pickday]');
+    if (pd) { const y = byId(pick); if (y) { putOnDay(y, todayIdx()); render(); } return; }
     const op = e.target.closest('[data-open]');
     if (op) { open = op.dataset.open; render(); window.scrollTo(0, 0); return; }
     if (e.target.closest('[data-back]')) { open = null; render(); window.scrollTo(0, 0); return; }
     const x = open && byId(open); if (!x) return;
     const dy = e.target.closest('[data-day]');
     if (dy) {
-      const d = +dy.dataset.day, plan = getPlan().map(p => ({ ...p }));
-      if (plan[d][REC] === x.id) { delete plan[d][REC]; setPlan(plan); render(); toast('Recept van ' + DAYS[d].toLowerCase() + ' gehaald'); return; }
-      Object.entries(x.k).forEach(([key, v]) => { plan[d][key] = v; delete plan[d][key + '#q']; });
-      plan[d][REC] = x.id; setPlan(plan); render(); toast(x.n + ' staat op ' + DAYS[d].toLowerCase()); return;
+      const d = +dy.dataset.day;
+      if (getPlan()[d][REC] === x.id) { const plan = getPlan().map(p => ({ ...p })); delete plan[d][REC]; setPlan(plan); render(); toast('Recept van ' + DAYS[d].toLowerCase() + ' gehaald'); return; }
+      putOnDay(x, d); render(); return;
     }
     const sh = e.target.closest('[data-shop]');
     if (sh) {
