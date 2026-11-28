@@ -7,14 +7,14 @@ const CATNAME = { groente: 'Groente', fruit: 'Fruit', zuivel: 'Zuivel', eiwit: '
 const BELEG = [["Kaas 30+", "1 plak (20 g)", 60, 5, "zuivel"], ["Jonge kaas 48+", "1 plak (20 g)", 75, 5, "zuivel"], ["Salami", "3 dunne plakjes (15 g)", 60, 3.5], ["Serranoham", "2 plakjes (20 g)", 50, 6], ["Gekookt ei", "1 stuk", 75, 6.5], ["Kipfilet (beleg)", "2 plakjes (30 g)", 35, 7], ["Smeerkaas light", "20 g", 35, 2, "zuivel"], ["Pindakaas", "10 g", 60, 2.5, "overig"], ["Tortilla (Spaanse omelet)", "1 punt (100 g)", 180, 7]];
 export const SLOTS = [
 {id:'o',time:'07:30',name:'Ontbijt',comps:[
- {id:'basis',label:'Kwark',cat:'zuivel',opts:[['Magere kwark','250 g',143,24],['Halfvolle kwark','250 g',190,22],['Griekse yoghurt 0%','250 g',145,25]],def:[0,0,0,0,0,0,0]},
+ {id:'basis',label:'Kwark / yoghurt',cat:'zuivel',opts:[['Magere kwark','250 g',143,24],['Halfvolle kwark','250 g',190,22],['Griekse yoghurt 0%','250 g',145,25],['Stracciatella-yoghurt','2 bekertjes (250 g)',290,8],['Griekse stracciatella-yoghurt','1 beker (125 g)',200,4]],def:[0,0,0,0,0,0,0]},
  {id:'crunch',label:'Muesli',cat:'granen',opts:[['Muesli zonder toegevoegde suiker','40 g',150,4],['Havermout','40 g',150,5],['Krokante muesli','30 g',135,3],['Geen muesli','',0,0]],def:[0,0,1,0,0,1,3]},
  {id:'fruit',label:'Fruit erdoor',cat:'fruit',opts:[['Frambozen','100 g',52,1],['Blauwe bessen','100 g',57,1],['Aardbeien','150 g',48,1],['Banaan','½ stuk',50,.6],['Diepvries rood fruit','100 g',45,1],['Appel in stukjes','½ appel',40,.2],['Peer in stukjes','½ peer',45,.3],['Geen fruit','',0,0]],def:[4,5,3,4,6,5,7]},
  {id:'extra',label:'Extra',cat:'fruit',opts:[['Medjool-dadel','1 stuk',66,.4],['Walnoten','10 g',65,1.5,'overig'],['Honing','1 tl',30,0,'overig'],['Niets extra','',0,0]],def:[0,1,0,2,0,1,3]}]},
 {id:'f',time:'10:30',name:'Fruit',comps:[
  {id:'fruit',label:'Fruit',cat:'fruit',opts:[['Appel','1 stuk',80,.4],['Mandarijnen','2 stuks',70,1.2],['Sinaasappel','1 stuk',70,1.3],['Peer','1 stuk',90,.6],['Banaan','1 stuk',105,1.3],['Geen fruit (strand: broodje komt eraan)','',0,0]],def:[0,1,2,0,1,2,5]}]},
 {id:'l',time:'12:30',name:'Lunch',comps:[
- {id:'brood',label:'Brood',cat:'granen',opts:[['Volkorenbrood','3 sneetjes',255,12],['Volkorenbrood','2 sneetjes',170,8],['Groot pistolet / bocadillo','1 stuk (ca. 120 g)',320,11]],def:[0,0,0,0,0,0,2]},
+ {id:'brood',label:'Brood',cat:'granen',opts:[['Volkorenbrood','3 sneetjes',255,12],['Volkorenbrood','2 sneetjes',170,8],['Groot pistolet / bocadillo','1 stuk (ca. 120 g)',320,11],['Stokbrood (barra de pan)','⅓ barra (ca. 15 cm, 85 g)',230,7]],def:[0,0,0,0,0,0,2]},
  {id:'b1',label:'Beleg 1',cat:'eiwit',opts:BELEG,def:[0,0,1,0,0,1,1]},
  {id:'b2',label:'Beleg 2',cat:'eiwit',opts:BELEG,def:[2,3,3,2,3,2,3]},
  {id:'b3',label:'Beleg 3',cat:'eiwit',opts:BELEG,def:[5,4,1,5,0,4,8]},
